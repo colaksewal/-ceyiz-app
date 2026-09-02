@@ -1,0 +1,53 @@
+@use "../styles/variables" as *;
+
+.form {
+  margin-bottom: $space-6;
+}
+
+.submitBtn {
+  margin-top: $space-4;
+}
+
+.entryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.entry {
+  border-radius: $radius-md;
+  padding: $space-4;
+  background: $color-surface;
+  border: 1px solid $color-border;
+}
+
+.entryPreferred {
+  border: 1px solid $color-success;
+  background: $color-success-bg;
+}
+
+.entryHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-1;
+}
+
+.storeName {
+  font-weight: 600;
+}
+
+.preferredBadge {
+  color: $color-success;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.entryDetail {
+  color: $color-text-muted;
+  font-size: 0.9rem;
+  margin-top: $space-1;
+}

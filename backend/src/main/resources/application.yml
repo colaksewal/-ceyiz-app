@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: ceyiz-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      # Aşama 3'te sadece bağlantıyı doğrula. Aşama 4'te şema yönetimi
+      # tamamen Flyway'e devredilecek (ddl-auto: none olacak).
+      ddl-auto: none
+    open-in-view: false
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

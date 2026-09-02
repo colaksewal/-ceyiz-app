@@ -1,0 +1,26 @@
+# Ortam sırları
+.env
+
+# Backend
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# İşletim sistemi
+.DS_Store
+
+# Geliştirme sırasında oluşan, secret/token içerebilen ya da ham log dökümü
+# olan scratch dosyaları — repoya girmemeli.
+backend/test-request.http
+logs.txt

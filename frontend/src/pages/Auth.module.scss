@@ -1,0 +1,32 @@
+@use "../styles/variables" as *;
+
+.wrap {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-5;
+  background: $color-bg;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  padding: $space-6;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: $space-5;
+}
+
+.footer {
+  text-align: center;
+  margin: $space-4 0 0;
+  font-size: 0.9rem;
+  color: $color-text-muted;
+}

@@ -1,0 +1,64 @@
+@use "../styles/variables" as *;
+
+.form {
+  margin-bottom: $space-6;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-4;
+  margin-bottom: $space-5;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.itemsTitle {
+  margin-bottom: $space-3;
+}
+
+.itemRow {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 0.7fr 1.3fr auto;
+  gap: $space-2;
+  align-items: center;
+  margin-bottom: $space-2;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.addItemBtn {
+  margin-bottom: $space-5;
+}
+
+.setList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.setRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $space-3;
+}
+
+.setName {
+  font-weight: 600;
+}
+
+.setStore {
+  color: $color-text-muted;
+}
+
+.setPrice {
+  color: $color-text-muted;
+}

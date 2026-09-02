@@ -1,0 +1,17 @@
+@use "../styles/variables" as *;
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-4 $space-6;
+  background: $color-surface;
+  border-bottom: 1px solid $color-border;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  color: $color-text;
+}

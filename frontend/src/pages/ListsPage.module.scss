@@ -1,0 +1,35 @@
+@use "../styles/variables" as *;
+
+.form {
+  margin-bottom: $space-6;
+}
+
+.nameField {
+  flex: 1;
+}
+
+.dateField {
+  max-width: 180px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemDate {
+  color: $color-text-muted;
+  margin-left: $space-2;
+  font-size: 0.85rem;
+}
+
+.itemName {
+  font-weight: 600;
+  text-decoration: none;
+  color: $color-text;
+
+  &:hover {
+    color: $color-primary;
+  }
+}

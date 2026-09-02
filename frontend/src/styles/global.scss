@@ -1,0 +1,272 @@
+@use "sass:color";
+@use "variables" as *;
+
+// ---------- Reset ----------
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: $font-sans;
+  background: $color-bg;
+  color: $color-text;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0 0 $space-4;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+a {
+  color: $color-primary;
+}
+
+ul {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+// ---------- Layout helpers ----------
+
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: $space-6 $space-5 $space-8;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: $space-4;
+  color: $color-text-muted;
+  text-decoration: none;
+  font-size: 0.9rem;
+
+  &:hover {
+    color: $color-primary;
+  }
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $space-4;
+  margin-bottom: $space-4;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+// ---------- Card ----------
+
+.card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-5;
+  box-shadow: $shadow-sm;
+}
+
+.card-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+// ---------- Forms ----------
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $color-text-muted;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: $space-3;
+  align-items: flex-end;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-grid-full {
+  grid-column: 1 / -1;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  color: $color-text;
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.15);
+  }
+
+  &:disabled {
+    background: $color-surface-muted;
+    color: $color-text-faint;
+  }
+}
+
+// ---------- Buttons ----------
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: $color-primary;
+  color: $color-primary-contrast;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-hover;
+  }
+}
+
+.btn-secondary {
+  background: $color-surface-muted;
+  color: $color-text;
+  border: 1px solid $color-border-strong;
+
+  &:hover:not(:disabled) {
+    background: $color-border;
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: $color-text-muted;
+  padding: 0.4rem 0.6rem;
+
+  &:hover:not(:disabled) {
+    color: $color-primary;
+  }
+}
+
+.btn-danger-ghost {
+  @extend .btn-ghost;
+
+  &:hover:not(:disabled) {
+    color: $color-danger;
+  }
+}
+
+.btn-block {
+  width: 100%;
+}
+
+// ---------- Feedback ----------
+
+.error-text {
+  color: $color-danger;
+  font-size: 0.9rem;
+  margin: 0 0 $space-3;
+}
+
+.muted {
+  color: $color-text-muted;
+}
+
+.empty-state {
+  color: $color-text-muted;
+  font-style: italic;
+  padding: $space-3 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-neutral {
+  background: $color-surface-muted;
+  color: $color-text-muted;
+}
+
+.badge-success {
+  background: $color-success-bg;
+  color: $color-success;
+}
+
+.badge-warning {
+  background: $color-danger-bg;
+  color: $color-danger;
+}

@@ -1,0 +1,9 @@
+@use "../styles/variables" as *;
+
+.form {
+  margin-bottom: $space-6;
+}
+
+.nameField {
+  flex: 1;
+}
