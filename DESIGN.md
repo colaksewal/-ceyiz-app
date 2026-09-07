@@ -93,9 +93,10 @@ edebilir, düzenleyebilir ya da yok sayıp elle liste kurabilir.
 **Senaryo 2 — Bütçe analizi:** kategori bazlı toplam harcanan/planlanan verisi **agregat**
 halde AI'ya gönderilir, AI kullanıcının fark etmeyebileceği örüntüleri yorumlar.
 
-**Mimari:** `AiController → AiService → AnthropicClient (WebClient) → Anthropic API`.
+**Mimari:** `AiController → AiService → AiClient (WebClient) → sağlayıcı API`.
 `AiService` controller'dan tamamen ayrı bir katman; sağlayıcı değişirse yalnızca bu katman
-değişir.
+değişir. Ücretli bir API yerine ücretsiz/self-host bir model (ör. Gemma, Ollama üzerinden)
+kullanmak için bkz. §7.
 
 **Tasarım ilkeleri:**
 - Modelden yalnızca yapılandırılmış JSON istenir, doğrudan DTO'lara map edilir.
@@ -225,7 +226,8 @@ Uçtan uca doğrulama: tam yığın `docker compose up` ile ayağa kaldırılıp
 
 | Görev | Ne işe yarar |
 |---|---|
-| ⬜ `AnthropicClient` (WebClient tabanlı) | AI sağlayıcısıyla iletişim katmanı |
+| ⬜ `AiClient` (WebClient tabanlı, sağlayıcıdan bağımsız arayüz) | AI sağlayıcısıyla iletişim katmanı |
+| ⬜ `OllamaClient` implementasyonu (ücretsiz self-host, bkz. §7) | Ücretli API kullanmadan Gemma gibi modellerle çalışmak |
 | ⬜ Prompt dosyalarını `resources/prompts/` altında oluştur | Versiyonlanabilir, test edilebilir promptlar |
 | ⬜ `AiService` — liste önerisi metodu | Senaryo 1 |
 | ⬜ `AiService` — bütçe analizi metodu | Senaryo 2 |
@@ -260,7 +262,80 @@ Uçtan uca doğrulama: tam yığın `docker compose up` ile ayağa kaldırılıp
 
 ---
 
-## 7. CV sunumu için notlar
+## 7. Ek — Ücretsiz self-host AI altyapısı (Oracle Cloud + Ollama)
+
+Aşama 6'daki AI katmanı için ücretli bir API (Anthropic/OpenAI vb.) yerine, açık kaynak
+bir modeli (ör. **Gemma**) kendi barındırdığımız bir sunucuda çalıştırmak istersek
+izlenecek yol budur. `AiService` zaten sağlayıcıdan bağımsız tasarlandığından (bkz. 2.6),
+bu sadece `AiClient` arayüzüne yeni bir implementasyon (`OllamaClient`) eklemek anlamına
+gelir; prompt'lar ve iş mantığı değişmez.
+
+### 7.1 Neden Oracle Cloud
+
+- **Always Free, süresiz kota** (deneme kredisi değil): 4 OCPU + 24 GB RAM'e kadar
+  Ampere A1 (ARM) instance. Diğer büyük sağlayıcıların (AWS/GCP/Azure) her zaman ücretsiz
+  katmanları genelde ~1GB RAM ile sınırlı — bir LLM çalıştırmaya yetmiyor. 24GB RAM,
+  `gemma2:9b` gibi modelleri (quantized haliyle ~6-9GB RAM ister) rahatça çalıştırır.
+- 200GB'a kadar blok depolama da ücretsiz kotaya dahil.
+- Kaynak: https://www.oracle.com/cloud/free/
+
+### 7.2 Adım adım kurulum
+
+1. **Hesap aç.** oracle.com/cloud/free üzerinden kayıt ol. Kredi kartı doğrulaması
+   istenir ama Always Free kaynaklar için ücretlendirme yapılmaz.
+2. **Compute instance oluştur.** Console → *Compute → Instances → Create Instance*:
+   - Image: Ubuntu 22.04 (ARM uyumlu)
+   - Shape: `VM.Standard.A1.Flex` (Ampere ailesi), 4 OCPU / 24GB RAM (Always Free limiti)
+   - SSH anahtar çifti oluştur/yükle
+   - Not: bazı region/AD'lerde A1 kapasitesi anlık dolu olabilir; hata alırsan birkaç kez
+     dene ya da farklı Availability Domain seç.
+3. **Güvenlik kuralları ayarla.** VCN → Security Lists içinde:
+   - SSH (22) — yalnızca kendi IP'ne açık
+   - Backend HTTP portu (ör. 8080) — dışa açık
+   - Ollama portu (11434) — **dışa açma**; backend aynı VM'de olacağı için yalnızca
+     `localhost` üzerinden erişilecek (Ollama'nın kendi auth mekanizması yok, dışa açık
+     bırakmak başkalarının senin ücretsiz kotanı kullanmasına yol açar)
+4. **SSH ile bağlan:** `ssh -i <private_key> ubuntu@<instance_public_ip>`
+5. **Ollama kur:**
+   ```
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+   Kaynak: https://ollama.com/download/linux
+6. **Modeli çek:**
+   ```
+   ollama pull gemma2:9b
+   ```
+   RAM'i zorlarsa daha hafif `gemma2:2b` alternatifi kullanılabilir.
+   Model kartı/boyutları: https://ollama.com/library/gemma2
+7. **Test et:**
+   ```
+   ollama run gemma2:9b "Merhaba, kendini tanıt"
+   ```
+8. **Kalıcılığı doğrula.** Kurulum Ollama'yı systemd servisi olarak ayarlar
+   (`systemctl status ollama`) — VM yeniden başlasa da otomatik ayağa kalkar.
+9. **Backend'i aynı VM'e kur.**
+   - Docker + Docker Compose kur: https://docs.docker.com/engine/install/ubuntu/
+   - Repoyu VM'e çek (`git clone ...`), `.env` dosyasını doldur
+   - `docker compose up -d --build`
+   - `OllamaClient`'ı `http://localhost:11434/api/chat` adresine işaret et
+   - API formatı için kaynak: https://github.com/ollama/ollama/blob/main/docs/api.md
+10. **Domain/HTTPS (opsiyonel, CV/canlı demo için önerilir).** Instance'a bir domain
+    bağlayıp Caddy ile otomatik ücretsiz Let's Encrypt sertifikası almak mümkün:
+    https://caddyserver.com/docs/quick-starts/https
+
+### 7.3 Kaynaklar
+
+- Oracle Cloud Always Free: https://www.oracle.com/cloud/free/
+- Oracle Ampere A1 shape dokümantasyonu: https://docs.oracle.com/en-us/iaas/Content/Compute/References/computeshapes.htm
+- Ollama resmi site ve kurulum: https://ollama.com
+- Ollama model kütüphanesi (Gemma dahil): https://ollama.com/library
+- Ollama REST API referansı: https://github.com/ollama/ollama/blob/main/docs/api.md
+- Docker Engine kurulumu (Ubuntu): https://docs.docker.com/engine/install/ubuntu/
+- Caddy (otomatik HTTPS): https://caddyserver.com/docs/quick-starts/https
+
+---
+
+## 8. CV sunumu için notlar
 
 README'de bulunması gerekenler: mimari diyagram, teknoloji tablosu, canlı demo linki,
 ekran görüntüleri/GIF'ler.
