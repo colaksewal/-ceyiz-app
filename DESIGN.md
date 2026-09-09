@@ -159,12 +159,12 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 |---|---|---|
 | 1 | Domain modelleme ve veritabanı şeması | ✅ Tamamlandı |
 | 2 | İçerik/kapsam stratejisi | ✅ Tamamlandı |
-| 3 | Docker Compose ortamı | ⬜ Sırada |
+| 3 | Docker Compose ortamı | ✅ Tamamlandı (yerel + Oracle Cloud sunucusunda) |
 | 4 | Spring Boot backend çekirdeği | ✅ Çekirdek tamamlandı (kalanlar Faz 2) |
-| 5 | React web arayüzü + paylaşım/realtime | 🔶 Çekirdek tamamlandı (paylaşım/WS Faz 2'de) |
-| 6 | AI katmanı | ⬜ |
+| 5 | React web arayüzü + paylaşım/realtime | 🔶 Çekirdek tamamlandı (paylaşım/WS Faz 2'de, görsel yenileme Faz 3'te) |
+| 6 | AI katmanı | 🔶 Senaryo 1 (liste önerisi) uçtan uca çalışıyor (kalanlar Faz 2) |
 | 7 | React Native mobil uygulama | ⬜ |
-| 8 | Test, CI/CD ve yayına alma | ⬜ |
+| 8 | Test, CI/CD ve yayına alma | 🔶 Backend+frontend Oracle Cloud'a deploy edildi (testler/CI, domain+HTTPS Faz 3'te) |
 
 ---
 
@@ -196,7 +196,10 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | ✅ Kategori CRUD endpoint'leri (yetki kontrolüyle: sadece liste sahibi ekleyebilir/görebilir) | Aynı deseni ürün için tekrarlamak, ayrıca owner/yetki kontrolü deseni burada kuruldu |
 | ✅ Ürün CRUD endpoint'i (üç basamaklı yetki kontrolü: Product → Category → List → owner) | Liste → Kategori → Ürün zinciri tamamlandı |
 | ✅ `PriceEntry` CRUD + "bunu kullan" (isPreferred) işaretleme endpoint'i | Fiyat toplama özelliğinin backend tarafı — dört basamaklı yetki zinciri (PriceEntry→Product→Category→List) kuruldu |
-| 🔜 Faz 2: `LIST_SHARES` endpoint'leri (paylaşım, rol atama) | Paylaşımlı liste özelliğinin backend tarafı |
+| 🔜 Faz 2: `ShareRole` enum + `ListShare` entity + repository | `list_shares` tablosu DB'de zaten var (OWNER/EDITOR/VIEWER check constraint'iyle), Java tarafı henüz yok |
+| 🔜 Faz 2: Merkezi yetki kontrol servisi (`ListAccessService`) | Şu an `CategoryService`/`ProductService`/`PriceEntryService`/`ProductSetService` içinde aynı `list.getOwnerId().equals(requesterId)` deseni tekrarlanıyor ve sadece owner'ı tanıyor; bu servis tek yerde "owner/editor/viewer ne yapabilir" mantığını toplayıp `list_shares`'i de hesaba katacak |
+| 🔜 Faz 2: Mevcut 4 servisi merkezi yetki kontrolüne geçirme | Viewer sadece görebilsin, editor ekleyip düzenleyebilsin, owner paylaşımı da yönetebilsin |
+| 🔜 Faz 2: `ListShareController`/`Service` — davet etme (e-posta ile), üye listeleme, rol değiştirme, çıkarma | Paylaşımlı liste özelliğinin backend tarafı — frontend'de "Aile" ekranı olarak sunulacak (bkz. Aşama 5) |
 | ✅ `ProductSet`/`SetItem` CRUD + `SetComparisonService` — deterministik hesaplama mantığı | Set tanımlama, set kalemi ekleme (@Transactional ile), ve gerçek bir senaryoyla doğrulanmış set karşılaştırma (isPreferred fiyat + fallback + tahmini fiyat zinciri) |
 | 🔜 Faz 2: Ürün arama/autocomplete endpoint'i (`/products/search`) | Set kalemi eşleştirme için (frontend'de kullanılacak) |
 | 🔜 Faz 2: Set karşılaştırma endpoint'ine yetki kontrolü ekleme | Şu an `/api/sets/{setId}/comparison` owner kontrolü yapmıyor |
@@ -215,8 +218,9 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | ✅ React Query ile API entegrasyonu | Sunucu verisinin cache/senkronizasyon yönetimi — tüm sayfalar `@tanstack/react-query` ile `useQuery`/`useMutation` kullanıyor |
 | ✅ Fiyat notu ekleme formu | Fiyat toplama özelliğinin web tarafı — `ProductPage` içinde mağaza/ödeme tipi/peşin-taksit/not formu + "bunu kullan" (isPreferred) işaretleme |
 | ✅ Set karşılaştırma ekranı | Set/paket özelliğinin görselleştirilmesi — `SetsPage`: set oluşturma (kalemler için listedeki ürünlerden seçim ya da serbest metin + tahmini fiyat), `SetComparisonView`: set vs parça parça toplam, fark, eksik ürün sayısı |
-| 🔜 Faz 2: Paylaşım/izin yönetimi ekranı | Liste paylaşma arayüzü — backend'de `LIST_SHARES` endpoint'leri henüz yok (bkz. Aşama 4), bu yüzden frontend'i şimdilik eklenmedi |
+| 🔜 Faz 2: "Aile" ekranı (paylaşım/izin yönetimi) | Ayrı bir "aile/hane" DB kavramı değil — mevcut `LIST_SHARES`'in "Aileni Davet Et" başlığıyla, üye listesi + davet formu + rol seçimi (owner/editor/viewer) + çıkarma olarak sunulması. Backend'de `LIST_SHARES` endpoint'leri henüz yok (bkz. Aşama 4), bu yüzden frontend'i şimdilik eklenmedi |
 | 🔜 Faz 2: WebSocket (STOMP) bağlantısı ve canlı güncelleme | Gerçek zamanlı senkronizasyon — backend'de WebSocket/STOMP konfigürasyonu henüz yok |
+| 🔜 Faz 3: Mevcut ekranların görsel yenilenmesi | `ListsPage`/`ListDetailPage`/`CategorySection`/`ProductPage` şu an fonksiyonel ama sade — paylaşım özelliği bitince ayrı bir iş olarak ele alınacak (ikisini aynı anda yapmak takibi zorlaştırır) |
 
 Not: Set kalemi eşleştirmesi için backend'deki `/products/search` autocomplete endpoint'i henüz olmadığından (🔜 Faz 2, Aşama 4), `SetsPage` şimdilik listenin tüm kategori/ürünlerini çekip bir seçim listesi (`getListProductOptions`) olarak sunuyor. Endpoint eklendiğinde bununla değiştirilebilir.
 
@@ -226,16 +230,17 @@ Uçtan uca doğrulama: tam yığın `docker compose up` ile ayağa kaldırılıp
 
 | Görev | Ne işe yarar |
 |---|---|
-| ⬜ `AiClient` (WebClient tabanlı, sağlayıcıdan bağımsız arayüz) | AI sağlayıcısıyla iletişim katmanı |
-| ⬜ `OllamaClient` implementasyonu (ücretsiz self-host, bkz. §7) | Ücretli API kullanmadan Gemma gibi modellerle çalışmak |
-| ⬜ Prompt dosyalarını `resources/prompts/` altında oluştur | Versiyonlanabilir, test edilebilir promptlar |
-| ⬜ `AiService` — liste önerisi metodu | Senaryo 1 |
-| ⬜ `AiService` — bütçe analizi metodu | Senaryo 2 |
-| ⬜ Cache katmanı (Caffeine) | Maliyet kontrolü |
-| ⬜ Rate limiting (Bucket4j) | Kötüye kullanımı önleme |
-| ⬜ Hata toleransı / fallback mantığı | AI çökse de uygulamanın ayakta kalması |
-| ⬜ Frontend'de "Liste Öner" ve "Bütçe Analizi" butonları | Kullanıcının özelliği tetiklemesi |
-| ⬜ `AiService` için mock'lu birim testleri | Gerçek API çağrısı yapmadan mantığı doğrulama |
+| ✅ `AiClient` (WebClient tabanlı, sağlayıcıdan bağımsız arayüz) | AI sağlayıcısıyla iletişim katmanı |
+| ✅ `OllamaClient` implementasyonu (ücretsiz self-host, bkz. §7) | Oracle Cloud'daki Ollama/gemma2:9b'ye bağlanıyor; Docker Compose ağı ile host arasındaki `host.docker.internal` + iptables sorunu çözüldü (bkz. §7.3) |
+| ✅ Prompt dosyalarını `resources/prompts/` altında oluştur | `list-suggestion.txt` — versiyonlanabilir, test edilebilir promptlar |
+| ✅ `AiService` — liste önerisi metodu | Senaryo 1 — uçtan uca doğrulandı: gerçek Ollama'ya karşı curl ile test edildi, doğru JSON şeması döndü |
+| ⬜ `AiService` — bütçe analizi metodu | Senaryo 2 — DB şemasında "planlanan bütçe" alanı henüz yok, önce küçük bir migration gerekiyor. Faz 2'ye ertelendi |
+| ⬜ Cache katmanı (Caffeine) | Maliyet kontrolü — Faz 2'ye ertelendi |
+| ⬜ Rate limiting (Bucket4j) | Kötüye kullanımı önleme — Faz 2'ye ertelendi |
+| ✅ Hata toleransı / fallback mantığı | `Optional` tabanlı: `AiClient.complete()` hiçbir zaman exception fırlatmaz, `AiController` AI kullanılamadığında `204 No Content` döner |
+| ✅ Frontend'de "Liste Öner" butonu | `AiListSuggestion` component'i, `ListsPage`'e bağlandı — tarayıcıdan uçtan uca test edildi |
+| ⬜ Frontend'de "Bütçe Analizi" butonu | Senaryo 2 backend'i bitince eklenecek |
+| ⬜ `AiService` için mock'lu birim testleri | Gerçek API çağrısı yapmadan mantığı doğrulama — Faz 2'ye ertelendi |
 
 ### Aşama 7 — React Native mobil uygulama
 
@@ -256,8 +261,9 @@ Uçtan uca doğrulama: tam yığın `docker compose up` ile ayağa kaldırılıp
 | ⬜ Backend entegrasyon testleri | Uçtan uca doğruluk garantisi |
 | ⬜ Frontend bileşen testleri (Jest + RTL) | UI davranışının doğruluğu |
 | ⬜ GitHub Actions pipeline (test + build) | Her push'ta otomatik doğrulama |
-| ⬜ Backend'i Railway/Render'a deploy et | Canlı, erişilebilir backend |
-| ⬜ Frontend'i Vercel/Netlify'a deploy et | Canlı, erişilebilir web arayüzü |
+| ✅ Backend'i deploy et | Railway/Render yerine kendi Oracle Cloud sunucumuza (bkz. §7) Docker Compose ile deploy edildi — `http://84.8.158.225:8080` |
+| ✅ Frontend'i deploy et | Aynı sunucuda, Vite dev server container'ı olarak — `http://84.8.158.225:5173`. Not: prod build (nginx ile statik dosya servisi) henüz yok, şimdilik dev server yeterli |
+| 🔜 Faz 3: Domain + HTTPS | Şu an düz IP:port ve HTTP — DuckDNS (ücretsiz alt alan adı) + Caddy (otomatik Let's Encrypt) ile `https://...duckdns.org` adresine geçilecek |
 | ⬜ README yaz (mimari diyagram, tech tablosu, demo linki, ekran görüntüleri) | CV'ye hazır sunum |
 
 ---
@@ -323,7 +329,30 @@ gelir; prompt'lar ve iş mantığı değişmez.
     bağlayıp Caddy ile otomatik ücretsiz Let's Encrypt sertifikası almak mümkün:
     https://caddyserver.com/docs/quick-starts/https
 
-### 7.3 Kaynaklar
+### 7.3 Backend container'ının host'taki Ollama'ya erişimi (çözülmüş sorun)
+
+Backend, `docker-compose` ile ayrı bir container'da; Ollama ise host'ta (VM'in kendisinde)
+systemd servisi olarak çalışıyor. İkisi arasında bağlantı kurarken iki ayrı sorunla
+karşılaşıldı, ikisi de çözüldü:
+
+1. **Ollama sadece `127.0.0.1`'i dinliyordu.** Varsayılan kurulum host'un kendisinden
+   gelen istekleri kabul ediyor, container'dan gelenleri kabul etmiyordu. Çözüm:
+   `sudo systemctl edit ollama.service` ile `Environment="OLLAMA_HOST=0.0.0.0:11434"`
+   eklenip servis yeniden başlatıldı — artık tüm arayüzlerden dinliyor.
+2. **`host.docker.internal` yanlış ağın gateway'ine işaret ediyordu.** Docker'daki
+   `host-gateway` özel değeri her zaman varsayılan `docker0` bridge'ine (`172.17.0.1`)
+   çözülüyor — `docker-compose`'un kendi oluşturduğu özel ağa (`ceyiz-app_default`,
+   `172.18.0.0/16`) değil. Container bu IP'ye ulaşmaya çalıştığında host'un iptables
+   `INPUT` zincirindeki genel `REJECT` kuralına takılıyordu (`Host is unreachable`).
+   Çözüm: `sudo iptables -I INPUT -p tcp -s 172.16.0.0/12 --dport 11434 -j ACCEPT` ile
+   Docker'ın kullandığı tüm özel IP aralığından (`172.16.0.0/12`) gelen 11434 trafiğine
+   izin verildi — internetten hâlâ tamamen kapalı (Security List'te hiç açılmadı),
+   sadece host'un kendi Docker ağları erişebiliyor.
+
+`docker-compose.yml`'de backend servisine `extra_hosts: ["host.docker.internal:host-gateway"]`
+eklenmesi gerekiyor (bu olmadan `host.docker.internal` hiç çözülmez).
+
+### 7.4 Kaynaklar
 
 - Oracle Cloud Always Free: https://www.oracle.com/cloud/free/
 - Oracle Ampere A1 shape dokümantasyonu: https://docs.oracle.com/en-us/iaas/Content/Compute/References/computeshapes.htm

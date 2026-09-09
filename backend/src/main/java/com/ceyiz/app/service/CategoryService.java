@@ -1,9 +1,7 @@
 package com.ceyiz.app.service;
 
 import com.ceyiz.app.entity.Category;
-
 import com.ceyiz.app.repository.CategoryRepository;
-import com.ceyiz.app.repository.ListRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,15 +14,11 @@ import java.util.UUID;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
-    private final ListRepository listRepository;
+    private final ListAccessService listAccessService;
 
     public Category createCategory(UUID listId, String name, UUID requesterId){
 
-        var list = listRepository.findById(listId).orElseThrow(() -> new IllegalArgumentException("Liste Bulunamadı"));
-
-        if(!list.getOwnerId().equals(requesterId)){
-            throw new SecurityException("Bu listeye kategori ekleme yetkiniz yok");
-        }
+        listAccessService.requireAtLeastEditor(listId, requesterId);
 
         Category category = new Category(listId, name);
         return categoryRepository.save(category);
@@ -32,11 +26,7 @@ public class CategoryService {
 
     public List<Category> getCategoriesForList(UUID listId, UUID requesterId){
 
-        var list = listRepository.findById(listId).orElseThrow(()-> new IllegalArgumentException("Liste bulunamadı"));
-
-        if(!list.getOwnerId().equals(requesterId)){
-            throw new SecurityException("Bu listeyi görüntüleme yetkiniz yok");
-        }
+        listAccessService.requireAtLeastViewer(listId, requesterId);
 
         return categoryRepository.findByListId(listId);
 

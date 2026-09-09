@@ -1,9 +1,7 @@
 package com.ceyiz.app.service;
 
 import com.ceyiz.app.entity.Product;
-import com.ceyiz.app.entity.ProductStatus;
 import com.ceyiz.app.repository.CategoryRepository;
-import com.ceyiz.app.repository.ListRepository;
 import com.ceyiz.app.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +15,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final ListRepository listRepository;
+    private final ListAccessService listAccessService;
 
 
     public Product createProduct(UUID categoryId, String name ,UUID requesterId){
@@ -25,11 +23,7 @@ public class ProductService {
 
         var category = categoryRepository.findById(categoryId).orElseThrow(()-> new IllegalArgumentException("Kategori Bulunamadı"));
 
-        var list = listRepository.findById(category.getListId()).orElseThrow(() -> new IllegalArgumentException("Liste Bulunamadı!"));
-
-        if(!list.getOwnerId().equals(requesterId)){
-            throw new SecurityException("Bu kategoriye ürün ekleme yetkiniz yok");
-        }
+        listAccessService.requireAtLeastEditor(category.getListId(), requesterId);
 
         Product product = new Product(categoryId, name);
         return productRepository.save(product);
@@ -40,11 +34,7 @@ public class ProductService {
 
         var category = categoryRepository.findById(categoryId).orElseThrow(()-> new IllegalArgumentException("Kategori Bulunamadı"));
 
-        var list = listRepository.findById(category.getListId()).orElseThrow(() -> new IllegalArgumentException("Liste Bulunamadı!"));
-
-        if(!list.getOwnerId().equals(requesterId)){
-            throw new SecurityException("Bu kategoriye ürünleri görüntüleme yetkiniz yok");
-        }
+        listAccessService.requireAtLeastViewer(category.getListId(), requesterId);
 
         return productRepository.findByCategoryId(categoryId);
 
