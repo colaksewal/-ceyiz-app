@@ -63,8 +63,14 @@ public class PriceEntryService {
 
         listAccessService.requireAtLeastEditor(category.getListId(), requesterId);
 
+        // Eski tercih edilen kaydı hemen (saveAndFlush ile) veritabanına yazıyoruz ki
+        // aşağıdaki markAsPreferred() flush edildiğinde iki kayıt aynı anda "true" olup
+        // uq_price_entries_one_preferred_per_product kısıtını ihlal etmesin.
         priceEntryRepository.findByProductIdAndIsPreferredTrue(priceEntry.getProductId())
-                .ifPresent(PriceEntry::unmarkAsPreferred);
+                .ifPresent(existing -> {
+                    existing.unmarkAsPreferred();
+                    priceEntryRepository.saveAndFlush(existing);
+                });
 
         priceEntry.markAsPreferred();
         return priceEntryRepository.save(priceEntry);
