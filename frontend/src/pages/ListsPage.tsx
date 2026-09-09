@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createList, getMyLists } from "../api/lists";
+import { ROLE_LABELS, ROLE_BADGE_CLASS } from "../lib/shareRole";
 import styles from "./ListsPage.module.scss";
 import AiListSuggestion from "../components/AiListSuggestion"; 
 
@@ -71,6 +72,7 @@ export default function ListsPage() {
               </Link>
               {list.weddingDate && <span className={styles.itemDate}>{list.weddingDate}</span>}
             </div>
+            <span className={`badge ${ROLE_BADGE_CLASS[list.role]}`}>{ROLE_LABELS[list.role]}</span>
           </li>
         ))}
       </ul>

@@ -1,0 +1,36 @@
+@use "../styles/variables" as *;
+
+.memberList {
+  list-style: none;
+  margin: $space-4 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.memberRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.memberName {
+  font-weight: 600;
+}
+
+.memberEmail {
+  color: $color-text-muted;
+  font-size: 0.85rem;
+}
+
+.memberActions {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.form {
+  margin-top: $space-6;
+  align-items: flex-end;
+}

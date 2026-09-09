@@ -39,9 +39,14 @@ export default function ListDetailPage() {
       </Link>
       <div className="page-header">
         <h1>Kategoriler</h1>
-        <Link to={`/lists/${listId}/sets`} className="btn btn-secondary">
-          Set Karşılaştırma →
-        </Link>
+        <div className={styles.headerActions}>
+          <Link to={`/lists/${listId}/aile`} className="btn btn-secondary">
+            Aile →
+          </Link>
+          <Link to={`/lists/${listId}/sets`} className="btn btn-secondary">
+            Set Karşılaştırma →
+          </Link>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className={`form-row ${styles.form}`}>

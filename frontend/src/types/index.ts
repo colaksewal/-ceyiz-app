@@ -1,8 +1,19 @@
+export type ShareRole = "OWNER" | "EDITOR" | "VIEWER";
+
 export interface TrousseauListItem {
   id: string;
   name: string;
   weddingDate: string | null;
   createdAt: string;
+  role: ShareRole;
+}
+
+export interface ListShare {
+  shareId: string | null;
+  userId: string;
+  email: string;
+  name: string;
+  role: ShareRole;
 }
 
 export interface Category {

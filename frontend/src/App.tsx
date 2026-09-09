@@ -5,6 +5,7 @@ import ListsPage from "./pages/ListsPage";
 import ListDetailPage from "./pages/ListDetailPage";
 import ProductPage from "./pages/ProductPage";
 import SetsPage from "./pages/SetsPage";
+import ListSharesPage from "./pages/ListSharesPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/lists" element={<ListsPage />} />
             <Route path="/lists/:listId" element={<ListDetailPage />} />
             <Route path="/lists/:listId/sets" element={<SetsPage />} />
+            <Route path="/lists/:listId/aile" element={<ListSharesPage />} />
             <Route path="/products/:productId" element={<ProductPage />} />
           </Route>
         </Route>
