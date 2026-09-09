@@ -161,7 +161,7 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | 2 | İçerik/kapsam stratejisi | ✅ Tamamlandı |
 | 3 | Docker Compose ortamı | ✅ Tamamlandı (yerel + Oracle Cloud sunucusunda) |
 | 4 | Spring Boot backend çekirdeği | ✅ Çekirdek + paylaşım (`list_shares`) tamamlandı (kalanlar Faz 2) |
-| 5 | React web arayüzü + paylaşım/realtime | 🔶 Çekirdek + "Aile" paylaşım ekranı tamamlandı (WS Faz 2'de, görsel yenileme Faz 3'te) |
+| 5 | React web arayüzü + paylaşım/realtime | 🔶 Çekirdek + "Çeyiz Ekibi" paylaşım ekranı tamamlandı (WS Faz 2'de, görsel yenileme Faz 3'te) |
 | 6 | AI katmanı | 🔶 Senaryo 1 (liste önerisi) uçtan uca çalışıyor (kalanlar Faz 2) |
 | 7 | React Native mobil uygulama | ⬜ |
 | 8 | Test, CI/CD ve yayına alma | 🔶 Backend+frontend Oracle Cloud'a deploy edildi (testler/CI, domain+HTTPS Faz 3'te) |
@@ -199,7 +199,7 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | ✅ `ShareRole` enum + `ListShare` entity + repository | `list_shares` tablosuna Java tarafı bağlandı |
 | ✅ Merkezi yetki kontrol servisi (`ListAccessService`) | `requireAtLeastViewer`/`requireAtLeastEditor`/`requireOwner` — owner + `list_shares` rolünü tek yerden değerlendiriyor |
 | ✅ Mevcut 4 servisi merkezi yetki kontrolüne geçirme | `CategoryService`/`ProductService`/`PriceEntryService`/`ProductSetService` artık `ListAccessService` kullanıyor — editor ekleyip düzenleyebiliyor, viewer sadece görüntülüyor |
-| ✅ `ListShareController`/`Service` — davet etme (e-posta ile), üye listeleme, rol değiştirme, çıkarma | Uçtan uca doğrulandı: curl ile (davet→üye listesi→görünürlük→rol değiştirme→çıkarma) ve tarayıcıdan "Aile" ekranı üzerinden test edildi |
+| ✅ `ListShareController`/`Service` — davet etme (e-posta ile), üye listeleme, rol değiştirme, çıkarma | Uçtan uca doğrulandı: curl ile (davet→üye listesi→görünürlük→rol değiştirme→çıkarma) ve tarayıcıdan "Çeyiz Ekibi" ekranı üzerinden test edildi |
 | ✅ `ListService.getMyLists` paylaşılan listeleri de döndürüyor | Owner + `list_shares` birleştirilip her listenin rolüyle (`ListWithRole`) döndürülüyor — davet edilen kullanıcı listeyi kendi "Listelerim" sayfasında görebiliyor |
 | ✅ `/api/auth/register` yanıtından `passwordHash` sızıntısını düzeltme | `UserResponse` DTO'su eklendi — entity artık doğrudan dönmüyor |
 | ✅ `ProductSet`/`SetItem` CRUD + `SetComparisonService` — deterministik hesaplama mantığı | Set tanımlama, set kalemi ekleme (@Transactional ile), ve gerçek bir senaryoyla doğrulanmış set karşılaştırma (isPreferred fiyat + fallback + tahmini fiyat zinciri) |
@@ -220,7 +220,7 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | ✅ React Query ile API entegrasyonu | Sunucu verisinin cache/senkronizasyon yönetimi — tüm sayfalar `@tanstack/react-query` ile `useQuery`/`useMutation` kullanıyor |
 | ✅ Fiyat notu ekleme formu | Fiyat toplama özelliğinin web tarafı — `ProductPage` içinde mağaza/ödeme tipi/peşin-taksit/not formu + "bunu kullan" (isPreferred) işaretleme |
 | ✅ Set karşılaştırma ekranı | Set/paket özelliğinin görselleştirilmesi — `SetsPage`: set oluşturma (kalemler için listedeki ürünlerden seçim ya da serbest metin + tahmini fiyat), `SetComparisonView`: set vs parça parça toplam, fark, eksik ürün sayısı |
-| ✅ "Aile" ekranı (paylaşım/izin yönetimi) | `ListSharesPage` — üye listesi (rol rozetleriyle), davet formu, rol değiştirme, çıkarma. Sadece owner yönetim butonlarını görüyor (JWT'den decode edilen `userId` ile kontrol ediliyor). Tarayıcıdan uçtan uca test edildi. `ListsPage`'de her liste satırında da rol rozeti gösteriliyor |
+| ✅ "Çeyiz Ekibi" ekranı (paylaşım/izin yönetimi) | `ListSharesPage` — üye listesi (rol rozetleriyle), davet formu, rol değiştirme, çıkarma. Sadece owner yönetim butonlarını görüyor (JWT'den decode edilen `userId` ile kontrol ediliyor). Tarayıcıdan uçtan uca test edildi. `ListsPage`'de her liste satırında da rol rozeti gösteriliyor |
 | 🔜 Faz 2: WebSocket (STOMP) bağlantısı ve canlı güncelleme | Gerçek zamanlı senkronizasyon — backend'de WebSocket/STOMP konfigürasyonu henüz yok |
 | 🔜 Faz 3: Mevcut ekranların görsel yenilenmesi | `ListsPage`/`ListDetailPage`/`CategorySection`/`ProductPage` şu an fonksiyonel ama sade |
 

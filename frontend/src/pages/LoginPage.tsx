@@ -31,6 +31,12 @@ export default function LoginPage() {
 
   return (
     <div className={styles.wrap}>
+      <div className={styles.brand}>
+        <span className={styles.brandMark} aria-hidden="true">
+          💍
+        </span>
+        Çeyiz Planlayıcı
+      </div>
       <div className={styles.card}>
         <h1 className={styles.title}>Giriş Yap</h1>
         <form onSubmit={handleSubmit} className="stack">

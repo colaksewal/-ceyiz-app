@@ -21,7 +21,7 @@ export default function App() {
             <Route path="/lists" element={<ListsPage />} />
             <Route path="/lists/:listId" element={<ListDetailPage />} />
             <Route path="/lists/:listId/sets" element={<SetsPage />} />
-            <Route path="/lists/:listId/aile" element={<ListSharesPage />} />
+            <Route path="/lists/:listId/ceyiz-ekibi" element={<ListSharesPage />} />
             <Route path="/products/:productId" element={<ProductPage />} />
           </Route>
         </Route>

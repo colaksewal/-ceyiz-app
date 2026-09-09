@@ -15,6 +15,9 @@ export default function Layout() {
     <div>
       <header className={styles.header}>
         <Link to="/lists" className={styles.brand}>
+          <span className={styles.brandMark} aria-hidden="true">
+            💍
+          </span>
           Çeyiz Planlayıcı
         </Link>
         <button className="btn btn-secondary" onClick={handleLogout}>

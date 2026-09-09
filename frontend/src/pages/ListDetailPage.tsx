@@ -40,8 +40,8 @@ export default function ListDetailPage() {
       <div className="page-header">
         <h1>Kategoriler</h1>
         <div className={styles.headerActions}>
-          <Link to={`/lists/${listId}/aile`} className="btn btn-secondary">
-            Aile →
+          <Link to={`/lists/${listId}/ceyiz-ekibi`} className="btn btn-secondary">
+            Çeyiz Ekibi →
           </Link>
           <Link to={`/lists/${listId}/sets`} className="btn btn-secondary">
             Set Karşılaştırma →

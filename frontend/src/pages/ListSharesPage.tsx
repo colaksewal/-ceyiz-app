@@ -56,7 +56,7 @@ export default function ListSharesPage() {
       <Link to={`/lists/${listId}`} className="back-link">
         ← Kategoriler
       </Link>
-      <h1>Aile</h1>
+      <h1>Çeyiz Ekibi</h1>
 
       {isLoading && <p className="muted">Yükleniyor...</p>}
       {error && <p className="error-text">Üyeler yüklenemedi</p>}
@@ -103,7 +103,7 @@ export default function ListSharesPage() {
             <label>E-posta</label>
             <input
               type="email"
-              placeholder="aile.uyesi@ornek.com"
+              placeholder="ekip.uyesi@ornek.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -117,7 +117,7 @@ export default function ListSharesPage() {
             </select>
           </div>
           <button type="submit" className="btn btn-primary" disabled={inviteMutation.isPending}>
-            {inviteMutation.isPending ? "Davet ediliyor..." : "Aileni Davet Et"}
+            {inviteMutation.isPending ? "Davet ediliyor..." : "Ekibe Davet Et"}
           </button>
           {inviteMutation.isError && (
             <p className="error-text">
