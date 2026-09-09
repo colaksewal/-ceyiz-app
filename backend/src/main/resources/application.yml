@@ -5,6 +5,10 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
   jpa:
     hibernate:
       # Aşama 3'te sadece bağlantıyı doğrula. Aşama 4'te şema yönetimi
@@ -24,7 +28,10 @@ app:
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       model: ${OLLAMA_MODEL:gemma2:9b}
-      
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+
+
 management:
   endpoints:
     web:

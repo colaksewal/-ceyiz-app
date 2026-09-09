@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPriceEntry, getPriceEntries, markAsPreferred } from "../api/priceEntries";
+import { uploadFile, resolveUploadUrl } from "../api/uploads";
 import type { PriceType } from "../types";
 import styles from "./ProductPage.module.scss";
 
@@ -56,6 +57,16 @@ export default function ProductPage() {
       queryClient.invalidateQueries({ queryKey: ["priceEntries", productId] });
     },
   });
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadFile(file),
+    onSuccess: (url) => setForm((prev) => ({ ...prev, photoUrl: url })),
+  });
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) uploadMutation.mutate(file);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -123,12 +134,13 @@ export default function ProductPage() {
             />
           </div>
           <div className="field">
-            <label>Fotoğraf URL</label>
-            <input
-              type="text"
-              value={form.photoUrl}
-              onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
-            />
+            <label>Fotoğraf</label>
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
+            {uploadMutation.isPending && <span className="muted">Yükleniyor...</span>}
+            {uploadMutation.isError && <span className="error-text">Fotoğraf yüklenemedi</span>}
+            {form.photoUrl && (
+              <img src={resolveUploadUrl(form.photoUrl)} alt="Önizleme" className={styles.photoPreview} />
+            )}
           </div>
           <div className="field form-grid-full">
             <label>Ödeme Planı Notu</label>
@@ -155,6 +167,9 @@ export default function ProductPage() {
             key={entry.id}
             className={`${styles.entry} ${entry.isPreferred ? styles.entryPreferred : ""}`}
           >
+            {entry.photoUrl && (
+              <img src={resolveUploadUrl(entry.photoUrl)} alt={entry.storeName} className={styles.entryPhoto} />
+            )}
             <div className={styles.entryHead}>
               <span className={styles.storeName}>{entry.storeName}</span>
               {entry.isPreferred ? (
