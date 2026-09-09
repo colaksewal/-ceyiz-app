@@ -2,6 +2,7 @@ package com.ceyiz.app.controller;
 
 import com.ceyiz.app.dto.LoginRequest;
 import com.ceyiz.app.dto.RegisterRequest;
+import com.ceyiz.app.dto.UserResponse;
 import com.ceyiz.app.entity.User;
 import com.ceyiz.app.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,9 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<UserResponse> register(@RequestBody RegisterRequest request) {
         User created = authService.register(request.email(), request.password(), request.name());
-        return ResponseEntity.ok(created);
+        return ResponseEntity.ok(UserResponse.from(created));
     }
 
     @PostMapping("/login")
