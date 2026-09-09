@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createList, getMyLists } from "../api/lists";
 import styles from "./ListsPage.module.scss";
+import AiListSuggestion from "../components/AiListSuggestion"; 
 
 export default function ListsPage() {
   const [name, setName] = useState("");
@@ -32,6 +33,8 @@ export default function ListsPage() {
   return (
     <div>
       <h1>Listelerim</h1>
+
+      <AiListSuggestion />
 
       <form onSubmit={handleSubmit} className={`form-row ${styles.form}`}>
         <div className={`field ${styles.nameField}`}>

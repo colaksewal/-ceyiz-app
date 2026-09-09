@@ -55,3 +55,20 @@ export interface SetComparisonResult {
   savingsAmount: number;
   missingItemsCount: number;
 }
+
+export interface ListSuggestionRequest {
+  homeType: string;
+  budget: number;
+  priorities: string[];
+}
+
+export interface CategorySuggestion {
+  categoryName: string;
+  suggestedBudget: number;
+  exampleProducts: string[];
+}
+
+export interface ListSuggestionResponse {
+  categories: CategorySuggestion[];
+  rationale: string;
+}
