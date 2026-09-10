@@ -260,8 +260,8 @@ function AiSuggestionPanel({ nextCategoryOrder, onDone }: { nextCategoryOrder: n
           <ul className={styles.productList}>
             {suggestion.items.map((item) => (
               <li key={item} className={styles.productRow}>
-                <label>
-                  <input type="checkbox" checked={selected.has(item)} onChange={() => toggleItem(item)} />{" "}
+                <label className={styles.checkboxRow}>
+                  <input type="checkbox" checked={selected.has(item)} onChange={() => toggleItem(item)} />
                   {item}
                 </label>
               </li>
