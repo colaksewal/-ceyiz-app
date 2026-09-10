@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -14,7 +16,7 @@ import java.util.Optional;
 @Component
 public class OllamaClient implements AiClient {
 
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(120);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(180);
 
     private final WebClient webClient;
     private final String model;
@@ -30,15 +32,29 @@ public class OllamaClient implements AiClient {
 
     @Override
     public Optional<String> complete(String prompt) {
+        return generate(prompt, null);
+    }
+
+    @Override
+    public Optional<String> completeWithImage(String prompt, String base64Image) {
+        return generate(prompt, base64Image);
+    }
+
+    private Optional<String> generate(String prompt, String base64Image) {
         try {
+            Map<String, Object> body = new HashMap<>(Map.of(
+                    "model", model,
+                    "prompt", prompt,
+                    "stream", false,
+                    "format", "json"
+            ));
+            if (base64Image != null) {
+                body.put("images", List.of(base64Image));
+            }
+
             OllamaGenerateResponse response = webClient.post()
                     .uri("/api/generate")
-                    .bodyValue(Map.of(
-                            "model", model,
-                            "prompt", prompt,
-                            "stream", false,
-                            "format", "json"
-                    ))
+                    .bodyValue(body)
                     .retrieve()
                     .bodyToMono(OllamaGenerateResponse.class)
                     .block(REQUEST_TIMEOUT);

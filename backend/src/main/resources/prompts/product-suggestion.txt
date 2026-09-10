@@ -1,0 +1,13 @@
+Aşağıdaki görsel ya da metinde bir çeyiz/ev eşyası listesi veya kategorisi bulunuyor.
+Bunu analiz et ve SADECE şu şekilde geçerli bir JSON ile yanıt ver, başka hiçbir açıklama
+veya metin ekleme:
+
+{"categoryName": "kısa kategori adı (örn. Mutfak, Yatak Odası, Banyo)", "items": ["ürün adı 1", "ürün adı 2"]}
+
+Kurallar:
+- items listesinde sadece ürün/eşya adları olsun; fiyat, miktar veya para birimi bilgisi ekleme.
+- Görselde/metinde birden fazla farklı kategori varsa, en baskın/genel olanı categoryName olarak seç.
+- Hiçbir ürün bulamazsan items'ı boş dizi ([]) olarak döndür.
+
+İçerik:
+{{content}}

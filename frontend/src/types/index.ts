@@ -80,5 +80,10 @@ export interface CategoryTemplate {
   products: ProductTemplate[];
 }
 
+export interface ProductSuggestion {
+  categoryName: string;
+  items: string[];
+}
+
 
 

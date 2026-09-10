@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import type { CategoryTemplate, ProductTemplate } from "../types";
+import type { CategoryTemplate, ProductSuggestion, ProductTemplate } from "../types";
 
 export async function getTemplates(): Promise<CategoryTemplate[]> {
   const response = await api.get<CategoryTemplate[]>("/admin/templates");
@@ -29,4 +29,11 @@ export async function createProductTemplate(
 
 export async function deleteProductTemplate(productTemplateId: string): Promise<void> {
   await api.delete(`/admin/templates/products/${productTemplateId}`);
+}
+
+export async function suggestFromFile(file: File): Promise<ProductSuggestion | null> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await api.post<ProductSuggestion>("/admin/ai-suggestions", formData);
+  return response.status === 204 ? null : response.data;
 }
