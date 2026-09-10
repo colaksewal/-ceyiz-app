@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createCategory, getCategories } from "../api/categories";
+import { createProduct } from "../api/products";
+import AiSuggestionPanel from "../components/AiSuggestionPanel";
 import CategorySection from "../components/CategorySection";
 import styles from "./ListDetailPage.module.scss";
 
@@ -48,6 +50,16 @@ export default function ListDetailPage() {
           </Link>
         </div>
       </div>
+
+      <AiSuggestionPanel
+        onAdd={async (aiCategoryName, items) => {
+          const category = await createCategory(listId, aiCategoryName);
+          for (const item of items) {
+            await createProduct(category.id, item);
+          }
+          queryClient.invalidateQueries({ queryKey: ["categories", listId] });
+        }}
+      />
 
       <form onSubmit={handleSubmit} className={`form-row ${styles.form}`}>
         <div className={`field ${styles.nameField}`}>

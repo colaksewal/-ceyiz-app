@@ -2,8 +2,6 @@ package com.ceyiz.app.service;
 
 import com.ceyiz.app.ai.AiClient;
 import com.ceyiz.app.dto.ProductSuggestionResponse;
-import com.ceyiz.app.entity.User;
-import com.ceyiz.app.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +17,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
+/**
+ * Foto/PDF'den kategori+ürün önerisi çıkarır — hiçbir şeyi kalıcı olarak yazmaz, sadece
+ * öneriyi döner. Öneriyi nereye yazacağı (admin şablonlarına mı, kullanıcının kendi
+ * listesine mi) çağıran taraf zaten kendi yetki kontrolüne göre karar veriyor.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,12 +32,9 @@ public class AiSuggestionService {
     private static final String PDF_CONTENT_TYPE = "application/pdf";
 
     private final AiClient aiClient;
-    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    public Optional<ProductSuggestionResponse> suggestFromFile(UUID adminId, MultipartFile file) {
-        requireAdmin(adminId);
-
+    public Optional<ProductSuggestionResponse> suggestFromFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Dosya boş olamaz");
         }
@@ -97,14 +96,6 @@ public class AiSuggestionService {
         } catch (IOException e) {
             log.warn("AI yanıtı beklenen JSON formatında değil: {}", e.getMessage());
             return Optional.empty();
-        }
-    }
-
-    private void requireAdmin(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));
-        if (!user.isAdmin()) {
-            throw new SecurityException("Bu işlem için admin yetkisi gerekiyor");
         }
     }
 }

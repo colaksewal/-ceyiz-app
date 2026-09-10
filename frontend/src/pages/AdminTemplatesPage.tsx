@@ -7,10 +7,9 @@ import {
   deleteCategoryTemplate,
   deleteProductTemplate,
   getTemplates,
-  suggestFromFile,
 } from "../api/adminTemplates";
+import AiSuggestionPanel from "../components/AiSuggestionPanel";
 import { useAuthStore } from "../store/authStore";
-import type { ProductSuggestion } from "../types";
 import styles from "./AdminTemplatesPage.module.scss";
 
 export default function AdminTemplatesPage() {
@@ -64,7 +63,15 @@ export default function AdminTemplatesPage() {
         o listeye kopyalanır.
       </p>
 
-      <AiSuggestionPanel nextCategoryOrder={(categories?.length ?? 0) + 1} onDone={invalidate} />
+      <AiSuggestionPanel
+        onAdd={async (aiCategoryName, items) => {
+          const category = await createCategoryTemplate(aiCategoryName, (categories?.length ?? 0) + 1);
+          for (let i = 0; i < items.length; i++) {
+            await createProductTemplate(category.id, items[i], i + 1);
+          }
+          invalidate();
+        }}
+      />
 
       <form onSubmit={handleCreateCategory} className={`form-row ${styles.form}`}>
         <div className="field">
@@ -171,114 +178,6 @@ function CategoryTemplateCard({
           {createProductMutation.isPending ? "Ekleniyor..." : "Ürün Ekle"}
         </button>
       </form>
-    </div>
-  );
-}
-
-function AiSuggestionPanel({ nextCategoryOrder, onDone }: { nextCategoryOrder: number; onDone: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [suggestion, setSuggestion] = useState<ProductSuggestion | null>(null);
-  const [categoryName, setCategoryName] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  const suggestMutation = useMutation({
-    mutationFn: (f: File) => suggestFromFile(f),
-    onSuccess: (result) => {
-      setSuggestion(result);
-      if (result) {
-        setCategoryName(result.categoryName);
-        setSelected(new Set(result.items));
-      }
-    },
-  });
-
-  const addMutation = useMutation({
-    mutationFn: async () => {
-      const items = Array.from(selected);
-      const category = await createCategoryTemplate(categoryName, nextCategoryOrder);
-      for (let i = 0; i < items.length; i++) {
-        await createProductTemplate(category.id, items[i], i + 1);
-      }
-    },
-    onSuccess: () => {
-      onDone();
-      setFile(null);
-      setSuggestion(null);
-      setCategoryName("");
-      setSelected(new Set());
-    },
-  });
-
-  function toggleItem(item: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(item)) {
-        next.delete(item);
-      } else {
-        next.add(item);
-      }
-      return next;
-    });
-  }
-
-  return (
-    <div className={`card ${styles.aiPanel}`}>
-      <h3>AI ile Öner</h3>
-      <p className="muted">
-        Bir fotoğraf (etiket, liste) ya da PDF yükle — AI bir kategori adı ve ürün önerileri
-        çıkarsın. İşlem 1-2 dakika sürebilir.
-      </p>
-
-      <div className={`form-row ${styles.form}`}>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={!file || suggestMutation.isPending}
-          onClick={() => file && suggestMutation.mutate(file)}
-        >
-          {suggestMutation.isPending ? "İşleniyor..." : "Öner"}
-        </button>
-      </div>
-
-      {suggestMutation.isError && <p className="error-text">Öneri alınamadı, tekrar dene.</p>}
-      {suggestMutation.isSuccess && !suggestion && (
-        <p className="error-text">AI bir öneri üretemedi.</p>
-      )}
-
-      {suggestion && (
-        <div className={styles.suggestionResult}>
-          <div className="field">
-            <label>Kategori adı</label>
-            <input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} />
-          </div>
-
-          <ul className={styles.productList}>
-            {suggestion.items.map((item) => (
-              <li key={item} className={styles.productRow}>
-                <label className={styles.checkboxRow}>
-                  <input type="checkbox" checked={selected.has(item)} onChange={() => toggleItem(item)} />
-                  {item}
-                </label>
-              </li>
-            ))}
-            {suggestion.items.length === 0 && <li className="muted">AI hiç ürün bulamadı.</li>}
-          </ul>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!categoryName.trim() || selected.size === 0 || addMutation.isPending}
-            onClick={() => addMutation.mutate()}
-          >
-            {addMutation.isPending ? "Ekleniyor..." : "Seçilenleri Şablona Ekle"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

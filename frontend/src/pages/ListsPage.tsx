@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createList, getMyLists } from "../api/lists";
 import { ROLE_LABELS, ROLE_BADGE_CLASS } from "../lib/shareRole";
+import { pickListAccent } from "../lib/listAccent";
 import styles from "./ListsPage.module.scss";
 
 export default function ListsPage() {
@@ -61,17 +62,25 @@ export default function ListsPage() {
       )}
 
       <ul className="card-list">
-        {lists?.map((list) => (
-          <li key={list.id} className={`card ${styles.item}`}>
-            <div>
-              <Link to={`/lists/${list.id}`} className={styles.itemName}>
-                {list.name}
-              </Link>
-              {list.weddingDate && <span className={styles.itemDate}>{list.weddingDate}</span>}
-            </div>
-            <span className={`badge ${ROLE_BADGE_CLASS[list.role]}`}>{ROLE_LABELS[list.role]}</span>
-          </li>
-        ))}
+        {lists?.map((list) => {
+          const accent = pickListAccent(list.id);
+          return (
+            <li key={list.id} className={`card ${styles.item}`} style={{ borderLeftColor: accent.color }}>
+              <div className={styles.itemMain}>
+                <span className={styles.emojiBadge} style={{ background: accent.color }}>
+                  {accent.emoji}
+                </span>
+                <div>
+                  <Link to={`/lists/${list.id}`} className={styles.itemName}>
+                    {list.name}
+                  </Link>
+                  {list.weddingDate && <span className={styles.itemDate}>{list.weddingDate}</span>}
+                </div>
+              </div>
+              <span className={`badge ${ROLE_BADGE_CLASS[list.role]}`}>{ROLE_LABELS[list.role]}</span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
