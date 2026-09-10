@@ -22,11 +22,11 @@ public class JwtService {
         this.expirationMs =expirationMs;
     }
 
-    public String generateToken(String userId){
+    public String generateToken(String userId,  boolean isAdmin){
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
-        return Jwts.builder().subject(userId).issuedAt(now).expiration(expiry).signWith(key).compact();
+        return Jwts.builder().subject(userId).claim("isAdmin", isAdmin).issuedAt(now).expiration(expiry).signWith(key).compact();
     }
 
     public String extractUserId(String token){

@@ -4,6 +4,7 @@ import styles from "./Layout.module.scss";
 
 export default function Layout() {
   const logout = useAuthStore((state) => state.logout);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -20,6 +21,11 @@ export default function Layout() {
           </span>
           Çeyiz Planlayıcı
         </Link>
+        {isAdmin && (
+          <Link to="/admin/templates" className="btn btn-secondary">
+            Şablon Yönetimi
+          </Link>
+        )}
         <button className="btn btn-secondary" onClick={handleLogout}>
           Çıkış Yap
         </button>

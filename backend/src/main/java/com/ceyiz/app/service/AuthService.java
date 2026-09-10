@@ -35,7 +35,7 @@ public class AuthService {
             throw new IllegalArgumentException("Email veya şifre hatalıdır");
         }
 
-        return jwtService.generateToken(user.getId().toString());
+        return jwtService.generateToken(user.getId().toString(), user.isAdmin());
     }
 
 

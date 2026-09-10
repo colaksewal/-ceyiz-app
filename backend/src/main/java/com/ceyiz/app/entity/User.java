@@ -27,12 +27,16 @@ public class User {
     @Column(name = "created_at", nullable= false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Column(name="is_admin", nullable = false)
+    private boolean isAdmin = false;
+
     protected User(){}
 
     public User(String email, String passwordHash, String name){
         this.email= email;
         this.passwordHash = passwordHash;
         this.name = name;
+        this.isAdmin = false;
     }
 
 

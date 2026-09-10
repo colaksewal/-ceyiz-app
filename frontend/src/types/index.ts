@@ -67,5 +67,18 @@ export interface SetComparisonResult {
   missingItemsCount: number;
 }
 
+export interface ProductTemplate {
+  id: string;
+  name: string;
+  displayOrder: number;
+}
+
+export interface CategoryTemplate {
+  id: string;
+  name: string;
+  displayOrder: number;
+  products: ProductTemplate[];
+}
+
 
 
