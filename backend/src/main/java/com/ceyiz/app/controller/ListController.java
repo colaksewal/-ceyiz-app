@@ -5,6 +5,7 @@ import com.ceyiz.app.dto.ListResponse;
 import com.ceyiz.app.entity.ShareRole;
 import com.ceyiz.app.entity.TrousseauList;
 import com.ceyiz.app.service.ListService;
+import com.ceyiz.app.service.TemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,7 @@ import java.util.UUID;
 public class ListController {
 
     private final ListService listService;
+    private final TemplateService templateService;
 
 
     @PostMapping
@@ -40,5 +42,11 @@ public class ListController {
     }
 
 
+    @PostMapping("/{listId}/apply-template")
+    public ResponseEntity<Void> applyTemplate(@PathVariable UUID listId, Authentication authentication) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        templateService.applyTemplatesToList(listId, requesterId);
+        return ResponseEntity.noContent().build();
+    }
 
 }

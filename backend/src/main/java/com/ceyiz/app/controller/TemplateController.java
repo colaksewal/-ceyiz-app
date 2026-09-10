@@ -20,12 +20,6 @@ public class TemplateController {
 
     private final TemplateService templateService;
 
-    @GetMapping
-    public ResponseEntity<List<CategoryTemplateResponse>> getAllTemplates(Authentication authentication) {
-        UUID adminId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(templateService.getAllTemplates(adminId));
-    }
-
     @PostMapping("/categories")
     public ResponseEntity<CategoryTemplateResponse> createCategoryTemplate(
             @RequestBody CreateCategoryTemplateRequest request,

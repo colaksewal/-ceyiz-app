@@ -1,0 +1,50 @@
+@use "../styles/variables" as *;
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  margin-bottom: $space-6;
+}
+
+.category {
+  padding: $space-3 $space-4;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface;
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+  margin-bottom: $space-2;
+
+  input[type="checkbox"] {
+    width: auto;
+    padding: 0;
+  }
+}
+
+.productList {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 $space-5;
+}
+
+.productRow {
+  padding: $space-1 0;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: auto;
+    padding: 0;
+  }
+}

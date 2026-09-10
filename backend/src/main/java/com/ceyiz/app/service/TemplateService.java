@@ -28,9 +28,9 @@ public class TemplateService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final ListAccessService listAccessService;
 
-    public List<CategoryTemplateResponse> getAllTemplates(UUID adminId) {
-        requireAdmin(adminId);
+    public List<CategoryTemplateResponse> getAllTemplates() {
         return categoryTemplateRepository.findAllByOrderByDisplayOrder().stream()
                 .map(this::toResponse)
                 .toList();
@@ -59,7 +59,9 @@ public class TemplateService {
     }
 
     @Transactional
-    public void applyTemplatesToList(UUID listId) {
+    public void applyTemplatesToList(UUID listId, UUID requesterId) {
+        listAccessService.requireAtLeastEditor(listId, requesterId);
+
         for (CategoryTemplate categoryTemplate : categoryTemplateRepository.findAllByOrderByDisplayOrder()) {
             Category category = categoryRepository.save(new Category(listId, categoryTemplate.getName()));
 

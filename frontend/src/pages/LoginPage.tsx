@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { login as loginRequest } from "../api/auth";
+import AuthBackground from "../components/AuthBackground";
 import styles from "./Auth.module.scss";
 
 export default function LoginPage() {
@@ -31,6 +32,7 @@ export default function LoginPage() {
 
   return (
     <div className={styles.wrap}>
+      <AuthBackground />
       <div className={styles.brand}>
         <span className={styles.brandMark} aria-hidden="true">
           💍

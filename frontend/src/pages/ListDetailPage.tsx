@@ -5,6 +5,7 @@ import { createCategory, getCategories } from "../api/categories";
 import { createProduct } from "../api/products";
 import AiSuggestionPanel from "../components/AiSuggestionPanel";
 import CategorySection from "../components/CategorySection";
+import TemplatePicker from "../components/TemplatePicker";
 import styles from "./ListDetailPage.module.scss";
 
 export default function ListDetailPage() {
@@ -80,7 +81,16 @@ export default function ListDetailPage() {
       {isLoading && <p className="muted">Yükleniyor...</p>}
       {error && <p className="error-text">Kategoriler yüklenemedi</p>}
       {categories && categories.length === 0 && (
-        <p className="empty-state">Henüz kategori yok. Yukarıdan bir tane ekle.</p>
+        <>
+          <p className="empty-state">
+            Henüz kategori yok. Yukarıdan elle ekleyebilir ya da aşağıdaki şablondan
+            istediklerini seçip ekleyebilirsin.
+          </p>
+          <TemplatePicker
+            listId={listId}
+            onDone={() => queryClient.invalidateQueries({ queryKey: ["categories", listId] })}
+          />
+        </>
       )}
 
       <div className="stack">

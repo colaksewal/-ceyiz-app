@@ -6,8 +6,8 @@ import {
   createProductTemplate,
   deleteCategoryTemplate,
   deleteProductTemplate,
-  getTemplates,
 } from "../api/adminTemplates";
+import { getAllTemplates } from "../api/templates";
 import AiSuggestionPanel from "../components/AiSuggestionPanel";
 import { useAuthStore } from "../store/authStore";
 import styles from "./AdminTemplatesPage.module.scss";
@@ -19,7 +19,7 @@ export default function AdminTemplatesPage() {
 
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ["adminTemplates"],
-    queryFn: getTemplates,
+    queryFn: getAllTemplates,
     enabled: isAdmin,
   });
 

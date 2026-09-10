@@ -18,15 +18,12 @@ public class ListService {
 
     private final ListRepository listRepository;
     private final ListShareRepository listShareRepository;
-    private final TemplateService templateService;
+    
 
     public TrousseauList createList(CreateListRequest request, UUID ownerId){
         TrousseauList list = new TrousseauList(ownerId, request.name() ,request.weddingDate());
-        TrousseauList saved = listRepository.save(list);
 
-        templateService.applyTemplatesToList(saved.getId());
-
-        return saved;
+        return listRepository.save(list);
     }
 
     public List<ListWithRole> getMyLists(UUID userId){

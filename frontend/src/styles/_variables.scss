@@ -1,21 +1,27 @@
-// Design tokens — çeyiz planlayıcı için sıcak, zarif bir palet.
+// Design tokens — çeyiz planlayıcı marka paleti: lacivert/mavi/pembe tonları.
+@use "sass:color";
 
-$color-bg: #faf7f5;
+$color-navy: #102c57;
+$color-blue: #1679ab;
+$color-blush: #f8e7f6;
+$color-pink: #ffb1b1;
+
+$color-bg: $color-blush;
 $color-surface: #ffffff;
-$color-surface-muted: #f6f1ee;
+$color-surface-muted: color.mix($color-blush, #ffffff, 55%);
 
-$color-primary: #b5657a;
-$color-primary-hover: #9c4f63;
+$color-primary: $color-blue;
+$color-primary-hover: $color-navy;
 $color-primary-contrast: #ffffff;
 
-$color-accent: #c9a15a;
+$color-accent: $color-pink;
 
-$color-text: #2b2320;
-$color-text-muted: #7a6f6a;
-$color-text-faint: #a89e99;
+$color-text: $color-navy;
+$color-text-muted: color.mix($color-navy, #ffffff, 55%);
+$color-text-faint: color.mix($color-navy, #ffffff, 35%);
 
-$color-border: #e8e0dc;
-$color-border-strong: #d8cdc7;
+$color-border: color.mix($color-navy, #ffffff, 12%);
+$color-border-strong: color.mix($color-navy, #ffffff, 22%);
 
 $color-success: #2f9e6a;
 $color-success-bg: #eaf7f1;
@@ -34,11 +40,10 @@ $space-5: 1.5rem;
 $space-6: 2rem;
 $space-8: 3rem;
 
-$shadow-sm: 0 1px 2px rgba(43, 35, 32, 0.06);
-$shadow-md: 0 4px 16px rgba(43, 35, 32, 0.08);
+$shadow-sm: 0 1px 2px rgba(16, 44, 87, 0.06);
+$shadow-md: 0 4px 16px rgba(16, 44, 87, 0.1);
 
-$font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-  Arial, sans-serif;
-$font-serif: "Fraunces", Georgia, "Times New Roman", serif;
+$font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  "Helvetica Neue", Arial, sans-serif;
 
 $breakpoint-sm: 640px;

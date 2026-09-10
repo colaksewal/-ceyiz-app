@@ -15,3 +15,7 @@ export async function createList(payload: CreateListPayload): Promise<TrousseauL
   const response = await api.post<TrousseauListItem>("/lists", payload);
   return response.data;
 }
+
+export async function applyTemplate(listId: string): Promise<void> {
+  await api.post(`/lists/${listId}/apply-template`);
+}

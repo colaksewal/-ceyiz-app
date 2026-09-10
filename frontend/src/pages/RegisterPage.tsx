@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { register as registerRequest } from "../api/auth";
+import AuthBackground from "../components/AuthBackground";
 import styles from "./Auth.module.scss";
 
 export default function RegisterPage() {
@@ -29,6 +30,7 @@ export default function RegisterPage() {
 
   return (
     <div className={styles.wrap}>
+      <AuthBackground />
       <div className={styles.brand}>
         <span className={styles.brandMark} aria-hidden="true">
           💍
