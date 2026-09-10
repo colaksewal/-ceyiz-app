@@ -95,12 +95,18 @@ yorum/öneri katmanı. Kullanıcı açıkça tetiklemeden hiçbir AI çağrısı
 > bulunmadı ve önerilen ürünleri doğrudan listeye ekleme adımı da yoktu. Yerine, aynı
 > "Senaryo 1" numarası altında aşağıdaki foto/PDF tabanlı öneri akışı planlandı.
 
-**Senaryo 1 (yeni) — "AI ile ekle" (foto/PDF'den ürün önerisi):** kullanıcı bir görsel ya
-da PDF yükler (ör. elle yazılmış bir çeyiz listesi, katalog sayfası, fiyat etiketi
-fotoğrafı). Vision-capable model (`gemma3:4b`, bkz. §7.5) görseli/metni ayrıştırıp bir
-ürün önerisi listesi döner; kullanıcı bunlardan istediklerini işaretleyip tek seferde
-listesine ekler (öneri → seçim → ekleme adımı, eski senaryoda eksikti). PDF girişinde
-önce metin çıkarımı (PDF genelde zaten metin içerir) yapılıp aynı modele gönderilebilir.
+**Senaryo 1 (yeni) — "AI ile ekle" (foto/PDF'den ürün önerisi):** bir görsel ya da PDF
+yüklenir (ör. elle yazılmış bir çeyiz listesi, katalog sayfası, fiyat etiketi fotoğrafı).
+Vision-capable model (`gemma3:4b`, bkz. §7.5) görseli/metni ayrıştırıp `{categoryName,
+items[]}` şeklinde JSON önerisi döner; kategori adı düzenlenebilir, ürünler checkbox'la
+seçilip tek seferde eklenir. PDF girişinde önce PDFBox ile metin çıkarılıp aynı modele
+gönderiliyor.
+
+**Kapsam (2026-09-10):** İlk sürüm **admin panelinde**, `category_templates`/
+`product_templates`'i doldurmak için kuruldu (`POST /api/admin/ai-suggestions`,
+admin-kontrollü, `AdminTemplatesPage`'deki "AI ile Öner" paneli) — uçtan uca doğrulandı.
+Kullanıcının kendi listesine aynı akışla ekleyebilmesi (gerçek `categories`/`products`'a
+yazan ayrı bir endpoint/ekran) sonraki adım, henüz yapılmadı.
 
 **Senaryo 2 — Bütçe analizi:** kategori bazlı toplam harcanan/planlanan verisi **agregat**
 halde AI'ya gönderilir, AI kullanıcının fark etmeyebileceği örüntüleri yorumlar. (Henüz
@@ -176,7 +182,7 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | 3 | Docker Compose ortamı | ✅ Tamamlandı (yerel + Oracle Cloud sunucusunda) |
 | 4 | Spring Boot backend çekirdeği | ✅ Çekirdek + paylaşım (`list_shares`) + fotoğraf yükleme tamamlandı (kalanlar Faz 2) |
 | 5 | React web arayüzü + paylaşım/realtime | 🔶 Çekirdek + "Çeyiz Ekibi" paylaşım ekranı + fotoğraf yükleme tamamlandı, görsel yenilemenin ilk turu bitti (WS Faz 2'de, görsel yenilemenin kalanı Faz 3'te) |
-| 6 | AI katmanı | 🔶 Eski Senaryo 1 (liste önerisi) kaldırıldı, yerine "AI ile ekle" (foto/PDF önerisi) planlandı; model `gemma3:4b`'ye geçildi (bkz. §7.5) |
+| 6 | AI katmanı | 🔶 "AI ile ekle" (foto/PDF önerisi) admin panelinde şablonlar için çalışıyor; kullanıcının kendi listesine ekleme + Senaryo 2 (bütçe analizi) kalanlar |
 | 7 | React Native mobil uygulama | ⬜ |
 | 8 | Test, CI/CD ve yayına alma | 🔶 Backend+frontend Oracle Cloud'a deploy edildi (testler/CI, domain+HTTPS Faz 3'te) |
 
@@ -202,11 +208,12 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | ✅ Spring Initializr ile proje iskeletini oluştur (Web, JPA, Security, Postgres, Validation) | Temel bağımlılıklarla boş ama çalışan bir proje |
 | ✅ Flyway kurulumu + ilk migration (şema) | Veritabanı şemasının versiyonlu, izlenebilir şekilde kurulması |
 | ✅ Migration: `users.is_admin` + `category_templates`/`product_templates` tabloları (boş, seed verisi yok) | Şablon içeriği tamamen admin panelinden elle yönetilecek |
-| 🔜 `User` entity + `isAdmin` alanı, `JwtService`/`AuthService` token'a `isAdmin` claim'i eklesin | Frontend'in `authStore.ts`'teki mevcut client-side JWT decode deseniyle admin kontrolü yapabilmesi |
-| 🔜 `CategoryTemplate`/`ProductTemplate` entity + repository + DTO'lar | Şablon verisinin Java tarafındaki karşılığı |
-| 🔜 `TemplateService` — admin CRUD + `applyTemplatesToList()` | Admin şablon yönetimi + liste oluşturulunca şablonun gerçek `categories`/`products`'a kopyalanması |
-| 🔜 `TemplateController` — `/api/admin/templates` (admin kontrollü) | Admin panelinin backend ucu |
-| 🔜 `ListService.createList` içine `applyTemplatesToList` çağrısı | Yeni liste otomatik şablonla dolsun |
+| ✅ `User` entity + `isAdmin` alanı, `JwtService`/`AuthService` token'a `isAdmin` claim'i ekliyor | Frontend `authStore.ts`'teki client-side JWT decode deseniyle admin kontrolü yapıyor |
+| ✅ `CategoryTemplate`/`ProductTemplate` entity + repository + DTO'lar | Şablon verisinin Java tarafındaki karşılığı |
+| ✅ `TemplateService` — admin CRUD + `applyTemplatesToList()` | Admin şablon yönetimi + liste oluşturulunca şablonun gerçek `categories`/`products`'a kopyalanması — curl ile uçtan uca doğrulandı |
+| ✅ `TemplateController` — `/api/admin/templates` (admin kontrollü) | Admin panelinin backend ucu |
+| ✅ `ListService.createList` içine `applyTemplatesToList` çağrısı | Yeni liste otomatik şablonla doluyor — tarayıcıdan doğrulandı |
+| ✅ `AiSuggestionService`/`Controller` — `POST /api/admin/ai-suggestions` | Foto/PDF'den `{categoryName, items[]}` önerisi (bkz. §2.6), PDFBox ile PDF metin çıkarımı |
 | ✅ `User`, `TrousseauList`, `Category`, `Product`, `PriceEntry`, `ProductSet`, `SetItem` entity'lerini yaz | Veritabanı tablolarının Java tarafındaki karşılığı — tüm entity'ler tamamlandı |
 | ✅ Repository katmanı (Spring Data JPA) — `UserRepository` | Veritabanına CRUD erişimi |
 | ✅ Kullanıcı kayıt/giriş endpoint'leri + JWT üretimi/doğrulama + şifre hashleme | Kimlik doğrulamanın temeli |
@@ -242,8 +249,9 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | ✅ Fiyat notu ekleme formu | Fiyat toplama özelliğinin web tarafı — `ProductPage` içinde mağaza/ödeme tipi/peşin-taksit/not formu + "bunu kullan" (isPreferred) işaretleme + dosya seçiciyle fotoğraf yükleme (seçilince otomatik yüklenip önizleme gösteriliyor, liste içinde de thumbnail) |
 | ✅ Set karşılaştırma ekranı | Set/paket özelliğinin görselleştirilmesi — `SetsPage`: set oluşturma (kalemler için listedeki ürünlerden seçim ya da serbest metin + tahmini fiyat), `SetComparisonView`: set vs parça parça toplam, fark, eksik ürün sayısı |
 | ✅ "Çeyiz Ekibi" ekranı (paylaşım/izin yönetimi) | `ListSharesPage` — üye listesi (rol rozetleriyle), davet formu, rol değiştirme, çıkarma. Sadece owner yönetim butonlarını görüyor (JWT'den decode edilen `userId` ile kontrol ediliyor). Tarayıcıdan uçtan uca test edildi. `ListsPage`'de her liste satırında da rol rozeti gösteriliyor |
-| 🔜 `authStore.ts`'e `isAdmin` claim decode'u eklenmesi | Admin panel linkini/route'unu sadece admin kullanıcıya göstermek |
-| 🔜 `api/adminTemplates.ts` + `AdminTemplatesPage.tsx` | Kategori/ürün şablonu ekleme-çıkarma ekranı |
+| ✅ `authStore.ts`'e `isAdmin` claim decode'u eklendi | Admin panel linki (`Layout.tsx`) sadece admin kullanıcıya görünüyor |
+| ✅ `api/adminTemplates.ts` + `AdminTemplatesPage.tsx` | Kategori/ürün şablonu ekleme-çıkarma ekranı, tarayıcıdan uçtan uca test edildi |
+| ✅ `AiSuggestionPanel` (`AdminTemplatesPage` içinde) | Dosya yükle → AI önerisi → kategori adını düzenle + ürün seç → şablona ekle |
 | 🔜 Faz 2: WebSocket (STOMP) bağlantısı ve canlı güncelleme | Gerçek zamanlı senkronizasyon — backend'de WebSocket/STOMP konfigürasyonu henüz yok |
 | 🔶 Faz 3: Mevcut ekranların görsel yenilenmesi | İlk tur tamamlandı: Fraunces serif başlık fontu, sticky/blur header + marka amblemi, kart hover efekti, güzelleştirilmiş boş durumlar, gradient arka planlı giriş/kayıt ekranları. Kalan: `ListDetailPage`/`CategorySection`/`ProductPage`'in kendi iç düzeni hâlâ sade |
 
@@ -258,8 +266,9 @@ Uçtan uca doğrulama: tam yığın `docker compose up` ile ayağa kaldırılıp
 | ✅ `AiClient` (WebClient tabanlı, sağlayıcıdan bağımsız arayüz) | AI sağlayıcısıyla iletişim katmanı |
 | ✅ `OllamaClient` implementasyonu (ücretsiz self-host, bkz. §7) | Oracle Cloud'daki Ollama'ya bağlanıyor; Docker Compose ağı ile host arasındaki `host.docker.internal` + iptables sorunu çözüldü (bkz. §7.3); model `gemma2:9b` → `gemma3:4b`'ye geçildi (bkz. §7.5) |
 | ✅ Eski Senaryo 1 kaldırıldı | `AiController`, `AiService`, `ListSuggestionRequest`/`Response`, `list-suggestion.txt` prompt'u, frontend `AiListSuggestion` component'i + `api/ai.ts` tamamen silindi (2026-09-10) — `docker compose build backend` ile temiz derleme doğrulandı |
-| 🔜 Yeni Senaryo 1 — "AI ile ekle" backend (upload + AI parse + öneri endpoint'i) | Foto/PDF yükleme, `gemma3:4b`'ye gönderme, yapılandırılmış ürün önerisi listesi döndürme |
-| 🔜 Yeni Senaryo 1 — frontend (yükleme + öneri seçim ekranı) | Kullanıcının önerilen ürünlerden istediğini işaretleyip listesine eklemesi |
+| ✅ Yeni Senaryo 1 — "AI ile ekle" backend | `AiClient.completeWithImage`, PDFBox ile PDF metni, `product-suggestion.txt` prompt'u, `AiSuggestionService`/`Controller` — admin panelinde uçtan uca doğrulandı |
+| ✅ Yeni Senaryo 1 — admin panelinde frontend | `AiSuggestionPanel` — dosya yükle → öneri → seç → şablona ekle |
+| 🔜 Yeni Senaryo 1 — kullanıcının kendi listesine ekleme | Aynı `/api/admin/ai-suggestions` akışının (ya da kullanıcıya açık bir varyantının) gerçek `categories`/`products`'a yazması — henüz yapılmadı |
 | ⬜ `AiService` — bütçe analizi metodu | Senaryo 2 — DB şemasında "planlanan bütçe" alanı henüz yok, önce küçük bir migration gerekiyor. Faz 2'ye ertelendi |
 | ⬜ Cache katmanı (Caffeine) | Maliyet kontrolü — Faz 2'ye ertelendi |
 | ⬜ Rate limiting (Bucket4j) | Kötüye kullanımı önleme — Faz 2'ye ertelendi |
