@@ -1,10 +1,13 @@
 package com.ceyiz.app.service;
 
 import com.ceyiz.app.entity.Product;
+import com.ceyiz.app.entity.ProductStatus;
 import com.ceyiz.app.repository.CategoryRepository;
 import com.ceyiz.app.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +41,41 @@ public class ProductService {
 
         return productRepository.findByCategoryId(categoryId);
 
+    }
+
+    public Product updateProduct(UUID productId, String name, ProductStatus status, UUID requesterId){
+
+        if (name != null && name.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ürün adı boş olamaz");
+        }
+
+        var product = findProduct(productId);
+        requireEditorForProduct(product, requesterId);
+
+        if (name != null) product.rename(name.trim());
+        if (status != null) product.changeStatus(status);
+        return productRepository.save(product);
+    }
+
+    // Fiyat notları ON DELETE CASCADE ile silinir, set kalemleri ise ON DELETE SET NULL ile
+    // serbest metin kalemine dönüşür.
+    public void deleteProduct(UUID productId, UUID requesterId){
+
+        var product = findProduct(productId);
+        requireEditorForProduct(product, requesterId);
+
+        productRepository.delete(product);
+    }
+
+    private Product findProduct(UUID productId){
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Ürün bulunamadı"));
+    }
+
+    private void requireEditorForProduct(Product product, UUID requesterId){
+        var category = categoryRepository.findById(product.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+        listAccessService.requireAtLeastEditor(category.getListId(), requesterId);
     }
 
 

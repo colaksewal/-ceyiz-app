@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createProduct, getProducts } from "../api/products";
+import { deleteCategory, renameCategory } from "../api/categories";
+import { createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
 import { pickCategoryEmoji } from "../lib/listAccent";
-import type { Category, ProductStatus } from "../types";
+import type { Category, Product, ProductStatus } from "../types";
 import styles from "./CategorySection.module.scss";
 
 const statusLabels: Record<ProductStatus, string> = {
@@ -12,15 +13,17 @@ const statusLabels: Record<ProductStatus, string> = {
   SKIPPED: "Atlandı",
 };
 
-const statusBadgeClass: Record<ProductStatus, string> = {
-  PLANNED: "badge badge-neutral",
-  PURCHASED: "badge badge-success",
-  SKIPPED: "badge badge-warning",
+const statusSelectClass: Record<ProductStatus, string> = {
+  PLANNED: styles.statusPlanned,
+  PURCHASED: styles.statusPurchased,
+  SKIPPED: styles.statusSkipped,
 };
 
 export default function CategorySection({ category }: { category: Category }) {
   const [expanded, setExpanded] = useState(false);
   const [productName, setProductName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(category.name);
   const queryClient = useQueryClient();
 
   const { data: products, isLoading } = useQuery({
@@ -37,36 +40,116 @@ export default function CategorySection({ category }: { category: Category }) {
     },
   });
 
+  // Category tipinde listId yok; "categories" önekiyle tüm liste sorgularını tazeliyoruz.
+  const renameMutation = useMutation({
+    mutationFn: () => renameCategory(category.id, draftName.trim()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      setRenaming(false);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCategory(category.id),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ["products", category.id] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!productName.trim()) return;
     createMutation.mutate();
   }
 
+  function handleRenameSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!draftName.trim() || draftName.trim() === category.name) {
+      setRenaming(false);
+      return;
+    }
+    renameMutation.mutate();
+  }
+
+  function startRenaming() {
+    setDraftName(category.name);
+    setRenaming(true);
+  }
+
+  function handleDelete() {
+    const ok = window.confirm(
+      `"${category.name}" kategorisi, içindeki tüm ürünler ve fiyat notlarıyla birlikte silinecek. Emin misin?`
+    );
+    if (ok) deleteMutation.mutate();
+  }
+
   // Ürünler ilk açılışta yükleniyor; o zamana kadar özet satırı gösterilmez.
   const purchasedCount = products?.filter((p) => p.status === "PURCHASED").length ?? 0;
   const progress = products && products.length > 0 ? (purchasedCount / products.length) * 100 : 0;
+  const emoji = pickCategoryEmoji(category.id, category.name);
 
   return (
     <div className={`${styles.section} ${expanded ? styles.sectionOpen : ""}`}>
-      <button
-        className={styles.toggle}
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-      >
-        <span className={styles.emoji}>{pickCategoryEmoji(category.id, category.name)}</span>
-        <span className={styles.titleBlock}>
-          <span className={styles.title}>{category.name}</span>
-          {products && (
-            <span className={styles.summary}>
-              {products.length} ürün · {purchasedCount} alındı
+      {renaming ? (
+        <form onSubmit={handleRenameSubmit} className={styles.renameForm}>
+          <span className={styles.emoji}>{emoji}</span>
+          <input
+            type="text"
+            aria-label="Kategori adı"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            autoFocus
+            required
+          />
+          <button type="submit" disabled={renameMutation.isPending} className="btn btn-primary">
+            Kaydet
+          </button>
+          <button type="button" onClick={() => setRenaming(false)} className="btn btn-ghost">
+            Vazgeç
+          </button>
+        </form>
+      ) : (
+        <div className={styles.header}>
+          <button
+            className={styles.toggle}
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+          >
+            <span className={styles.emoji}>{emoji}</span>
+            <span className={styles.titleBlock}>
+              <span className={styles.title}>{category.name}</span>
+              {products && (
+                <span className={styles.summary}>
+                  {products.length} ürün · {purchasedCount} alındı
+                </span>
+              )}
             </span>
-          )}
-        </span>
-        <span className={styles.chevron} aria-hidden>
-          ›
-        </span>
-      </button>
+            <span className={styles.chevron} aria-hidden>
+              ›
+            </span>
+          </button>
+          <div className={styles.headerActions}>
+            <button onClick={startRenaming} className="btn btn-ghost" title="Yeniden adlandır">
+              ✎
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="btn btn-danger-ghost"
+              title="Kategoriyi sil"
+            >
+              🗑
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(renameMutation.isError || deleteMutation.isError) && (
+        <p className={`error-text ${styles.headerError}`}>
+          {renameMutation.isError ? "Kategori adı güncellenemedi" : "Kategori silinemedi"}
+        </p>
+      )}
 
       {products && products.length > 0 && (
         <div className={styles.progressTrack}>
@@ -84,19 +167,7 @@ export default function CategorySection({ category }: { category: Category }) {
           {products && products.length > 0 && (
             <ul className={styles.productList}>
               {products.map((product) => (
-                <li key={product.id}>
-                  <Link to={`/products/${product.id}`} className={styles.productRow}>
-                    <span className={styles.productName}>{product.name}</span>
-                    <span className={styles.productMeta}>
-                      <span className={statusBadgeClass[product.status]}>
-                        {statusLabels[product.status] ?? product.status}
-                      </span>
-                      <span className={styles.rowArrow} aria-hidden>
-                        ›
-                      </span>
-                    </span>
-                  </Link>
-                </li>
+                <ProductRow key={product.id} product={product} categoryId={category.id} />
               ))}
             </ul>
           )}
@@ -117,5 +188,124 @@ export default function CategorySection({ category }: { category: Category }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ProductRow({ product, categoryId }: { product: Product; categoryId: string }) {
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(product.name);
+  const queryClient = useQueryClient();
+  const productsKey = ["products", categoryId];
+
+  // Sunucunun döndürdüğü ürünü cache'e doğrudan yazıyoruz; liste yeniden çekilmeden
+  // durum rozeti ve ilerleme çubuğu anında güncellenir.
+  const updateMutation = useMutation({
+    mutationFn: (changes: { name?: string; status?: ProductStatus }) =>
+      updateProduct(product.id, changes),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Product[]>(productsKey, (old) =>
+        old?.map((p) => (p.id === updated.id ? updated : p))
+      );
+      setRenaming(false);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteProduct(product.id),
+    onSuccess: () => {
+      queryClient.setQueryData<Product[]>(productsKey, (old) =>
+        old?.filter((p) => p.id !== product.id)
+      );
+    },
+  });
+
+  function handleRenameSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const name = draftName.trim();
+    if (!name || name === product.name) {
+      setRenaming(false);
+      return;
+    }
+    updateMutation.mutate({ name });
+  }
+
+  function startRenaming() {
+    setDraftName(product.name);
+    setRenaming(true);
+  }
+
+  function handleDelete() {
+    const ok = window.confirm(
+      `"${product.name}" ürünü ve fiyat notları silinecek. Emin misin?`
+    );
+    if (ok) deleteMutation.mutate();
+  }
+
+  if (renaming) {
+    return (
+      <li>
+        <form onSubmit={handleRenameSubmit} className={styles.productRenameForm}>
+          <input
+            type="text"
+            aria-label="Ürün adı"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            autoFocus
+            required
+          />
+          <button type="submit" disabled={updateMutation.isPending} className="btn btn-primary">
+            Kaydet
+          </button>
+          <button type="button" onClick={() => setRenaming(false)} className="btn btn-ghost">
+            Vazgeç
+          </button>
+        </form>
+      </li>
+    );
+  }
+
+  return (
+    <li className={styles.productRow}>
+      <Link
+        to={`/products/${product.id}`}
+        className={`${styles.productLink} ${product.status === "SKIPPED" ? styles.productSkipped : ""}`}
+      >
+        <span className={styles.productName}>{product.name}</span>
+        <span className={styles.rowArrow} aria-hidden>
+          ›
+        </span>
+      </Link>
+      <div className={styles.productMeta}>
+        <select
+          aria-label="Ürün durumu"
+          value={product.status}
+          disabled={updateMutation.isPending}
+          onChange={(e) => updateMutation.mutate({ status: e.target.value as ProductStatus })}
+          className={`${styles.statusSelect} ${statusSelectClass[product.status]}`}
+        >
+          {Object.entries(statusLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <button onClick={startRenaming} className="btn btn-ghost" title="Yeniden adlandır">
+          ✎
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={deleteMutation.isPending}
+          className="btn btn-danger-ghost"
+          title="Ürünü sil"
+        >
+          🗑
+        </button>
+      </div>
+      {(updateMutation.isError || deleteMutation.isError) && (
+        <span className={`error-text ${styles.rowError}`}>
+          {updateMutation.isError ? "Güncellenemedi" : "Silinemedi"}
+        </span>
+      )}
+    </li>
   );
 }

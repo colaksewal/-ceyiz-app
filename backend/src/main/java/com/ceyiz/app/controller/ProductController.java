@@ -1,10 +1,9 @@
 package com.ceyiz.app.controller;
 
 
-import com.ceyiz.app.dto.CategoryResponse;
 import com.ceyiz.app.dto.CreateProductRequest;
 import com.ceyiz.app.dto.ProductResponse;
-import com.ceyiz.app.service.CategoryService;
+import com.ceyiz.app.dto.UpdateProductRequest;
 import com.ceyiz.app.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +14,12 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/categories/{categoryId}/products")
 @RequiredArgsConstructor
-
 public class ProductController {
 
     private final ProductService productService;
 
-    @PostMapping
+    @PostMapping("/api/categories/{categoryId}/products")
     public ResponseEntity<ProductResponse> createProduct(
             @PathVariable UUID categoryId,
             @RequestBody CreateProductRequest request,
@@ -33,7 +30,7 @@ public class ProductController {
         return ResponseEntity.ok(ProductResponse.from(created));
     }
 
-    @GetMapping
+    @GetMapping("/api/categories/{categoryId}/products")
     public ResponseEntity<List<ProductResponse>> getProducts(
             @PathVariable UUID categoryId,
             Authentication authentication
@@ -45,6 +42,25 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+    @PatchMapping("/api/products/{productId}")
+    public ResponseEntity<ProductResponse> updateProduct(
+            @PathVariable UUID productId,
+            @RequestBody UpdateProductRequest request,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        var updated = productService.updateProduct(productId, request.name(), request.status(), requesterId);
+        return ResponseEntity.ok(ProductResponse.from(updated));
+    }
 
+    @DeleteMapping("/api/products/{productId}")
+    public ResponseEntity<Void> deleteProduct(
+            @PathVariable UUID productId,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        productService.deleteProduct(productId, requesterId);
+        return ResponseEntity.noContent().build();
+    }
 
 }

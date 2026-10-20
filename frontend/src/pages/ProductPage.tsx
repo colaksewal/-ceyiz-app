@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createPriceEntry, getPriceEntries, markAsPreferred } from "../api/priceEntries";
+import {
+  createPriceEntry,
+  deletePriceEntry,
+  getPriceEntries,
+  markAsPreferred,
+} from "../api/priceEntries";
 import { uploadFile, resolveUploadUrl } from "../api/uploads";
 import type { PriceType } from "../types";
 import styles from "./ProductPage.module.scss";
@@ -63,6 +68,19 @@ export default function ProductPage() {
       queryClient.invalidateQueries({ queryKey: ["priceEntries", productId] });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (priceEntryId: string) => deletePriceEntry(priceEntryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["priceEntries", productId] });
+    },
+  });
+
+  function handleDelete(priceEntryId: string, storeName: string) {
+    if (window.confirm(`"${storeName}" fiyat notu silinecek. Emin misin?`)) {
+      deleteMutation.mutate(priceEntryId);
+    }
+  }
 
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadFile(file),
@@ -170,6 +188,7 @@ export default function ProductPage() {
       {isLoading && <p className="muted">Yükleniyor...</p>}
       {error && <p className="error-text">Fiyat notları yüklenemedi</p>}
       {entries && entries.length === 0 && <p className="empty-state">Henüz fiyat notu yok.</p>}
+      {deleteMutation.isError && <p className="error-text">Fiyat notu silinemedi</p>}
 
       <ul className={styles.entryGrid}>
         {entries?.map((entry) => (
@@ -199,15 +218,25 @@ export default function ProductPage() {
                 <div className={styles.entryNote}>{entry.paymentPlanNote}</div>
               )}
 
-              {!entry.isPreferred && (
+              <div className={styles.entryActions}>
+                {!entry.isPreferred && (
+                  <button
+                    onClick={() => preferMutation.mutate(entry.id)}
+                    disabled={preferMutation.isPending}
+                    className="btn btn-secondary"
+                  >
+                    Bunu Kullan
+                  </button>
+                )}
                 <button
-                  onClick={() => preferMutation.mutate(entry.id)}
-                  disabled={preferMutation.isPending}
-                  className={`btn btn-secondary ${styles.preferBtn}`}
+                  onClick={() => handleDelete(entry.id, entry.storeName)}
+                  disabled={deleteMutation.isPending}
+                  className={`btn btn-danger-ghost ${styles.deleteBtn}`}
+                  title="Fiyat notunu sil"
                 >
-                  Bunu Kullan
+                  🗑 Sil
                 </button>
-              )}
+              </div>
             </div>
           </li>
         ))}

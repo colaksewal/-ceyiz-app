@@ -27,6 +27,10 @@ public class Category {
         this.name = name;
     }
 
+    public void rename(String name){
+        this.name = name;
+    }
+
 
 
 }

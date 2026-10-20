@@ -35,4 +35,12 @@ public class Product {
 
     }
 
+    public void rename(String name){
+        this.name = name;
+    }
+
+    public void changeStatus(ProductStatus status){
+        this.status = status;
+    }
+
 }

@@ -18,8 +18,35 @@
   border-color: $color-border-strong;
 }
 
+.header {
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    background: $color-surface-muted;
+  }
+}
+
+.headerActions {
+  display: flex;
+  flex-shrink: 0;
+  padding-right: $space-2;
+}
+
+.headerError {
+  padding: 0 $space-4;
+}
+
+.renameForm {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-4;
+}
+
 .toggle {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: $space-3;
@@ -29,10 +56,6 @@
   border: none;
   cursor: pointer;
   color: $color-text;
-
-  &:hover {
-    background: $color-surface-muted;
-  }
 }
 
 .emoji {
@@ -113,14 +136,12 @@
 
 .productRow {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  gap: $space-3;
-  padding: $space-3 $space-2;
+  gap: $space-2;
+  padding: $space-1 $space-2;
   margin: 0 (-$space-2);
   border-radius: $radius-sm;
-  text-decoration: none;
-  color: $color-text;
   transition: background-color 0.15s ease;
 
   &:hover {
@@ -131,6 +152,22 @@
       transform: translateX(2px);
     }
   }
+}
+
+.productLink {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 0;
+  text-decoration: none;
+  color: $color-text;
+}
+
+.productSkipped .productName {
+  color: $color-text-faint;
+  text-decoration: line-through;
 }
 
 .productName {
@@ -144,8 +181,46 @@
 .productMeta {
   display: flex;
   align-items: center;
-  gap: $space-2;
+  gap: $space-1;
   flex-shrink: 0;
+}
+
+// Global select { width: 100% } kuralını eziyoruz; rozet görünümlü küçük seçim kutusu.
+.statusSelect {
+  width: auto;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.statusPlanned {
+  background: $color-surface-muted;
+  color: $color-text-muted;
+}
+
+.statusPurchased {
+  background: $color-success-bg;
+  color: $color-success;
+}
+
+.statusSkipped {
+  background: $color-danger-bg;
+  color: $color-danger;
+}
+
+.productRenameForm {
+  display: flex;
+  gap: $space-2;
+  padding: $space-2 0;
+}
+
+.rowError {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8rem;
 }
 
 .rowArrow {

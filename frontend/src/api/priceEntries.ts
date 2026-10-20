@@ -28,3 +28,7 @@ export async function markAsPreferred(priceEntryId: string): Promise<PriceEntry>
   const response = await api.patch<PriceEntry>(`/price-entries/${priceEntryId}/preferred`);
   return response.data;
 }
+
+export async function deletePriceEntry(priceEntryId: string): Promise<void> {
+  await api.delete(`/price-entries/${priceEntryId}`);
+}

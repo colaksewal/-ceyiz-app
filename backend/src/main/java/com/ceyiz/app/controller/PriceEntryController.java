@@ -53,4 +53,14 @@ public class PriceEntryController {
         var updated = priceEntryService.markAsPreferred(priceEntryId, requesterId);
         return ResponseEntity.ok(PriceEntryResponse.from(updated));
     }
+
+    @DeleteMapping("/api/price-entries/{priceEntryId}")
+    public ResponseEntity<Void> deletePriceEntry(
+            @PathVariable UUID priceEntryId,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        priceEntryService.deletePriceEntry(priceEntryId, requesterId);
+        return ResponseEntity.noContent().build();
+    }
 }

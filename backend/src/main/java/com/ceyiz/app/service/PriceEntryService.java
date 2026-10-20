@@ -88,6 +88,19 @@ public class PriceEntryService {
         return priceEntryRepository.findByProductId(productId);
     }
 
+    public void deletePriceEntry(UUID priceEntryId, UUID requesterId) {
+        var priceEntry = priceEntryRepository.findById(priceEntryId)
+                .orElseThrow(() -> new IllegalArgumentException("Fiyat notu bulunamadı"));
+        var product = productRepository.findById(priceEntry.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Ürün bulunamadı"));
+        var category = categoryRepository.findById(product.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+
+        listAccessService.requireAtLeastEditor(category.getListId(), requesterId);
+
+        priceEntryRepository.delete(priceEntry);
+    }
+
 
 
 }
