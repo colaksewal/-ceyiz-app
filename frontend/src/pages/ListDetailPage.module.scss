@@ -1,12 +1,29 @@
 @use "../styles/variables" as *;
 
+.header {
+  flex-wrap: wrap;
+  margin-bottom: $space-5;
+}
+
+.title {
+  margin-bottom: 0;
+}
+
+.subtitle {
+  margin: $space-1 0 0;
+  color: $color-text-muted;
+  font-size: 0.9rem;
+}
+
 .headerActions {
   display: flex;
+  flex-wrap: wrap;
   gap: $space-2;
 }
 
 .form {
-  margin-bottom: $space-6;
+  margin: $space-4 0 $space-6;
+  padding: $space-4;
 }
 
 .nameField {

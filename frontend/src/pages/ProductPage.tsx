@@ -12,6 +12,12 @@ const priceTypeLabels: Record<PriceType, string> = {
   ELDEN_KREDI_KARTI: "Elden Kredi Kartı",
 };
 
+const tlFormatter = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" });
+
+function formatTl(value: number) {
+  return tlFormatter.format(value);
+}
+
 const emptyForm = {
   storeName: "",
   priceType: "PESIN" as PriceType,
@@ -81,9 +87,13 @@ export default function ProductPage() {
       <button onClick={() => navigate(-1)} className="btn btn-ghost back-link">
         ← Geri
       </button>
-      <h1>Fiyat Notları</h1>
+      <h1 className={styles.title}>Fiyat Notları</h1>
+      {entries && entries.length > 0 && (
+        <p className={styles.subtitle}>{entries.length} mağazadan fiyat not edildi</p>
+      )}
 
       <form onSubmit={handleSubmit} className={`card ${styles.form}`}>
+        <h3 className={styles.formTitle}>Yeni fiyat notu</h3>
         <div className="form-grid">
           <div className="field">
             <label>Mağaza</label>
@@ -161,41 +171,44 @@ export default function ProductPage() {
       {error && <p className="error-text">Fiyat notları yüklenemedi</p>}
       {entries && entries.length === 0 && <p className="empty-state">Henüz fiyat notu yok.</p>}
 
-      <ul className={styles.entryList}>
+      <ul className={styles.entryGrid}>
         {entries?.map((entry) => (
           <li
             key={entry.id}
             className={`${styles.entry} ${entry.isPreferred ? styles.entryPreferred : ""}`}
           >
+            {entry.isPreferred && <span className={styles.preferredRibbon}>✓ Kullanılan fiyat</span>}
             {entry.photoUrl && (
               <img src={resolveUploadUrl(entry.photoUrl)} alt={entry.storeName} className={styles.entryPhoto} />
             )}
-            <div className={styles.entryHead}>
-              <span className={styles.storeName}>{entry.storeName}</span>
-              {entry.isPreferred ? (
-                <span className={styles.preferredBadge}>✓ Kullanılan fiyat</span>
-              ) : (
+            <div className={styles.entryBody}>
+              <div className={styles.entryHead}>
+                <span className={styles.storeName}>{entry.storeName}</span>
+                <span className="badge badge-neutral">{priceTypeLabels[entry.priceType]}</span>
+              </div>
+
+              {entry.cashPrice != null && (
+                <div className={styles.price}>{formatTl(entry.cashPrice)}</div>
+              )}
+              {entry.installmentCount != null && entry.installmentAmount != null && (
+                <div className={styles.entryDetail}>
+                  {entry.installmentCount} × {formatTl(entry.installmentAmount)} taksit
+                </div>
+              )}
+              {entry.paymentPlanNote && (
+                <div className={styles.entryNote}>{entry.paymentPlanNote}</div>
+              )}
+
+              {!entry.isPreferred && (
                 <button
                   onClick={() => preferMutation.mutate(entry.id)}
                   disabled={preferMutation.isPending}
-                  className="btn btn-secondary"
+                  className={`btn btn-secondary ${styles.preferBtn}`}
                 >
                   Bunu Kullan
                 </button>
               )}
             </div>
-            <div className={styles.entryDetail}>{priceTypeLabels[entry.priceType]}</div>
-            {entry.cashPrice != null && (
-              <div className={styles.entryDetail}>Peşin: {entry.cashPrice} TL</div>
-            )}
-            {entry.installmentCount != null && entry.installmentAmount != null && (
-              <div className={styles.entryDetail}>
-                Taksit: {entry.installmentCount} x {entry.installmentAmount} TL
-              </div>
-            )}
-            {entry.paymentPlanNote && (
-              <div className={styles.entryDetail}>Not: {entry.paymentPlanNote}</div>
-            )}
           </li>
         ))}
       </ul>

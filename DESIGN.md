@@ -253,7 +253,7 @@ Ayrıntılı ER diyagramı sohbet içinde ayrıca oluşturuldu.
 | ✅ `api/adminTemplates.ts` + `AdminTemplatesPage.tsx` | Kategori/ürün şablonu ekleme-çıkarma ekranı, tarayıcıdan uçtan uca test edildi |
 | ✅ `AiSuggestionPanel` (`AdminTemplatesPage` içinde) | Dosya yükle → AI önerisi → kategori adını düzenle + ürün seç → şablona ekle |
 | 🔜 Faz 2: WebSocket (STOMP) bağlantısı ve canlı güncelleme | Gerçek zamanlı senkronizasyon — backend'de WebSocket/STOMP konfigürasyonu henüz yok |
-| 🔶 Faz 3: Mevcut ekranların görsel yenilenmesi | İlk tur tamamlandı: Fraunces serif başlık fontu, sticky/blur header + marka amblemi, kart hover efekti, güzelleştirilmiş boş durumlar, gradient arka planlı giriş/kayıt ekranları. Kalan: `ListDetailPage`/`CategorySection`/`ProductPage`'in kendi iç düzeni hâlâ sade |
+| ✅ Faz 3: Mevcut ekranların görsel yenilenmesi | İlk tur: sticky/blur header + marka amblemi, kart hover efekti, güzelleştirilmiş boş durumlar, gradient arka planlı giriş/kayıt ekranları. İkinci tur (2026-10-20): `CategorySection` emoji rozeti (`pickCategoryEmoji`), dönen chevron, "N ürün · M alındı" özeti + ilerleme çubuğu, tıklanabilir ürün satırları; `ListDetailPage` kart içinde kategori formu; `ProductPage` fiyat notları kart ızgarası, TL formatlı büyük fiyat, "Kullanılan fiyat" rozeti |
 
 Not: Set kalemi eşleştirmesi için backend'deki `/products/search` autocomplete endpoint'i henüz olmadığından (🔜 Faz 2, Aşama 4), `SetsPage` şimdilik listenin tüm kategori/ürünlerini çekip bir seçim listesi (`getListProductOptions`) olarak sunuyor. Endpoint eklendiğinde bununla değiştirilebilir.
 

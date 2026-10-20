@@ -1,55 +1,129 @@
 @use "../styles/variables" as *;
 
+.title {
+  margin-bottom: 0;
+}
+
+.subtitle {
+  margin: $space-1 0 0;
+  color: $color-text-muted;
+  font-size: 0.9rem;
+}
+
 .form {
-  margin-bottom: $space-6;
+  margin: $space-5 0 $space-6;
+}
+
+.formTitle {
+  margin-bottom: $space-4;
 }
 
 .submitBtn {
   margin-top: $space-4;
 }
 
-.entryList {
+.entryGrid {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: $space-3;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: $space-4;
 }
 
 .entry {
-  border-radius: $radius-md;
-  padding: $space-4;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: $radius-lg;
   background: $color-surface;
   border: 1px solid $color-border;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow-md;
+    transform: translateY(-1px);
+  }
 }
 
 .entryPreferred {
-  border: 1px solid $color-success;
-  background: $color-success-bg;
+  border: 2px solid $color-success;
+}
+
+.preferredRibbon {
+  position: absolute;
+  top: $space-2;
+  right: $space-2;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: $color-success;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: $shadow-sm;
+}
+
+.entryPhoto {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  background: $color-surface-muted;
+}
+
+.entryBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding: $space-4;
 }
 
 .entryHead {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $space-1;
+  gap: $space-2;
 }
 
 .storeName {
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.preferredBadge {
-  color: $color-success;
-  font-size: 0.85rem;
-  font-weight: 600;
+// Ribbon fotoğrafsız kartlarda başlığın üstüne binmesin.
+.entryPreferred:not(:has(.entryPhoto)) .entryBody {
+  padding-top: $space-8;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: $color-text;
 }
 
 .entryDetail {
   color: $color-text-muted;
   font-size: 0.9rem;
-  margin-top: $space-1;
+}
+
+.entryNote {
+  color: $color-text-muted;
+  font-size: 0.85rem;
+  padding: $space-2 $space-3;
+  background: $color-surface-muted;
+  border-radius: $radius-sm;
+}
+
+.preferBtn {
+  margin-top: auto;
+  align-self: flex-start;
 }
 
 .photoPreview {
@@ -59,13 +133,4 @@
   object-fit: cover;
   border-radius: $radius-sm;
   margin-top: $space-2;
-}
-
-.entryPhoto {
-  display: block;
-  max-width: 120px;
-  max-height: 120px;
-  object-fit: cover;
-  border-radius: $radius-sm;
-  margin-bottom: $space-2;
 }

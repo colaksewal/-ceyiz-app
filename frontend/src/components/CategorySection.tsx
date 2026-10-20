@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createProduct, getProducts } from "../api/products";
+import { pickCategoryEmoji } from "../lib/listAccent";
 import type { Category, ProductStatus } from "../types";
 import styles from "./CategorySection.module.scss";
 
@@ -42,48 +43,77 @@ export default function CategorySection({ category }: { category: Category }) {
     createMutation.mutate();
   }
 
+  // Ürünler ilk açılışta yükleniyor; o zamana kadar özet satırı gösterilmez.
+  const purchasedCount = products?.filter((p) => p.status === "PURCHASED").length ?? 0;
+  const progress = products && products.length > 0 ? (purchasedCount / products.length) * 100 : 0;
+
   return (
-    <div className={styles.section}>
-      <button className={styles.toggle} onClick={() => setExpanded((v) => !v)}>
-        <span className={styles.chevron}>{expanded ? "▾" : "▸"}</span>
-        {category.name}
+    <div className={`${styles.section} ${expanded ? styles.sectionOpen : ""}`}>
+      <button
+        className={styles.toggle}
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        <span className={styles.emoji}>{pickCategoryEmoji(category.id, category.name)}</span>
+        <span className={styles.titleBlock}>
+          <span className={styles.title}>{category.name}</span>
+          {products && (
+            <span className={styles.summary}>
+              {products.length} ürün · {purchasedCount} alındı
+            </span>
+          )}
+        </span>
+        <span className={styles.chevron} aria-hidden>
+          ›
+        </span>
       </button>
+
+      {products && products.length > 0 && (
+        <div className={styles.progressTrack}>
+          <div className={styles.progressBar} style={{ width: `${progress}%` }} />
+        </div>
+      )}
 
       {expanded && (
         <div className={styles.body}>
-          <form onSubmit={handleSubmit} className={`form-row ${styles.form}`}>
-            <div className={`field ${styles.nameField}`}>
-              <label>Ürün adı</label>
-              <input
-                type="text"
-                placeholder="ör. Tencere Seti"
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                required
-              />
-            </div>
-            <button type="submit" disabled={createMutation.isPending} className="btn btn-primary">
-              {createMutation.isPending ? "Ekleniyor..." : "Ürün Ekle"}
-            </button>
-          </form>
-
           {isLoading && <p className="muted">Yükleniyor...</p>}
           {products && products.length === 0 && (
-            <p className="empty-state">Bu kategoride henüz ürün yok.</p>
+            <p className={styles.emptyHint}>Bu kategoride henüz ürün yok.</p>
           )}
 
-          <ul className={styles.productList}>
-            {products?.map((product) => (
-              <li key={product.id} className={styles.productRow}>
-                <Link to={`/products/${product.id}`} className={styles.productLink}>
-                  {product.name}
-                </Link>
-                <span className={statusBadgeClass[product.status]}>
-                  {statusLabels[product.status] ?? product.status}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {products && products.length > 0 && (
+            <ul className={styles.productList}>
+              {products.map((product) => (
+                <li key={product.id}>
+                  <Link to={`/products/${product.id}`} className={styles.productRow}>
+                    <span className={styles.productName}>{product.name}</span>
+                    <span className={styles.productMeta}>
+                      <span className={statusBadgeClass[product.status]}>
+                        {statusLabels[product.status] ?? product.status}
+                      </span>
+                      <span className={styles.rowArrow} aria-hidden>
+                        ›
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <form onSubmit={handleSubmit} className={styles.addForm}>
+            <input
+              type="text"
+              placeholder="Yeni ürün ekle, ör. Tencere Seti"
+              aria-label="Ürün adı"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              required
+            />
+            <button type="submit" disabled={createMutation.isPending} className="btn btn-primary">
+              {createMutation.isPending ? "Ekleniyor..." : "Ekle"}
+            </button>
+          </form>
         </div>
       )}
     </div>

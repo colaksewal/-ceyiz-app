@@ -40,14 +40,19 @@ export default function ListDetailPage() {
       <Link to="/lists" className="back-link">
         ← Listelerim
       </Link>
-      <div className="page-header">
-        <h1>Kategoriler</h1>
+      <div className={`page-header ${styles.header}`}>
+        <div>
+          <h1 className={styles.title}>Kategoriler</h1>
+          {categories && categories.length > 0 && (
+            <p className={styles.subtitle}>{categories.length} kategori</p>
+          )}
+        </div>
         <div className={styles.headerActions}>
           <Link to={`/lists/${listId}/ceyiz-ekibi`} className="btn btn-secondary">
-            Çeyiz Ekibi →
+            👥 Çeyiz Ekibi
           </Link>
           <Link to={`/lists/${listId}/sets`} className="btn btn-secondary">
-            Set Karşılaştırma →
+            ⚖️ Set Karşılaştırma
           </Link>
         </div>
       </div>
@@ -62,9 +67,9 @@ export default function ListDetailPage() {
         }}
       />
 
-      <form onSubmit={handleSubmit} className={`form-row ${styles.form}`}>
+      <form onSubmit={handleSubmit} className={`card form-row ${styles.form}`}>
         <div className={`field ${styles.nameField}`}>
-          <label>Kategori adı</label>
+          <label>Yeni kategori</label>
           <input
             type="text"
             placeholder="ör. Mutfak"
@@ -74,7 +79,7 @@ export default function ListDetailPage() {
           />
         </div>
         <button type="submit" disabled={createMutation.isPending} className="btn btn-primary">
-          {createMutation.isPending ? "Ekleniyor..." : "Kategori Ekle"}
+          {createMutation.isPending ? "Ekleniyor..." : "+ Kategori Ekle"}
         </button>
       </form>
 
