@@ -53,6 +53,7 @@ services:
       - backend
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+      API_PROXY_TARGET: ${API_PROXY_TARGET:-}
     ports:
       - "5173:5173"
 
