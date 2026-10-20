@@ -20,6 +20,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/lists" element={<ListsPage />} />
+            <Route path="/ceyiz-ekibim" element={<ListsPage key="team" mode="team" />} />
             <Route path="/lists/:listId" element={<ListDetailPage />} />
             <Route path="/lists/:listId/sets" element={<SetsPage />} />
             <Route path="/lists/:listId/ceyiz-ekibi" element={<ListSharesPage />} />

@@ -1,50 +1,157 @@
 @use "../styles/variables" as *;
 
+// Her şablon kategorisi rengini inline `--tile` değişkeninden alır.
+
 .picker {
   display: flex;
   flex-direction: column;
-  gap: $space-4;
-  margin-bottom: $space-6;
+  gap: $space-3;
 }
 
 .category {
-  padding: $space-3 $space-4;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  background: $color-surface;
+  padding: $space-2 $space-3;
+  border: 2px solid color-mix(in srgb, var(--tile) 22%, white);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--tile) 7%, white);
+  transition: border-color 0.15s ease;
+}
+
+.categoryOpen {
+  padding-bottom: $space-4;
+  border-color: color-mix(in srgb, var(--tile) 45%, white);
 }
 
 .categoryHeader {
   display: flex;
   align-items: center;
   gap: $space-2;
-  cursor: pointer;
-  margin-bottom: $space-2;
 
-  input[type="checkbox"] {
-    width: auto;
-    padding: 0;
+  .categoryOpen & {
+    margin-bottom: $space-3;
   }
 }
 
-.productList {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 $space-5;
-}
-
-.productRow {
-  padding: $space-1 0;
-}
-
-.checkboxRow {
+.expandToggle {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: $space-2;
+  gap: $space-3;
+  padding: $space-1 0;
+  border: none;
+  background: transparent;
+  color: $color-text;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.countText {
+  flex-basis: 100%;
+  font-size: 0.78rem;
+  color: $color-text-muted;
+}
+
+.chevron {
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: $color-text-faint;
+  transition: transform 0.2s ease;
+
+  .categoryOpen & {
+    transform: rotate(90deg);
+    color: var(--tile);
+  }
+}
+
+.emoji {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--tile);
+  font-size: 1.25rem;
+}
+
+.categoryTitle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: $space-2;
+  row-gap: 2px;
+}
+
+.inListTag {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: $color-success-bg;
+  color: $color-success;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.toggleAll {
+  flex-shrink: 0;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--tile) 40%, white);
+  border-radius: 999px;
+  background: white;
+  color: $color-text;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
 
-  input[type="checkbox"] {
-    width: auto;
-    padding: 0;
+  &:hover {
+    border-color: var(--tile);
   }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.chip {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid $color-border-strong;
+  border-radius: 999px;
+  background: white;
+  color: $color-text;
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.chipOn {
+  border-color: var(--tile);
+  background: var(--tile);
+  color: white;
+  font-weight: 500;
+}
+
+.chipDone {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+  color: $color-text-faint;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  padding-top: $space-2;
+  background: linear-gradient(to top, $color-surface 70%, transparent);
+}
+
+.pill {
+  border-radius: 999px;
 }

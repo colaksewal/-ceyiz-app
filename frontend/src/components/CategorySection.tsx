@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCategory, renameCategory } from "../api/categories";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
 import { pickCategoryEmoji } from "../lib/listAccent";
-import type { Category, Product, ProductStatus } from "../types";
+import CategoryAiSuggest from "./CategoryAiSuggest";import type { Category, Product, ProductStatus } from "../types";
 import styles from "./CategorySection.module.scss";
 
 const statusLabels: Record<ProductStatus, string> = {
@@ -185,6 +185,18 @@ export default function CategorySection({ category }: { category: Category }) {
               {createMutation.isPending ? "Ekleniyor..." : "Ekle"}
             </button>
           </form>
+
+          {products && (
+            <div className={styles.aiSlot}>
+              <CategoryAiSuggest
+                existingNames={products.map((p) => p.name)}
+                onAddItems={async (items) => {
+                  await Promise.all(items.map((item) => createProduct(category.id, item)));
+                  queryClient.invalidateQueries({ queryKey: ["products", category.id] });
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

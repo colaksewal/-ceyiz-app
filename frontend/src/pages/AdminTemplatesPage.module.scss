@@ -1,45 +1,342 @@
 @use "../styles/variables" as *;
 
-.form {
-  margin-bottom: $space-6;
-  align-items: flex-end;
+// Kutular renklerini inline `--tile` değişkeninden alır (bkz. tileStyle).
+
+.hero {
+  margin-bottom: $space-5;
+
+  h1 {
+    margin-bottom: $space-2;
+  }
+
+  p {
+    margin: 0;
+  }
 }
 
-.categoryList {
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  gap: $space-3;
+  margin-bottom: $space-3;
+
+  h2 {
+    margin: 0;
+    font-size: 1.15rem;
+  }
+
+  :global(.muted) {
+    font-size: 0.85rem;
+  }
+}
+
+// ---------- Hazır şablonlar ----------
+
+.presetCard {
+  margin-bottom: $space-6;
+  border-radius: 20px;
+  border: 2px dashed $color-border-strong;
+  box-shadow: none;
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: $space-2;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.presetChip {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--tile) 12%, white);
+  color: $color-text;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--tile) 45%, white);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.presetChipSelected {
+  border-color: var(--tile);
+  background: color-mix(in srgb, var(--tile) 22%, white);
+  font-weight: 600;
+}
+
+.presetEmoji {
+  font-size: 1.2rem;
+}
+
+.presetCheck {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: white;
+  color: var(--tile);
+  font-weight: 700;
+  font-size: 0.85rem;
+
+  .presetChipSelected & {
+    background: var(--tile);
+    color: white;
+  }
+}
+
+.presetActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+  margin-top: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    .funButton {
+      flex: 1;
+    }
+  }
+}
+
+.funButton {
+  border-radius: 999px;
+  padding-left: 1.4rem;
+  padding-right: 1.4rem;
+}
+
+// ---------- Kategori kutuları ----------
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $space-3;
+  }
+}
+
+.tile {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-3;
+  border: 2px solid color-mix(in srgb, var(--tile) 25%, white);
+  border-radius: 22px;
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--tile) 10%, white),
+    color-mix(in srgb, var(--tile) 26%, white)
+  );
+  color: $color-text;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-3px) rotate(-1deg);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--tile) 30%, transparent);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.tileEmoji {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: var(--tile);
+  font-size: 2rem;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--tile) 40%, transparent);
+
+  @media (max-width: $breakpoint-sm) {
+    width: 54px;
+    height: 54px;
+    font-size: 1.7rem;
+  }
+}
+
+.tileName {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.tileCount {
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: $color-text-muted;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.newTile {
+  --tile: #{$color-text-faint};
+  border-style: dashed;
+  background: transparent;
+  color: $color-text-muted;
+
+  .tileEmoji {
+    background: $color-surface-muted;
+    color: $color-text-muted;
+    box-shadow: none;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: none;
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+}
+
+.newTileEditing {
+  cursor: default;
+  background: $color-surface;
+  justify-content: center;
+  align-items: stretch;
+
+  &:hover {
+    transform: none;
+  }
+}
+
+.newTileActions {
+  display: flex;
+  justify-content: space-between;
+  gap: $space-1;
+
+  :global(.btn) {
+    padding: 0.4rem 0.6rem;
+  }
+}
+
+// ---------- Kategori detayı (Sheet içi) ----------
+
+.sheetTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.muted) {
+    font-size: 0.85rem;
+  }
+}
+
+.sheetEmoji {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: var(--tile);
+  font-size: 1.5rem;
+}
+
+.detail {
   display: flex;
   flex-direction: column;
   gap: $space-4;
 }
 
-.categoryCard {
-  padding: $space-4;
-}
-
-.categoryHeader {
+.chips {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: $space-3;
+  flex-wrap: wrap;
+  gap: $space-2;
 
-  h3 {
+  p {
     margin: 0;
   }
 }
 
-.productList {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 $space-3;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+  border: 1px solid $color-border-strong;
+  border-radius: 999px;
+  background: $color-surface;
+  color: $color-text;
+  font: inherit;
+  font-size: 0.88rem;
 }
 
-.productRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: $space-2 0;
-  border-bottom: 1px solid $color-border;
+.chipRemove {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: $color-surface-muted;
+  color: $color-text-muted;
+  font-size: 0.7rem;
+  cursor: pointer;
 
-  &:last-child {
-    border-bottom: none;
+  &:hover:not(:disabled) {
+    background: $color-danger-bg;
+    color: $color-danger;
   }
+}
+
+.addRow {
+  display: flex;
+  gap: $space-2;
+
+  input {
+    flex: 1;
+    border-radius: 999px;
+    padding-left: 1rem;
+  }
+
+  :global(.btn) {
+    border-radius: 999px;
+  }
+}
+
+.dangerZone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border;
 }

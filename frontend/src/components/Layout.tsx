@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import styles from "./Layout.module.scss";
 
@@ -12,6 +12,9 @@ export default function Layout() {
     navigate("/login");
   }
 
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`;
+
   return (
     <div>
       <header className={styles.header}>
@@ -21,12 +24,20 @@ export default function Layout() {
           </span>
           Çeyiz Planlayıcı
         </Link>
-        {isAdmin && (
-          <Link to="/admin/templates" className="btn btn-secondary">
-            Şablon Yönetimi
-          </Link>
-        )}
-        <button className="btn btn-secondary" onClick={handleLogout}>
+        <nav className={styles.nav}>
+          <NavLink to="/lists" end className={navClass}>
+            📋 Listelerim
+          </NavLink>
+          <NavLink to="/ceyiz-ekibim" className={navClass}>
+            👥 Çeyiz Ekibim
+          </NavLink>
+          {isAdmin && (
+            <NavLink to="/admin/templates" className={navClass}>
+              🧩 Şablonlar
+            </NavLink>
+          )}
+        </nav>
+        <button className={`btn btn-secondary ${styles.logout}`} onClick={handleLogout}>
           Çıkış Yap
         </button>
       </header>

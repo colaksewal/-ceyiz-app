@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createCategory, getCategories } from "../api/categories";
-import { createProduct } from "../api/products";
-import AiSuggestionPanel from "../components/AiSuggestionPanel";
 import CategorySection from "../components/CategorySection";
+import Sheet from "../components/Sheet";
 import TemplatePicker from "../components/TemplatePicker";
 import styles from "./ListDetailPage.module.scss";
 
 export default function ListDetailPage() {
   const { listId } = useParams<{ listId: string }>();
   const [categoryName, setCategoryName] = useState("");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const closeTemplates = useCallback(() => setTemplatesOpen(false), []);
   const queryClient = useQueryClient();
 
   const { data: categories, isLoading, error } = useQuery({
@@ -57,15 +58,18 @@ export default function ListDetailPage() {
         </div>
       </div>
 
-      <AiSuggestionPanel
-        onAdd={async (aiCategoryName, items) => {
-          const category = await createCategory(listId, aiCategoryName);
-          for (const item of items) {
-            await createProduct(category.id, item);
-          }
-          queryClient.invalidateQueries({ queryKey: ["categories", listId] });
-        }}
-      />
+      <button type="button" className={styles.templateCta} onClick={() => setTemplatesOpen(true)}>
+        <span className={styles.templateCtaIcon} aria-hidden="true">
+          📋
+        </span>
+        <span className={styles.templateCtaText}>
+          <strong>Şablonlardan getir</strong>
+          <span>Hazır oda ve ürün listelerinden seçerek ekle</span>
+        </span>
+        <span className={styles.templateCtaArrow} aria-hidden="true">
+          ›
+        </span>
+      </button>
 
       <form onSubmit={handleSubmit} className={`card form-row ${styles.form}`}>
         <div className={`field ${styles.nameField}`}>
@@ -91,10 +95,7 @@ export default function ListDetailPage() {
             Henüz kategori yok. Yukarıdan elle ekleyebilir ya da aşağıdaki şablondan
             istediklerini seçip ekleyebilirsin.
           </p>
-          <TemplatePicker
-            listId={listId}
-            onDone={() => queryClient.invalidateQueries({ queryKey: ["categories", listId] })}
-          />
+          <TemplatePicker listId={listId} existingCategories={[]} onDone={() => {}} />
         </>
       )}
 
@@ -103,6 +104,10 @@ export default function ListDetailPage() {
           <CategorySection key={category.id} category={category} />
         ))}
       </div>
+
+      <Sheet open={templatesOpen} onClose={closeTemplates} title={<h2 className={styles.sheetTitle}>📋 Şablonlardan getir</h2>}>
+        <TemplatePicker listId={listId} existingCategories={categories ?? []} onDone={closeTemplates} />
+      </Sheet>
     </div>
   );
 }
