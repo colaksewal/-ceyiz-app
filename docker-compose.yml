@@ -58,6 +58,29 @@ services:
     ports:
       - "5173:5173"
 
+  # HTTPS ters vekil (reverse proxy): 80/443'ü dinler, sertifikayı kendisi alır (bkz. Caddyfile).
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: ceyiz-caddy
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Sertifikalar burada kalıcı tutulur; silinirse Let's Encrypt'ten yeniden alınır
+      # (çok sık tekrarlanırsa Let's Encrypt geçici olarak engeller).
+      - caddy_data:/data
+      - caddy_config:/config
+
 volumes:
   postgres_data:
   uploads_data:
+  caddy_data:
+  caddy_config:

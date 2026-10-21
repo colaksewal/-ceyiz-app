@@ -1,0 +1,17 @@
+# Tek giriş kapısı: HTTPS sertifikasını (Let's Encrypt) Caddy kendisi alır ve yeniler.
+# Alan adı .env'deki DOMAIN'den gelir; yoksa localhost (Caddy kendi yerel sertifikasını üretir).
+{$DOMAIN:localhost} {
+	encode gzip
+
+	# API ve yüklenen görseller backend'e; geri kalan her şey frontend'e. Hepsi aynı adresten
+	# sunulduğu için frontend API'ye "/api" ile, port yazmadan ulaşır.
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+	handle /uploads/* {
+		reverse_proxy backend:8080
+	}
+	handle {
+		reverse_proxy frontend:5173
+	}
+}
