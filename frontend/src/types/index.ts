@@ -145,5 +145,87 @@ export interface ProductSuggestion {
   items: string[];
 }
 
+// Liste özeti (GET /lists/{id}/summary). Atlanan ürünler toplamlara katılmaz.
+export interface ListSummary {
+  listName: string;
+  weddingDate: string | null;
+  generatedAt: string;
+  totals: {
+    productCount: number;
+    purchasedCount: number;
+    plannedCount: number;
+    skippedCount: number;
+    unpricedPlannedCount: number;
+    purchasedTotal: number;
+    remainingTotal: number;
+  };
+  categories: {
+    name: string;
+    productCount: number;
+    purchasedCount: number;
+    total: number;
+    products: {
+      name: string;
+      status: ProductStatus;
+      // Kullanılan fiyat notu; yoksa en ucuz not (preferred=false); hiç not yoksa null.
+      price: {
+        storeName: string | null;
+        priceType: PriceType;
+        total: number;
+        installmentCount: number | null;
+        installmentAmount: number | null;
+        preferred: boolean;
+      } | null;
+      priceEntryCount: number;
+    }[];
+  }[];
+  sets: { name: string; storeName: string | null; setPrice: number }[];
+  members: { name: string; role: ShareRole }[];
+}
+
+// Kodla hesaplanan ödeme planı; aylar "2026-11" biçiminde.
+export interface PaymentPlan {
+  monthlyBudget: number;
+  budgetProvided: boolean;
+  suggestedMonthlyBudget: number;
+  startMonth: string;
+  weddingMonth: string | null;
+  remainingTotal: number;
+  plannedItemCount: number;
+  unpricedItems: string[];
+  unaffordableItems: string[];
+  months: {
+    month: string;
+    purchases: {
+      category: string;
+      name: string;
+      // Bu ay ödenen kısım; taksitliyse ilk taksit.
+      amount: number;
+      total: number;
+      installmentCount: number | null;
+    }[];
+    ongoingInstallments: number;
+    paid: number;
+    savingsAfter: number;
+  }[];
+  finishMonth: string | null;
+  finishesBeforeWedding: boolean | null;
+  installmentsAfterWedding: number;
+}
+
+export interface PaymentPlanAdvice {
+  summary: string | null;
+  tips: string[];
+}
+
+export interface OnboardingStatus {
+  hasList: boolean;
+  hasCategory: boolean;
+  hasProduct: boolean;
+  hasPriceEntry: boolean;
+  hasTeamMember: boolean;
+  firstListId: string | null;
+}
+
 
 

@@ -64,7 +64,7 @@ export default function AiJobCenter() {
   if (visible.length === 0) return null;
 
   return (
-    <div className={styles.stack} role="status" aria-live="polite">
+    <div className={`${styles.stack} no-print`} role="status" aria-live="polite">
       {visible.map((job) => (
         <JobToast key={job.key} job={job} onDismiss={() => remove(job.key)} />
       ))}

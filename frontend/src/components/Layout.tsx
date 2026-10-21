@@ -22,7 +22,7 @@ export default function Layout() {
 
   return (
     <div>
-      <header className={styles.header}>
+      <header className={`${styles.header} no-print`}>
         <Link to="/lists" className={styles.brand}>
           <span className={styles.brandMark} aria-hidden="true">
             💍

@@ -6,6 +6,7 @@ import ListDetailPage from "./pages/ListDetailPage";
 import ProductPage from "./pages/ProductPage";
 import SetsPage from "./pages/SetsPage";
 import ListSharesPage from "./pages/ListSharesPage";
+import ListSummaryPage from "./pages/ListSummaryPage";
 import AdminTemplatesPage from "./pages/AdminTemplatesPage";
 import SetTemplatesPage from "./pages/SetTemplatesPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/lists/:listId" element={<ListDetailPage />} />
             <Route path="/lists/:listId/sets" element={<SetsPage />} />
             <Route path="/lists/:listId/ceyiz-ekibi" element={<ListSharesPage />} />
+            <Route path="/lists/:listId/ozet" element={<ListSummaryPage />} />
             <Route path="/products/:productId" element={<ProductPage />} />
             <Route path="/admin/templates" element={<AdminTemplatesPage />} />
             <Route path="/setler" element={<SetTemplatesPage />} />

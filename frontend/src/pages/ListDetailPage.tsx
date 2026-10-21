@@ -49,6 +49,9 @@ export default function ListDetailPage() {
           )}
         </div>
         <div className={styles.headerActions}>
+          <Link to={`/lists/${listId}/ozet`} className="btn btn-primary">
+            📄 Özet ve Ödeme Planı
+          </Link>
           <Link to={`/lists/${listId}/ceyiz-ekibi`} className="btn btn-secondary">
             👥 Çeyiz Ekibi
           </Link>

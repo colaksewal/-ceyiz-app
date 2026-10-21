@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createList, getMyLists } from "../api/lists";
 import { ROLE_LABELS, ROLE_BADGE_CLASS } from "../lib/shareRole";
 import { pickListAccent } from "../lib/listAccent";
+import OnboardingCard from "../components/OnboardingCard";
 import type { TrousseauListItem } from "../types";
 import styles from "./ListsPage.module.scss";
 
@@ -42,6 +43,7 @@ export default function ListsPage({ mode = "mine" }: { mode?: "mine" | "team" })
   return (
     <div>
       <h1>Listelerim</h1>
+      <OnboardingCard />
       <CreateListForm />
 
       {shared && shared.length > 0 && (
@@ -76,6 +78,7 @@ function CreateListForm() {
     mutationFn: () => createList({ name, weddingDate: weddingDate || null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding"] });
       setName("");
       setWeddingDate("");
     },

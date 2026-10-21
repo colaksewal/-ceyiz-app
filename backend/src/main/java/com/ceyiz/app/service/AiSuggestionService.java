@@ -3,6 +3,7 @@ package com.ceyiz.app.service;
 import com.ceyiz.app.ai.AiClient;
 import com.ceyiz.app.ai.AiInput;
 import com.ceyiz.app.ai.ImageDownscaler;
+import com.ceyiz.app.dto.PaymentPlanAdviceResponse;
 import com.ceyiz.app.dto.ProductSuggestionResponse;
 import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
 import com.ceyiz.app.entity.PriceType;
@@ -67,6 +68,23 @@ public class AiSuggestionService {
     public Optional<SetTemplateSuggestionResponse> suggestSet(AiInput input) {
         return suggest(input, "prompts/set-suggestion.txt", SetTemplateSuggestionResponse.class)
                 .map(this::sanitizeSetSuggestion);
+    }
+
+    /**
+     * Kodla hesaplanmış ödeme planına yorum yazar (girdi: PlanAdviceText). Boş öneriler atılır,
+     * en fazla 5 öneri tutulur; özet de öneri de yoksa "AI bir şey çıkaramadı" sayılır.
+     */
+    public Optional<PaymentPlanAdviceResponse> advisePaymentPlan(AiInput input) {
+        return suggest(input, "prompts/payment-plan-advice.txt", PaymentPlanAdviceResponse.class)
+                .map(raw -> new PaymentPlanAdviceResponse(
+                        raw.summary() == null || raw.summary().isBlank() ? null : raw.summary().trim(),
+                        raw.tips() == null ? List.of() : raw.tips().stream()
+                                .filter(tip -> tip != null && !tip.isBlank())
+                                .map(String::trim)
+                                .limit(5)
+                                .toList()
+                ))
+                .filter(advice -> advice.summary() != null || !advice.tips().isEmpty());
     }
 
     /**

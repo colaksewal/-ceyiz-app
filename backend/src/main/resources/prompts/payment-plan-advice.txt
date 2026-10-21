@@ -1,0 +1,15 @@
+Bir çiftin çeyiz alışverişi için hazırlanmış ödeme planının özeti aşağıda. Rakamlar kesin,
+yeniden hesaplama ve yeni rakam uydurma. Türkçe, samimi ve kısa yorum yaz.
+
+SADECE şu JSON ile yanıt ver:
+{"summary": "2-3 cümlelik genel değerlendirme", "tips": ["öneri 1", "öneri 2", "öneri 3"]}
+
+Kurallar:
+- 3 ile 5 arası öneri yaz, her biri tek cümle.
+- Planın düğünden sonraya taşması, düğünden sonra süren taksitler, bütçeyle alınamayan ve
+  fiyatı girilmemiş ürünler varsa mutlaka değin.
+- Hangi kategoriye öncelik verilebileceğini, set almanın ya da peşin/taksit tercihinin
+  etkisini düşün; özette olmayan ürün veya mağaza adı uydurma.
+
+Özet:
+{{content}}

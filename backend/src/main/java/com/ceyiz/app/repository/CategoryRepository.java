@@ -3,10 +3,13 @@ package com.ceyiz.app.repository;
 import com.ceyiz.app.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     List<Category> findByListId(UUID listId);
+
+    boolean existsByListIdIn(Collection<UUID> listIds);
 }

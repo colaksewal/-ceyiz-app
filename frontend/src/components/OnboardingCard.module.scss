@@ -1,0 +1,140 @@
+@use "../styles/variables" as *;
+
+.card {
+  margin-bottom: $space-5;
+  padding: $space-4;
+  border: 2px solid #a5d8ff;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #e7f5ff, #fff0f6);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $space-3;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.progressText {
+  margin: 2px 0 0;
+  color: $color-text-muted;
+  font-size: 0.85rem;
+}
+
+.close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  color: $color-text-muted;
+  cursor: pointer;
+
+  &:hover {
+    background: white;
+    color: $color-text;
+  }
+}
+
+.progressTrack {
+  height: 6px;
+  margin: $space-3 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, $color-primary, #f06595);
+  transition: width 0.3s ease;
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  color: $color-text;
+  text-decoration: none;
+}
+
+a.step:active {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+@media (hover: hover) {
+  a.step:hover {
+    background: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.stepNext {
+  background: white;
+  box-shadow: $shadow-sm;
+}
+
+.stepDone strong {
+  color: $color-text-faint;
+  font-weight: 500;
+  text-decoration: line-through;
+}
+
+.check {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid $color-border-strong;
+  border-radius: 50%;
+  background: white;
+  color: $color-text-muted;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.checkDone {
+  border-color: $color-success;
+  background: $color-success;
+  color: white;
+}
+
+.stepText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.92rem;
+
+  span {
+    color: $color-text-muted;
+    font-size: 0.82rem;
+  }
+}
+
+.arrow {
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: $color-primary;
+}
