@@ -16,15 +16,15 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/admin/set-templates")
+@RequestMapping("/api/set-templates")
 public class SetTemplateController {
 
     private final SetTemplateService setTemplateService;
 
     @GetMapping
     public ResponseEntity<List<SetTemplateResponse>> getAllSetTemplates(Authentication authentication) {
-        UUID adminId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(setTemplateService.getAllSetTemplates(adminId));
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(setTemplateService.getAllSetTemplates(userId));
     }
 
     @PostMapping
@@ -32,8 +32,8 @@ public class SetTemplateController {
             @RequestBody CreateSetTemplateRequest request,
             Authentication authentication
     ) {
-        UUID adminId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(setTemplateService.createSetTemplate(adminId, request));
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(setTemplateService.createSetTemplate(userId, request));
     }
 
     // AI'ya ulaşılamazsa ya da yanıt anlaşılamazsa 204 döner; frontend formu elle doldurmaya devam eder.
@@ -43,8 +43,8 @@ public class SetTemplateController {
             @RequestParam(value = "text", required = false) String text,
             Authentication authentication
     ) {
-        UUID adminId = UUID.fromString(authentication.getName());
-        return setTemplateService.suggest(adminId, file, text)
+        UUID userId = UUID.fromString(authentication.getName());
+        return setTemplateService.suggest(userId, file, text)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
@@ -54,8 +54,8 @@ public class SetTemplateController {
             @PathVariable UUID setTemplateId,
             Authentication authentication
     ) {
-        UUID adminId = UUID.fromString(authentication.getName());
-        setTemplateService.deleteSetTemplate(adminId, setTemplateId);
+        UUID userId = UUID.fromString(authentication.getName());
+        setTemplateService.deleteSetTemplate(userId, setTemplateId);
         return ResponseEntity.noContent().build();
     }
 }

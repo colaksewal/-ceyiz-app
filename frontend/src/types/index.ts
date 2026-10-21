@@ -108,6 +108,9 @@ export interface SetTemplate {
   imageUrl: string | null;
   displayOrder: number;
   createdAt: string;
+  createdByAdmin: boolean;
+  // Kendi seti ya da (admin için) ortak set; sunucu hesaplar.
+  canDelete: boolean;
   totalPieceCount: number;
   individualTotal: number;
   pricedItemCount: number;

@@ -10,6 +10,7 @@ import java.util.UUID;
 /**
  * totalPieceCount, individualTotal ve pricedItemCount DB'de saklanmıyor — parçalardan
  * her seferinde hesaplanıyor, böylece parça eklenip silindikçe tutarsız kalamıyorlar.
+ * canDelete isteği yapan kullanıcıya göre hesaplanır (kendi seti ya da admin + admin seti).
  */
 public record SetTemplateResponse(
         UUID id,
@@ -18,6 +19,8 @@ public record SetTemplateResponse(
         String imageUrl,
         int displayOrder,
         Instant createdAt,
+        boolean createdByAdmin,
+        boolean canDelete,
         int totalPieceCount,
         BigDecimal individualTotal,
         int pricedItemCount,
@@ -26,6 +29,7 @@ public record SetTemplateResponse(
 ) {
 
     public static SetTemplateResponse from(SetTemplate template,
+                                           boolean canDelete,
                                            List<SetTemplateItemResponse> items,
                                            List<SetTemplatePriceResponse> prices) {
         int totalPieceCount = items.stream().mapToInt(SetTemplateItemResponse::quantity).sum();
@@ -47,6 +51,8 @@ public record SetTemplateResponse(
                 template.getImageUrl(),
                 template.getDisplayOrder(),
                 template.getCreatedAt(),
+                template.isCreatedByAdmin(),
+                canDelete,
                 totalPieceCount,
                 individualTotal,
                 pricedItems.size(),

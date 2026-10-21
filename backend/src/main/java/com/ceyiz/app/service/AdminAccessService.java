@@ -9,7 +9,7 @@ import java.util.UUID;
 
 /**
  * Admin yetkisi kontrolünün tek toplandığı yer — ListAccessService'in admin karşılığı.
- * Admin paneline hizmet eden servisler (TemplateService, SetTemplateService) bunu kullanır.
+ * Admin paneline hizmet eden servisler (ör. TemplateService) bunu kullanır.
  */
 @Service
 @RequiredArgsConstructor

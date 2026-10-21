@@ -34,17 +34,15 @@ export default function Layout() {
             <span className={styles.navIcon} aria-hidden="true">👥</span>
             <span>Çeyiz Ekibim</span>
           </NavLink>
+          <NavLink to="/setler" className={navClass}>
+            <span className={styles.navIcon} aria-hidden="true">🍽</span>
+            <span>Setler</span>
+          </NavLink>
           {isAdmin && (
-            <>
-              <NavLink to="/admin/templates" className={navClass}>
-                <span className={styles.navIcon} aria-hidden="true">🧩</span>
-                <span>Şablonlar</span>
-              </NavLink>
-              <NavLink to="/admin/set-templates" className={navClass}>
-                <span className={styles.navIcon} aria-hidden="true">🍽</span>
-                <span>Setler</span>
-              </NavLink>
-            </>
+            <NavLink to="/admin/templates" className={navClass}>
+              <span className={styles.navIcon} aria-hidden="true">🧩</span>
+              <span>Şablonlar</span>
+            </NavLink>
           )}
         </nav>
         <button className={`btn btn-secondary ${styles.logout}`} onClick={handleLogout}>

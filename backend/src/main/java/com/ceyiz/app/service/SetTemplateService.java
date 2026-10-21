@@ -11,9 +11,11 @@ import com.ceyiz.app.entity.PriceType;
 import com.ceyiz.app.entity.SetTemplate;
 import com.ceyiz.app.entity.SetTemplateItem;
 import com.ceyiz.app.entity.SetTemplatePrice;
+import com.ceyiz.app.entity.User;
 import com.ceyiz.app.repository.SetTemplateItemRepository;
 import com.ceyiz.app.repository.SetTemplatePriceRepository;
 import com.ceyiz.app.repository.SetTemplateRepository;
+import com.ceyiz.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Setleri herkes oluşturabilir. Admin'in setleri herkese görünen ortak katalogdur;
+ * normal kullanıcının seti sadece kendisine görünür ve sadece kendisi silebilir.
+ */
 @Service
 @RequiredArgsConstructor
 public class SetTemplateService {
@@ -31,13 +37,13 @@ public class SetTemplateService {
     private final SetTemplateRepository setTemplateRepository;
     private final SetTemplateItemRepository setTemplateItemRepository;
     private final SetTemplatePriceRepository setTemplatePriceRepository;
-    private final AdminAccessService adminAccessService;
+    private final UserRepository userRepository;
     private final AiSuggestionService aiSuggestionService;
 
-    public List<SetTemplateResponse> getAllSetTemplates(UUID adminId) {
-        adminAccessService.requireAdmin(adminId);
-        return setTemplateRepository.findAllByOrderByDisplayOrder().stream()
-                .map(this::toResponse)
+    public List<SetTemplateResponse> getAllSetTemplates(UUID userId) {
+        User user = findUser(userId);
+        return setTemplateRepository.findVisibleTo(userId).stream()
+                .map(setTemplate -> toResponse(setTemplate, user))
                 .toList();
     }
 
@@ -47,8 +53,8 @@ public class SetTemplateService {
      * DB'de yarım kalmış (parçasız/fiyatsız) bir set oluşmaz.
      */
     @Transactional
-    public SetTemplateResponse createSetTemplate(UUID adminId, CreateSetTemplateRequest request) {
-        adminAccessService.requireAdmin(adminId);
+    public SetTemplateResponse createSetTemplate(UUID userId, CreateSetTemplateRequest request) {
+        User user = findUser(userId);
 
         if (isBlank(request.name())) {
             throw new IllegalArgumentException("Set adı boş olamaz");
@@ -63,7 +69,8 @@ public class SetTemplateService {
         }
 
         SetTemplate setTemplate = setTemplateRepository.save(
-                new SetTemplate(request.name().trim(), blankToNull(request.brand()), imageUrl, request.displayOrder())
+                new SetTemplate(request.name().trim(), blankToNull(request.brand()), imageUrl,
+                        request.displayOrder(), userId, user.isAdmin())
         );
 
         List<CreateSetTemplateItemRequest> items = request.items();
@@ -96,19 +103,38 @@ public class SetTemplateService {
             ));
         }
 
-        return toResponse(setTemplate);
+        return toResponse(setTemplate, user);
     }
 
     /** AI önerisi sadece formu doldurur; kayıt yine createSetTemplate'ten (ve doğrulamasından) geçer. */
-    public Optional<SetTemplateSuggestionResponse> suggest(UUID adminId, MultipartFile file, String text) {
-        adminAccessService.requireAdmin(adminId);
+    public Optional<SetTemplateSuggestionResponse> suggest(UUID userId, MultipartFile file, String text) {
+        findUser(userId);
         return aiSuggestionService.suggestSet(file, text);
     }
 
-    public void deleteSetTemplate(UUID adminId, UUID setTemplateId) {
-        adminAccessService.requireAdmin(adminId);
+    public void deleteSetTemplate(UUID userId, UUID setTemplateId) {
+        User user = findUser(userId);
+        SetTemplate setTemplate = setTemplateRepository.findById(setTemplateId)
+                .orElseThrow(() -> new IllegalArgumentException("Set bulunamadı"));
+        if (!canDelete(setTemplate, user)) {
+            throw new SecurityException("Bu seti silme yetkiniz yok");
+        }
         // Parçalar ve fiyatlar DB'deki ON DELETE CASCADE ile birlikte silinir.
-        setTemplateRepository.deleteById(setTemplateId);
+        setTemplateRepository.delete(setTemplate);
+    }
+
+    // Admin ortak setleri yönetir; herkes kendi setini silebilir. Admin başkasının özel setini
+    // zaten göremez, dolayısıyla silemez.
+    private static boolean canDelete(SetTemplate setTemplate, User user) {
+        if (setTemplate.isCreatedByAdmin()) {
+            return user.isAdmin();
+        }
+        return user.getId().equals(setTemplate.getCreatedBy());
+    }
+
+    private User findUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı"));
     }
 
     private void validateItem(CreateSetTemplateItemRequest item) {
@@ -146,7 +172,7 @@ public class SetTemplateService {
         }
     }
 
-    private SetTemplateResponse toResponse(SetTemplate setTemplate) {
+    private SetTemplateResponse toResponse(SetTemplate setTemplate, User viewer) {
         List<SetTemplateItemResponse> items =
                 setTemplateItemRepository.findBySetTemplateIdOrderByDisplayOrder(setTemplate.getId()).stream()
                         .map(SetTemplateItemResponse::from)
@@ -155,7 +181,7 @@ public class SetTemplateService {
                 setTemplatePriceRepository.findBySetTemplateIdOrderByDisplayOrder(setTemplate.getId()).stream()
                         .map(SetTemplatePriceResponse::from)
                         .toList();
-        return SetTemplateResponse.from(setTemplate, items, prices);
+        return SetTemplateResponse.from(setTemplate, canDelete(setTemplate, viewer), items, prices);
     }
 
     private static boolean isBlank(String value) {

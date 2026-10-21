@@ -12,6 +12,10 @@
   }
 }
 
+.section + .section {
+  margin-top: $space-6;
+}
+
 .sectionHeader {
   display: flex;
   align-items: baseline;

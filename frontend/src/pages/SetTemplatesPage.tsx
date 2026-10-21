@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-import { Navigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -7,14 +6,14 @@ import {
   deleteSetTemplate,
   getSetTemplates,
   suggestSet,
-} from "../api/adminSetTemplates";
+} from "../api/setTemplates";
 import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
 import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
 import { useAuthStore } from "../store/authStore";
 import type { PriceType, SetTemplate, SetTemplatePrice, SetTemplateSuggestion } from "../types";
-import styles from "./AdminSetTemplatesPage.module.scss";
+import styles from "./SetTemplatesPage.module.scss";
 
 const priceTypeLabels: Record<PriceType, string> = {
   PESIN: "Peşin",
@@ -99,29 +98,28 @@ function errorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export default function AdminSetTemplatesPage() {
+// Herkes set oluşturabilir. Adminin setleri herkese görünür; kullanıcının kendi setleri
+// sadece kendisine. Adminin oluşturduğu her set ortak katalog sayılır.
+export default function SetTemplatesPage() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const { data: sets, isLoading, error } = useQuery({
-    queryKey: ["adminSetTemplates"],
+    queryKey: ["setTemplates"],
     queryFn: getSetTemplates,
-    enabled: isAdmin,
   });
 
   const invalidate = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["adminSetTemplates"] });
+    queryClient.invalidateQueries({ queryKey: ["setTemplates"] });
   }, [queryClient]);
 
   const closeSheet = useCallback(() => setOpenId(null), []);
 
-  if (!isAdmin) {
-    return <Navigate to="/lists" replace />;
-  }
-
   const openSet = sets?.find((s) => s.id === openId) ?? null;
+  const adminSets = sets?.filter((s) => s.createdByAdmin);
+  const mySets = sets?.filter((s) => !s.createdByAdmin);
 
   return (
     <div>
@@ -135,7 +133,7 @@ export default function AdminSetTemplatesPage() {
 
       {formOpen ? (
         <SetTemplateForm
-          nextOrder={sets?.length ?? 0}
+          nextOrder={(isAdmin ? adminSets : mySets)?.length ?? 0}
           onCancel={() => setFormOpen(false)}
           onCreated={() => {
             setFormOpen(false);
@@ -148,26 +146,16 @@ export default function AdminSetTemplatesPage() {
         </button>
       )}
 
-      <section>
-        <div className={styles.sectionHeader}>
-          <h2>Setler</h2>
-          {sets && <span className="badge badge-neutral">{sets.length}</span>}
-        </div>
+      {isLoading && <p className="muted">Yükleniyor...</p>}
+      {error && <p className="error-text">Setler yüklenemedi</p>}
 
-        {isLoading && <p className="muted">Yükleniyor...</p>}
-        {error && <p className="error-text">Setler yüklenemedi</p>}
-        {sets && sets.length === 0 && <p className="empty-state">Henüz set yok.</p>}
-
-        <ul className={styles.setList}>
-          {sets?.map((set) => (
-            <li key={set.id}>
-              <button type="button" className={styles.setCard} onClick={() => setOpenId(set.id)}>
-                <SetCardSummary set={set} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* Adminin setleri onun için zaten "kendi setleri"; ayrı bölüm göstermiyoruz. */}
+      {!isAdmin && mySets && (
+        <SetSection title="Benim setlerim" sets={mySets} onOpen={setOpenId} emptyText="Henüz kendi setin yok. Yukarıdan oluşturabilirsin; sadece sen görürsün." />
+      )}
+      {adminSets && (
+        <SetSection title="Adminin eklediği setler" sets={adminSets} onOpen={setOpenId} emptyText="Henüz admin set eklemedi." />
+      )}
 
       <Sheet
         open={openSet !== null}
@@ -177,7 +165,13 @@ export default function AdminSetTemplatesPage() {
             <div className={styles.sheetTitle}>
               <h2>{openSet.name}</h2>
               <span className="muted">
-                {[openSet.brand, `${openSet.totalPieceCount} parça`].filter(Boolean).join(" · ")}
+                {[
+                  openSet.brand,
+                  `${openSet.totalPieceCount} parça`,
+                  openSet.createdByAdmin ? "Adminin eklediği set" : "Senin setin",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             </div>
           )
@@ -195,6 +189,39 @@ export default function AdminSetTemplatesPage() {
         )}
       </Sheet>
     </div>
+  );
+}
+
+function SetSection({
+  title,
+  sets,
+  onOpen,
+  emptyText,
+}: {
+  title: string;
+  sets: SetTemplate[];
+  onOpen: (id: string) => void;
+  emptyText: string;
+}) {
+  return (
+    <section className={styles.section}>
+      <div className={styles.sectionHeader}>
+        <h2>{title}</h2>
+        <span className="badge badge-neutral">{sets.length}</span>
+      </div>
+
+      {sets.length === 0 && <p className="empty-state">{emptyText}</p>}
+
+      <ul className={styles.setList}>
+        {sets.map((set) => (
+          <li key={set.id}>
+            <button type="button" className={styles.setCard} onClick={() => onOpen(set.id)}>
+              <SetCardSummary set={set} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -270,7 +297,7 @@ function SetTemplateForm({
   );
   const advertised = advertisedPieceCount(name);
 
-  // AI önerisi formun tamamını değiştirir; admin kaydetmeden önce her alanı düzeltebilir.
+  // AI önerisi formun tamamını değiştirir; kullanıcı kaydetmeden önce her alanı düzeltebilir.
   function fillFromSuggestion(suggestion: SetTemplateSuggestion) {
     const hasContent = name.trim() !== "" || filledItems.length > 0;
     if (hasContent && !window.confirm("Formdaki mevcut bilgiler AI önerisiyle değiştirilecek. Devam edilsin mi?")) {
@@ -738,17 +765,19 @@ function SetTemplateDetail({ set, onDeleted }: { set: SetTemplate; onDeleted: ()
         </div>
       )}
 
-      <div className={styles.dangerZone}>
-        {deleteMutation.isError && <p className="error-text">Set silinemedi.</p>}
-        <button
-          type="button"
-          className="btn btn-danger-ghost"
-          disabled={deleteMutation.isPending}
-          onClick={handleDelete}
-        >
-          🗑 Seti sil
-        </button>
-      </div>
+      {set.canDelete && (
+        <div className={styles.dangerZone}>
+          {deleteMutation.isError && <p className="error-text">Set silinemedi.</p>}
+          <button
+            type="button"
+            className="btn btn-danger-ghost"
+            disabled={deleteMutation.isPending}
+            onClick={handleDelete}
+          >
+            🗑 Seti sil
+          </button>
+        </div>
+      )}
     </div>
   );
 }
