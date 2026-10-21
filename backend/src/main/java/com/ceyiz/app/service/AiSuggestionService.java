@@ -1,6 +1,7 @@
 package com.ceyiz.app.service;
 
 import com.ceyiz.app.ai.AiClient;
+import com.ceyiz.app.ai.AiInput;
 import com.ceyiz.app.ai.ImageDownscaler;
 import com.ceyiz.app.dto.ProductSuggestionResponse;
 import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
@@ -40,13 +41,31 @@ public class AiSuggestionService {
     private final AiClient aiClient;
     private final ObjectMapper objectMapper;
 
-    public Optional<ProductSuggestionResponse> suggest(MultipartFile file, String text) {
-        return suggest(file, text, "prompts/product-suggestion.txt", ProductSuggestionResponse.class);
+    /**
+     * Girdiyi istek sırasında doğrulayıp belleğe alır. Hatalı girdi (boş, çok uzun, desteklenmeyen
+     * dosya) arka plana hiç gitmez; kullanıcı hatayı hemen görür.
+     */
+    public AiInput prepare(MultipartFile file, String text) {
+        AiInput input = AiInput.from(file, text);
+        if (!input.hasFile() && input.text().isEmpty()) {
+            throw new IllegalArgumentException("Dosya yükle ya da metin gir");
+        }
+        if (input.text().length() > MAX_TEXT_LENGTH) {
+            throw new IllegalArgumentException("Metin en fazla " + MAX_TEXT_LENGTH + " karakter olabilir");
+        }
+        if (input.hasFile() && !isImage(input.contentType()) && !PDF_CONTENT_TYPE.equals(input.contentType())) {
+            throw new IllegalArgumentException("Sadece JPEG, PNG, WEBP resim ya da PDF yüklenebilir");
+        }
+        return input;
+    }
+
+    public Optional<ProductSuggestionResponse> suggest(AiInput input) {
+        return suggest(input, "prompts/product-suggestion.txt", ProductSuggestionResponse.class);
     }
 
     /** Set ürün sayfası/kataloğundan set adı, marka, parçalar ve fiyatları çıkarır. */
-    public Optional<SetTemplateSuggestionResponse> suggestSet(MultipartFile file, String text) {
-        return suggest(file, text, "prompts/set-suggestion.txt", SetTemplateSuggestionResponse.class)
+    public Optional<SetTemplateSuggestionResponse> suggestSet(AiInput input) {
+        return suggest(input, "prompts/set-suggestion.txt", SetTemplateSuggestionResponse.class)
                 .map(this::sanitizeSetSuggestion);
     }
 
@@ -54,52 +73,38 @@ public class AiSuggestionService {
      * Dosya, metin ya da ikisi birden gelebilir. Sadece metin gelirse model görselsiz çalışır (CPU'da
      * görsele göre çok daha hızlı); dosyayla birlikte gelirse metin, içeriğin yanına not olarak eklenir.
      */
-    private <T> Optional<T> suggest(MultipartFile file, String text, String promptPath, Class<T> responseType) {
-        boolean hasFile = file != null && !file.isEmpty();
-        String note = text == null ? "" : text.strip();
-        if (!hasFile && note.isEmpty()) {
-            throw new IllegalArgumentException("Dosya yükle ya da metin gir");
-        }
-        if (note.length() > MAX_TEXT_LENGTH) {
-            throw new IllegalArgumentException("Metin en fazla " + MAX_TEXT_LENGTH + " karakter olabilir");
-        }
-
+    private <T> Optional<T> suggest(AiInput input, String promptPath, Class<T> responseType) {
+        String note = input.text();
         String promptTemplate = loadPromptTemplate(promptPath);
         Optional<String> aiResponse;
 
-        if (!hasFile) {
+        if (!input.hasFile()) {
             aiResponse = aiClient.complete(promptTemplate.replace("{{content}}", note));
+        } else if (isImage(input.contentType())) {
+            aiResponse = suggestFromImage(input.fileBytes(), note, promptTemplate);
         } else {
-            String contentType = file.getContentType();
-            if (contentType != null && IMAGE_CONTENT_TYPES.contains(contentType)) {
-                aiResponse = suggestFromImage(file, note, promptTemplate);
-            } else if (PDF_CONTENT_TYPE.equals(contentType)) {
-                aiResponse = suggestFromPdf(file, note, promptTemplate);
-            } else {
-                throw new IllegalArgumentException("Sadece JPEG, PNG, WEBP resim ya da PDF yüklenebilir");
-            }
+            aiResponse = suggestFromPdf(input.fileBytes(), note, promptTemplate);
         }
 
         return aiResponse.flatMap(json -> parseResponse(json, responseType));
+    }
+
+    private static boolean isImage(String contentType) {
+        return contentType != null && IMAGE_CONTENT_TYPES.contains(contentType);
     }
 
     private static String withNote(String content, String note) {
         return note.isEmpty() ? content : content + "\n\nKullanıcının notu:\n" + note;
     }
 
-    private Optional<String> suggestFromImage(MultipartFile file, String note, String promptTemplate) {
-        try {
-            String base64 = Base64.getEncoder().encodeToString(ImageDownscaler.downscale(file.getBytes()));
-            String prompt = promptTemplate.replace("{{content}}", withNote("Görsel ekte.", note));
-            return aiClient.completeWithImage(prompt, base64);
-        } catch (IOException e) {
-            log.error("Görsel okunamadı", e);
-            return Optional.empty();
-        }
+    private Optional<String> suggestFromImage(byte[] bytes, String note, String promptTemplate) {
+        String base64 = Base64.getEncoder().encodeToString(ImageDownscaler.downscale(bytes));
+        String prompt = promptTemplate.replace("{{content}}", withNote("Görsel ekte.", note));
+        return aiClient.completeWithImage(prompt, base64);
     }
 
-    private Optional<String> suggestFromPdf(MultipartFile file, String note, String promptTemplate) {
-        try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+    private Optional<String> suggestFromPdf(byte[] bytes, String note, String promptTemplate) {
+        try (PDDocument document = Loader.loadPDF(bytes)) {
             String text = new PDFTextStripper().getText(document);
             if (text.isBlank()) {
                 log.warn("PDF'den metin çıkarılamadı (muhtemelen taranmış görsel PDF)");

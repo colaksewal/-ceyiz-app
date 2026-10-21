@@ -1,0 +1,125 @@
+@use "../styles/variables" as *;
+
+$ai-purple: #9c36b5;
+
+// Masaüstünde sağ alt köşe; telefonda alttaki sekme çubuğunun hemen üstü.
+.stack {
+  position: fixed;
+  right: $space-4;
+  bottom: $space-4;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  width: min(360px, calc(100vw - #{$space-6}));
+
+  @media (max-width: $breakpoint-sm) {
+    left: $space-3;
+    right: $space-3;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    width: auto;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-3 $space-3 $space-4;
+  border: 1px solid #e5d4f5;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #faf5ff, #fff5fa);
+  box-shadow: $shadow-md;
+  animation: slideIn 0.2s ease;
+}
+
+.toastDone {
+  border-color: $ai-purple;
+}
+
+.toastFailed {
+  border-color: $color-danger;
+  background: $color-danger-bg;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.85rem;
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: $color-text-muted;
+    font-size: 0.8rem;
+  }
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+
+.spinner {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5d4f5;
+  border-top-color: $ai-purple;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.action {
+  flex-shrink: 0;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: $ai-purple;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dismiss {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: $color-text-muted;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.7);
+    color: $color-text;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .spinner {
+    animation: none;
+  }
+}

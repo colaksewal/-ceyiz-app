@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { isAxiosError } from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -11,9 +12,13 @@ import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
 import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
+import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
 import type { PriceType, SetTemplate, SetTemplatePrice, SetTemplateSuggestion } from "../types";
 import styles from "./SetTemplatesPage.module.scss";
+
+// Yeni set formundaki AI isteğinin anahtarı (bkz. aiJobStore).
+const SET_JOB_KEY = "set:new";
 
 const priceTypeLabels: Record<PriceType, string> = {
   PESIN: "Peşin",
@@ -103,8 +108,16 @@ function errorMessage(error: unknown, fallback: string): string {
 export default function SetTemplatesPage() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const queryClient = useQueryClient();
-  const [formOpen, setFormOpen] = useState(false);
+  const setJob = useAiJobStore((state) => state.jobs[SET_JOB_KEY]);
+  const removeJob = useAiJobStore((state) => state.remove);
+  // Arka planda AI isteği varsa (kullanıcı sayfaya geri döndüyse) form açık gelir.
+  const [formOpen, setFormOpen] = useState(() => setJob !== undefined);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  // Form kapalıyken öneri hazır olursa form açılır ve sonuçla dolar.
+  useEffect(() => {
+    if (setJob && !isJobActive(setJob)) setFormOpen(true);
+  }, [setJob]);
 
   const { data: sets, isLoading, error } = useQuery({
     queryKey: ["setTemplates"],
@@ -134,7 +147,11 @@ export default function SetTemplatesPage() {
       {formOpen ? (
         <SetTemplateForm
           nextOrder={(isAdmin ? adminSets : mySets)?.length ?? 0}
-          onCancel={() => setFormOpen(false)}
+          onCancel={() => {
+            // Vazgeçmek süren AI isteğini de bırakır.
+            removeJob(SET_JOB_KEY);
+            setFormOpen(false);
+          }}
           onCreated={() => {
             setFormOpen(false);
             invalidate();
@@ -298,11 +315,13 @@ function SetTemplateForm({
   const advertised = advertisedPieceCount(name);
 
   // AI önerisi formun tamamını değiştirir; kullanıcı kaydetmeden önce her alanı düzeltebilir.
-  function fillFromSuggestion(suggestion: SetTemplateSuggestion) {
+  // jobImageUrl: form AI beklerken kapanıp açıldıysa, AI'ya verilen görselin yüklendiği adres.
+  function fillFromSuggestion(suggestion: SetTemplateSuggestion, jobImageUrl: string | null) {
     const hasContent = name.trim() !== "" || filledItems.length > 0;
     if (hasContent && !window.confirm("Formdaki mevcut bilgiler AI önerisiyle değiştirilecek. Devam edilsin mi?")) {
       return;
     }
+    if (!imageUrl && jobImageUrl) setImageUrl(jobImageUrl);
     setName(suggestion.name ?? "");
     setBrand(suggestion.brand ?? "");
     setItems(
@@ -382,7 +401,7 @@ function SetTemplateForm({
     <form className={`card ${styles.form}`} onSubmit={handleSubmit}>
       <h3 className={styles.formTitle}>Yeni set</h3>
 
-      <SetAiFill onFill={fillFromSuggestion} onFileChosen={uploadImage} />
+      <SetAiFill imageUrl={imageUrl} onFill={fillFromSuggestion} onFileChosen={uploadImage} />
 
       <div className="form-grid">
         <div className="field">
@@ -621,23 +640,63 @@ function SetTemplateForm({
   );
 }
 
+type AiFillOutcome = { kind: "filled" } | { kind: "empty" } | { kind: "failed"; message: string };
+
+// İstek arka planda çalışır (bkz. aiJobStore): kullanıcı sayfadan çıkıp dönerse ya da formu
+// kapatmadan başka sayfaya geçerse, sonuç gelince form yine dolar.
 function SetAiFill({
+  imageUrl,
   onFill,
   onFileChosen,
 }: {
-  onFill: (suggestion: SetTemplateSuggestion) => void;
+  imageUrl: string | null;
+  onFill: (suggestion: SetTemplateSuggestion, jobImageUrl: string | null) => void;
   onFileChosen: (file: File) => void;
 }) {
+  const location = useLocation();
+  const job = useAiJob(SET_JOB_KEY);
+  const startJob = useAiJobStore((state) => state.start);
+  const updateJob = useAiJobStore((state) => state.update);
+  const removeJob = useAiJobStore((state) => state.remove);
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
+  const [outcome, setOutcome] = useState<AiFillOutcome | null>(null);
   const canSuggest = file !== null || text.trim() !== "";
 
   const suggestMutation = useMutation({
     mutationFn: (input: AiInput) => suggestSet(input),
-    onSuccess: (result) => {
-      if (result) onFill(result);
-    },
+    onSuccess: ({ jobId }) =>
+      startJob({ key: SET_JOB_KEY, jobId, label: "Set için AI önerisi", returnTo: location.pathname, imageUrl }),
   });
+
+  // Görsel, iş başladıktan sonra yüklenmeyi bitirirse işe de yazılır.
+  useEffect(() => {
+    if (job && isJobActive(job) && imageUrl && job.imageUrl !== imageUrl) {
+      updateJob(SET_JOB_KEY, job.jobId, { imageUrl });
+    }
+  }, [job, imageUrl, updateJob]);
+
+  // İş bitince formu doldur ve store'dan sil (bildirim de böylece kapanır).
+  useEffect(() => {
+    if (!job || isJobActive(job)) return;
+    if (job.status === "DONE" && job.result) {
+      onFill(job.result as SetTemplateSuggestion, job.imageUrl ?? null);
+      setOutcome({ kind: "filled" });
+    } else if (job.status === "EMPTY") {
+      setOutcome({ kind: "empty" });
+    } else {
+      setOutcome({ kind: "failed", message: job.error ?? "Öneri alınamadı, tekrar dene." });
+    }
+    removeJob(SET_JOB_KEY);
+  }, [job, onFill, removeJob]);
+
+  const thinking = suggestMutation.isPending || isJobActive(job);
+
+  function startSuggestion() {
+    if (!canSuggest) return;
+    setOutcome(null);
+    suggestMutation.mutate({ file, text });
+  }
 
   return (
     <div className={styles.aiBox}>
@@ -658,6 +717,7 @@ function SetAiFill({
         onChange={(e) => {
           setText(e.target.value);
           suggestMutation.reset();
+          setOutcome(null);
         }}
       />
       <div className={styles.aiActions}>
@@ -669,6 +729,7 @@ function SetAiFill({
               const chosen = e.target.files?.[0] ?? null;
               setFile(chosen);
               suggestMutation.reset();
+              setOutcome(null);
               if (chosen) onFileChosen(chosen);
               e.target.value = "";
             }}
@@ -683,20 +744,21 @@ function SetAiFill({
         <button
           type="button"
           className="btn btn-primary"
-          disabled={!canSuggest || suggestMutation.isPending}
-          onClick={() => canSuggest && suggestMutation.mutate({ file, text })}
+          disabled={!canSuggest || thinking}
+          onClick={startSuggestion}
         >
-          {suggestMutation.isPending ? "Düşünüyor..." : "Doldur"}
+          {thinking ? "Düşünüyor..." : "Doldur"}
         </button>
       </div>
-      {suggestMutation.isPending && <AiWaiting />}
+      {thinking && <AiWaiting startedAt={job?.startedAt} queuePosition={job?.queuePosition} />}
       {suggestMutation.isError && (
         <p className="error-text">{errorMessage(suggestMutation.error, "Öneri alınamadı, tekrar dene.")}</p>
       )}
-      {suggestMutation.isSuccess && suggestMutation.data === null && (
+      {outcome?.kind === "failed" && <p className="error-text">{outcome.message}</p>}
+      {outcome?.kind === "empty" && (
         <p className="error-text">AI şu an yanıt veremedi ya da dosyadan set bilgisi çıkaramadı. Formu elle doldurabilirsin.</p>
       )}
-      {suggestMutation.isSuccess && suggestMutation.data && (
+      {outcome?.kind === "filled" && (
         <p className={styles.aiDone}>✓ Form dolduruldu, aşağıdan kontrol et.</p>
       )}
     </div>

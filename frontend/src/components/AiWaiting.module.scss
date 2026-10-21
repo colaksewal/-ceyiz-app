@@ -33,12 +33,21 @@ $ai-purple: #9c36b5;
   }
 }
 
-.message {
+.body {
   flex: 1;
   min-width: 0;
+}
+
+.message {
   margin: 0;
   font-size: 0.9rem;
   animation: fadeIn 0.4s ease;
+}
+
+.hint {
+  margin: 2px 0 0;
+  color: $color-text-muted;
+  font-size: 0.75rem;
 }
 
 .timer {

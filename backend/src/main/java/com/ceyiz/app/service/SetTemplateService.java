@@ -1,12 +1,12 @@
 package com.ceyiz.app.service;
 
+import com.ceyiz.app.ai.AiInput;
 import com.ceyiz.app.dto.CreateSetTemplateItemRequest;
 import com.ceyiz.app.dto.CreateSetTemplatePriceRequest;
 import com.ceyiz.app.dto.CreateSetTemplateRequest;
 import com.ceyiz.app.dto.SetTemplateItemResponse;
 import com.ceyiz.app.dto.SetTemplatePriceResponse;
 import com.ceyiz.app.dto.SetTemplateResponse;
-import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
 import com.ceyiz.app.entity.PriceType;
 import com.ceyiz.app.entity.SetTemplate;
 import com.ceyiz.app.entity.SetTemplateItem;
@@ -23,7 +23,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -39,6 +38,7 @@ public class SetTemplateService {
     private final SetTemplatePriceRepository setTemplatePriceRepository;
     private final UserRepository userRepository;
     private final AiSuggestionService aiSuggestionService;
+    private final AiJobService aiJobService;
 
     public List<SetTemplateResponse> getAllSetTemplates(UUID userId) {
         User user = findUser(userId);
@@ -106,10 +106,14 @@ public class SetTemplateService {
         return toResponse(setTemplate, user);
     }
 
-    /** AI önerisi sadece formu doldurur; kayıt yine createSetTemplate'ten (ve doğrulamasından) geçer. */
-    public Optional<SetTemplateSuggestionResponse> suggest(UUID userId, MultipartFile file, String text) {
+    /**
+     * AI önerisi sadece formu doldurur; kayıt yine createSetTemplate'ten (ve doğrulamasından) geçer.
+     * Arka planda çalışır, iş kimliği döner.
+     */
+    public UUID suggest(UUID userId, MultipartFile file, String text) {
         findUser(userId);
-        return aiSuggestionService.suggestSet(file, text);
+        AiInput input = aiSuggestionService.prepare(file, text);
+        return aiJobService.submit(userId, () -> aiSuggestionService.suggestSet(input));
     }
 
     public void deleteSetTemplate(UUID userId, UUID setTemplateId) {

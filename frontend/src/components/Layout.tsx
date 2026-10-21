@@ -1,13 +1,18 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
+import AiJobCenter from "./AiJobCenter";
 import styles from "./Layout.module.scss";
 
 export default function Layout() {
   const logout = useAuthStore((state) => state.logout);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const clearAiJobs = useAiJobStore((state) => state.clear);
   const navigate = useNavigate();
 
   function handleLogout() {
+    // AI işleri kullanıcıya ait; başka biri aynı tarayıcıda giriş yaparsa görünmesin.
+    clearAiJobs();
     logout();
     navigate("/login");
   }
@@ -52,6 +57,7 @@ export default function Layout() {
       <main className={`page ${styles.main}`}>
         <Outlet />
       </main>
+      <AiJobCenter />
     </div>
   );
 }

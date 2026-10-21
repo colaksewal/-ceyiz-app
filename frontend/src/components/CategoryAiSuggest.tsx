@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { suggestProducts, type AiInput } from "../api/aiSuggestions";
+import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
+import type { ProductSuggestion } from "../types";
 import AiWaiting from "./AiWaiting";
 import styles from "./CategoryAiSuggest.module.scss";
 
@@ -8,32 +12,77 @@ function normalize(name: string): string {
   return name.trim().toLocaleLowerCase("tr");
 }
 
+function startErrorMessage(error: unknown): string {
+  if (isAxiosError(error) && typeof error.response?.data?.error === "string") {
+    return error.response.data.error;
+  }
+  return "Öneri alınamadı, tekrar dene.";
+}
+
 // Bir kategorinin içinden AI önerisi: foto/PDF yüklenir, AI'nın bulduğu ürünler o kategoriye
 // eklenir (AI'nın önerdiği kategori adı kullanılmaz). Kategoride zaten olan ürünler öneride
 // gösterilmez. Nereye yazılacağına (admin şablonu mu, kullanıcının listesi mi) çağıran karar verir.
+//
+// İstek arka planda çalışır (bkz. aiJobStore): jobKey bu kutuyu tanımlar; kullanıcı sayfadan
+// çıkıp dönerse sonuç burada onu bekler, çıkmışken biterse köşede bildirim görür.
 export default function CategoryAiSuggest({
+  jobKey,
+  jobLabel,
   existingNames,
   onAddItems,
 }: {
+  jobKey: string;
+  jobLabel: string;
   existingNames: string[];
   onAddItems: (items: string[]) => Promise<unknown>;
 }) {
-  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const job = useAiJob(jobKey);
+  const startJob = useAiJobStore((state) => state.start);
+  const removeJob = useAiJobStore((state) => state.remove);
+  const [open, setOpen] = useState(() => job !== undefined);
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [items, setItems] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [jobError, setJobError] = useState<string | null>(null);
   const canSuggest = file !== null || text.trim() !== "";
 
   const suggestMutation = useMutation({
     mutationFn: (input: AiInput) => suggestProducts(input),
-    onSuccess: (result) => {
+    onSuccess: ({ jobId }) => startJob({ key: jobKey, jobId, label: jobLabel, returnTo: location.pathname }),
+  });
+
+  // İş bitince sonucu kutuya al ve store'dan sil (bildirim de böylece kapanır).
+  useEffect(() => {
+    if (!job || isJobActive(job)) return;
+    if (job.status === "FAILED") {
+      setJobError(job.error ?? "Öneri alınamadı, tekrar dene.");
+    } else {
       const existing = new Set(existingNames.map(normalize));
+      const result = job.status === "DONE" ? (job.result as ProductSuggestion) : null;
       const fresh = (result?.items ?? []).filter((item) => !existing.has(normalize(item)));
       setItems(fresh);
       setSelected(new Set(fresh));
-    },
-  });
+    }
+    setOpen(true);
+    removeJob(jobKey);
+  }, [job, existingNames, jobKey, removeJob]);
+
+  const thinking = suggestMutation.isPending || isJobActive(job);
+
+  function startSuggestion() {
+    if (!canSuggest) return;
+    setItems(null);
+    setJobError(null);
+    suggestMutation.mutate({ file, text });
+  }
+
+  // Kutuyu kapatmak süren isteği de bırakır; sonucu gelse bile gösterilmez.
+  function close() {
+    removeJob(jobKey);
+    setOpen(false);
+  }
 
   const addMutation = useMutation({
     mutationFn: () => onAddItems((items ?? []).filter((item) => selected.has(item))),
@@ -79,7 +128,7 @@ export default function CategoryAiSuggest({
             kategoriye önersin. Sadece metin daha hızlı, görsel 1-2 dakika sürebilir.
           </p>
         </div>
-        <button type="button" className={styles.close} aria-label="Kapat" onClick={() => setOpen(false)}>
+        <button type="button" className={styles.close} aria-label="Kapat" onClick={close}>
           ✕
         </button>
       </div>
@@ -117,16 +166,17 @@ export default function CategoryAiSuggest({
         <button
           type="button"
           className={`btn btn-primary ${styles.pill}`}
-          disabled={!canSuggest || suggestMutation.isPending}
-          onClick={() => canSuggest && suggestMutation.mutate({ file, text })}
+          disabled={!canSuggest || thinking}
+          onClick={startSuggestion}
         >
-          {suggestMutation.isPending ? "Düşünüyor..." : "Öner"}
+          {thinking ? "Düşünüyor..." : "Öner"}
         </button>
       </div>
 
-      {suggestMutation.isPending && <AiWaiting />}
+      {thinking && <AiWaiting startedAt={job?.startedAt} queuePosition={job?.queuePosition} />}
 
-      {suggestMutation.isError && <p className="error-text">Öneri alınamadı, tekrar dene.</p>}
+      {suggestMutation.isError && <p className="error-text">{startErrorMessage(suggestMutation.error)}</p>}
+      {jobError && <p className="error-text">{jobError}</p>}
 
       {items && items.length === 0 && (
         <p className={styles.note}>AI bu kategoriye eklenecek yeni bir ürün bulamadı.</p>

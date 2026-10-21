@@ -464,6 +464,15 @@ sürenin hangi adıma gittiği görülebiliyor.
 - `OLLAMA_KEEP_ALIVE=-1m` docker-compose'dan backend'e geçiriliyor: model bellekten hiç
   atılmıyor, ~6-7 sn'lik soğuk başlatma ortadan kalkıyor.
 - Metin girişi (bkz. §2.6): görselsiz yol, kullanıcıya hızlı bir alternatif sunuyor.
+- Kullanılmayan `qwen2.5vl:3b` sunucudan silindi (bellekte ~3.2 GB tutuyordu).
+- **Arka planda çalışan AI (2026-10-21):** süre aynı ama kullanıcı artık beklemek zorunda
+  değil. `POST` hemen `202 {jobId}` döner; `AiJobService` işi tek iş parçacıklı bir kuyrukta
+  çalıştırır (Ollama aynı 4 çekirdeği paylaştığı için paralel çalıştırmak hepsini yavaşlatır).
+  Frontend `GET /api/ai/jobs/{jobId}`'yi 3 sn'de bir sorar (`AiJobCenter`), sırayı ve durumu
+  gösterir; kullanıcı başka sayfadaysa iş bitince köşede bildirim çıkar, "Göster" ile işi
+  başlatan ekrana dönülür ve sonuç orada hazır bekler (`aiJobStore`, sessionStorage). İşler
+  bellekte tutulur, 30 dk sonra silinir; backend yeniden başlarsa frontend 404'ten anlayıp
+  "tekrar dene" der. Sınır: kullanıcı başına 2, toplam 20 aktif iş (aşılırsa 429).
 
 **Denenip reddedilenler:**
 - `qwen2.5vl:3b`: görseli kendi boyutunda işleyeceği için daha hızlı olması bekleniyordu.

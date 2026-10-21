@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCategory, renameCategory } from "../api/categories";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
 import { pickCategoryEmoji } from "../lib/listAccent";
-import CategoryAiSuggest from "./CategoryAiSuggest";import type { Category, Product, ProductStatus } from "../types";
+import { isJobActive, useAiJobStore } from "../store/aiJobStore";
+import CategoryAiSuggest from "./CategoryAiSuggest";
+import type { Category, Product, ProductStatus } from "../types";
 import styles from "./CategorySection.module.scss";
 
 const statusLabels: Record<ProductStatus, string> = {
@@ -20,7 +22,15 @@ const statusSelectClass: Record<ProductStatus, string> = {
 };
 
 export default function CategorySection({ category }: { category: Category }) {
-  const [expanded, setExpanded] = useState(false);
+  const aiJobKey = `products:${category.id}`;
+  const aiJob = useAiJobStore((state) => state.jobs[aiJobKey]);
+  // Bu kategoride arka planda AI isteği varsa (kullanıcı sayfaya geri döndüyse) açık gelir.
+  const [expanded, setExpanded] = useState(() => aiJob !== undefined);
+
+  // Kategori kapalıyken öneri hazır olursa açılır ki sonuç kutusu görünsün.
+  useEffect(() => {
+    if (aiJob && !isJobActive(aiJob)) setExpanded(true);
+  }, [aiJob]);
   const [productName, setProductName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(category.name);
@@ -189,6 +199,8 @@ export default function CategorySection({ category }: { category: Category }) {
           {products && (
             <div className={styles.aiSlot}>
               <CategoryAiSuggest
+                jobKey={aiJobKey}
+                jobLabel={`${category.name} için ürün önerisi`}
                 existingNames={products.map((p) => p.name)}
                 onAddItems={async (items) => {
                   await Promise.all(items.map((item) => createProduct(category.id, item)));

@@ -1,10 +1,11 @@
 package com.ceyiz.app.controller;
 
+import com.ceyiz.app.dto.AiJobStartedResponse;
 import com.ceyiz.app.dto.CreateSetTemplateRequest;
 import com.ceyiz.app.dto.SetTemplateResponse;
-import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
 import com.ceyiz.app.service.SetTemplateService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -36,17 +37,17 @@ public class SetTemplateController {
         return ResponseEntity.ok(setTemplateService.createSetTemplate(userId, request));
     }
 
-    // AI'ya ulaşılamazsa ya da yanıt anlaşılamazsa 204 döner; frontend formu elle doldurmaya devam eder.
+    // Arka planda çalışır: 202 + iş kimliği döner, sonuç GET /api/ai/jobs/{jobId} ile sorulur.
+    // AI bir şey çıkaramazsa iş EMPTY biter; frontend formu elle doldurmaya devam eder.
     @PostMapping(value = "/ai-suggestion", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<SetTemplateSuggestionResponse> suggestFromFile(
+    public ResponseEntity<AiJobStartedResponse> suggestFromFile(
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "text", required = false) String text,
             Authentication authentication
     ) {
         UUID userId = UUID.fromString(authentication.getName());
-        return setTemplateService.suggest(userId, file, text)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.noContent().build());
+        UUID jobId = setTemplateService.suggest(userId, file, text);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
     }
 
     @DeleteMapping("/{setTemplateId}")

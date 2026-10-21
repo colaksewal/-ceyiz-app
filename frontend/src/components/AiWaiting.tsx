@@ -21,15 +21,27 @@ const MESSAGES = [
 
 const ROTATE_SECONDS = 4;
 
-export default function AiWaiting() {
-  const [seconds, setSeconds] = useState(0);
+// İş arka planda sürdüğü için süre, ekran yeniden açılsa da işin başladığı andan sayılır.
+export default function AiWaiting({
+  startedAt,
+  queuePosition = 0,
+}: {
+  startedAt?: number;
+  queuePosition?: number;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  const [mountedAt] = useState(() => Date.now());
 
   useEffect(() => {
-    const id = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
-  const message = MESSAGES[Math.floor(seconds / ROTATE_SECONDS) % MESSAGES.length];
+  const seconds = Math.max(0, Math.floor((now - (startedAt ?? mountedAt)) / 1000));
+  const message =
+    queuePosition > 0
+      ? `Sıradasın, önünde ${queuePosition} istek var ⏳`
+      : MESSAGES[Math.floor(seconds / ROTATE_SECONDS) % MESSAGES.length];
 
   return (
     <div className={styles.waiting} role="status">
@@ -38,9 +50,12 @@ export default function AiWaiting() {
         <span />
         <span />
       </span>
-      <p key={message} className={styles.message}>
-        {message}
-      </p>
+      <div className={styles.body}>
+        <p key={message} className={styles.message}>
+          {message}
+        </p>
+        <p className={styles.hint}>Başka sayfaya geçebilirsin, hazır olunca haber vereceğim.</p>
+      </div>
       <span className={styles.timer}>{seconds} sn</span>
     </div>
   );

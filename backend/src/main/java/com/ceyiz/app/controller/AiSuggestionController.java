@@ -1,30 +1,52 @@
 package com.ceyiz.app.controller;
 
-import com.ceyiz.app.dto.ProductSuggestionResponse;
+import com.ceyiz.app.ai.AiInput;
+import com.ceyiz.app.dto.AiJobResponse;
+import com.ceyiz.app.dto.AiJobStartedResponse;
+import com.ceyiz.app.service.AiJobService;
 import com.ceyiz.app.service.AiSuggestionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.UUID;
+
+/**
+ * AI istekleri arka planda çalışır: POST hemen 202 + iş kimliği döner, sonuç
+ * GET /api/ai/jobs/{jobId} ile sorulur (bkz. AiJobService).
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/ai")
 public class AiSuggestionController {
 
     private final AiSuggestionService aiSuggestionService;
+    private final AiJobService aiJobService;
 
     @PostMapping(value = "/suggestions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductSuggestionResponse> suggest(
+    public ResponseEntity<AiJobStartedResponse> suggest(
             @RequestParam(value = "file", required = false) MultipartFile file,
-            @RequestParam(value = "text", required = false) String text
+            @RequestParam(value = "text", required = false) String text,
+            Authentication authentication
     ) {
-        return aiSuggestionService.suggest(file, text)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.noContent().build());
+        UUID userId = UUID.fromString(authentication.getName());
+        AiInput input = aiSuggestionService.prepare(file, text);
+        UUID jobId = aiJobService.submit(userId, () -> aiSuggestionService.suggest(input));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
+    }
+
+    @GetMapping("/jobs/{jobId}")
+    public ResponseEntity<AiJobResponse> getJob(@PathVariable UUID jobId, Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(aiJobService.get(userId, jobId));
     }
 }

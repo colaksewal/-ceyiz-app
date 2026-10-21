@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import type { ProductSuggestion } from "../types";
+import type { AiJobStarted } from "./aiJobs";
 
 // AI'ya dosya, metin ya da ikisi birden gönderilebilir.
 export interface AiInput {
@@ -14,7 +14,8 @@ export function toAiFormData({ file, text }: AiInput): FormData {
   return formData;
 }
 
-export async function suggestProducts(input: AiInput): Promise<ProductSuggestion | null> {
-  const response = await api.post<ProductSuggestion>("/ai/suggestions", toAiFormData(input));
-  return response.status === 204 ? null : response.data;
+// Arka planda çalışır: sonuç (ProductSuggestion) iş bitince GET /ai/jobs/{jobId}'den gelir.
+export async function suggestProducts(input: AiInput): Promise<AiJobStarted> {
+  const response = await api.post<AiJobStarted>("/ai/suggestions", toAiFormData(input));
+  return response.data;
 }

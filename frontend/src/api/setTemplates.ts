@@ -1,5 +1,6 @@
 import api from "../lib/api";
-import type { CreateSetTemplatePayload, SetTemplate, SetTemplateSuggestion } from "../types";
+import type { CreateSetTemplatePayload, SetTemplate } from "../types";
+import type { AiJobStarted } from "./aiJobs";
 import { toAiFormData, type AiInput } from "./aiSuggestions";
 
 export async function getSetTemplates(): Promise<SetTemplate[]> {
@@ -12,10 +13,11 @@ export async function createSetTemplate(payload: CreateSetTemplatePayload): Prom
   return response.data;
 }
 
-// 204 = AI'ya ulaşılamadı ya da yanıtı anlaşılamadı.
-export async function suggestSet(input: AiInput): Promise<SetTemplateSuggestion | null> {
-  const response = await api.post<SetTemplateSuggestion>("/set-templates/ai-suggestion", toAiFormData(input));
-  return response.status === 204 ? null : response.data;
+// Arka planda çalışır: sonuç (SetTemplateSuggestion) iş bitince GET /ai/jobs/{jobId}'den gelir.
+// İş EMPTY biterse AI dosyadan set bilgisi çıkaramamıştır.
+export async function suggestSet(input: AiInput): Promise<AiJobStarted> {
+  const response = await api.post<AiJobStarted>("/set-templates/ai-suggestion", toAiFormData(input));
+  return response.data;
 }
 
 export async function deleteSetTemplate(setTemplateId: string): Promise<void> {

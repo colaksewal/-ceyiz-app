@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { getAllTemplates } from "../api/templates";
 import CategoryAiSuggest from "../components/CategoryAiSuggest";
 import Sheet from "../components/Sheet";
 import { pickCategoryEmoji, pickTileColor } from "../lib/listAccent";
+import { isJobActive, useAiJobStore, type TrackedAiJob } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
 import type { CategoryTemplate } from "../types";
 import styles from "./AdminTemplatesPage.module.scss";
@@ -42,10 +43,27 @@ function tileStyle(color: string): CSSProperties {
   return { "--tile": color } as CSSProperties;
 }
 
+// Şablon kategorisindeki AI isteğinin anahtarı; sayfaya dönünce o kategorinin penceresi açılır.
+const TEMPLATE_JOB_PREFIX = "template:";
+
+function templateJobCategoryId(jobs: Record<string, TrackedAiJob>, finishedOnly: boolean): string | null {
+  const job = Object.values(jobs).find(
+    (j) => j.key.startsWith(TEMPLATE_JOB_PREFIX) && (!finishedOnly || !isJobActive(j))
+  );
+  return job ? job.key.slice(TEMPLATE_JOB_PREFIX.length) : null;
+}
+
 export default function AdminTemplatesPage() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const queryClient = useQueryClient();
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(() =>
+    templateJobCategoryId(useAiJobStore.getState().jobs, false)
+  );
+  // Pencere kapalıyken öneri hazır olursa o kategorinin penceresi açılır.
+  const finishedJobCategoryId = useAiJobStore((state) => templateJobCategoryId(state.jobs, true));
+  useEffect(() => {
+    if (finishedJobCategoryId) setOpenId(finishedJobCategoryId);
+  }, [finishedJobCategoryId]);
   const [selectedPresets, setSelectedPresets] = useState<Set<string>>(new Set());
 
   const { data: categories, isLoading, error } = useQuery({
@@ -349,6 +367,8 @@ function CategoryDetail({
       {createProductMutation.isError && <p className="error-text">Ürün eklenemedi.</p>}
 
       <CategoryAiSuggest
+        jobKey={`${TEMPLATE_JOB_PREFIX}${category.id}`}
+        jobLabel={`${category.name} şablonu için ürün önerisi`}
         existingNames={category.products.map((p) => p.name)}
         onAddItems={async (items) => {
           const start = category.products.length;
