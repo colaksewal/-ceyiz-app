@@ -34,6 +34,8 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
       OLLAMA_MODEL: ${OLLAMA_MODEL}
+      # Negatif değer: model hiç bellekten atılmaz, cold start (yükleme beklemesi) olmaz.
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:--1m}
       UPLOAD_DIR: /app/uploads
     extra_hosts:
       - "host.docker.internal:host-gateway"

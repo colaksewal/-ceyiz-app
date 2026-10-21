@@ -18,6 +18,7 @@ import java.util.Optional;
 public class OllamaClient implements AiClient {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(180);
+    private static final int NUM_PREDICT = 1024;
 
     private final WebClient webClient;
     private final String model;
@@ -51,7 +52,11 @@ public class OllamaClient implements AiClient {
                     "prompt", prompt,
                     "stream", false,
                     "format", "json",
-                    "keep_alive", keepAlive
+                    "keep_alive", keepAlive,
+                    // temperature 0: JSON çıkarımında yaratıcılık istemiyoruz, cevap daha tutarlı.
+                    // num_predict: model kendini tekrar eden bir döngüye girerse CPU'da dakikalarca
+                    // üretmesin diye çıktıya üst sınır.
+                    "options", Map.of("temperature", 0, "num_predict", NUM_PREDICT)
             ));
             if (base64Image != null) {
                 body.put("images", List.of(base64Image));
