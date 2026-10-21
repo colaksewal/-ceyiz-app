@@ -14,6 +14,9 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+# Görseldeki yazıyı okumak için OCR (TextRecognizer). Türkçe + İngilizce dil verisi.
+RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-tur tesseract-ocr-data-eng
+
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080

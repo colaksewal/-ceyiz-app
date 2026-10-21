@@ -2,6 +2,7 @@ package com.ceyiz.app.service;
 
 import com.ceyiz.app.ai.AiClient;
 import com.ceyiz.app.ai.ImageDownscaler;
+import com.ceyiz.app.ai.TextRecognizer;
 import com.ceyiz.app.dto.ProductSuggestionResponse;
 import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
 import com.ceyiz.app.entity.PriceType;
@@ -37,6 +38,7 @@ public class AiSuggestionService {
     private static final String PDF_CONTENT_TYPE = "application/pdf";
 
     private final AiClient aiClient;
+    private final TextRecognizer textRecognizer;
     private final ObjectMapper objectMapper;
 
     public Optional<ProductSuggestionResponse> suggestFromFile(MultipartFile file) {
@@ -69,9 +71,20 @@ public class AiSuggestionService {
         return aiResponse.flatMap(json -> parseResponse(json, responseType));
     }
 
+    /**
+     * Önce görseldeki yazı OCR ile okunur ve model sadece metinle çalışır (CPU'da görsel işlemekten
+     * kat kat hızlı). Görselde yeterli yazı yoksa görsel modele gönderilir.
+     */
     private Optional<String> suggestFromImage(MultipartFile file, String promptTemplate) {
         try {
-            String base64 = Base64.getEncoder().encodeToString(ImageDownscaler.downscale(file.getBytes()));
+            byte[] bytes = file.getBytes();
+            Optional<String> recognizedText = textRecognizer.recognize(bytes);
+            if (recognizedText.isPresent()) {
+                String content = "Görselden OCR ile okunan yazı (harf hataları olabilir):\n" + recognizedText.get();
+                return aiClient.complete(promptTemplate.replace("{{content}}", content));
+            }
+
+            String base64 = Base64.getEncoder().encodeToString(ImageDownscaler.downscale(bytes));
             String prompt = promptTemplate.replace("{{content}}", "Görsel ekte.");
             return aiClient.completeWithImage(prompt, base64);
         } catch (IOException e) {
