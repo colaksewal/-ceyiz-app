@@ -31,7 +31,7 @@ interface ItemRow {
   key: number;
   itemName: string;
   quantity: string;
-  unitPrice: string;
+  separatePrice: string;
   note: string;
 }
 
@@ -48,7 +48,7 @@ interface PriceRow {
 let nextRowKey = 0;
 
 function emptyItemRow(): ItemRow {
-  return { key: nextRowKey++, itemName: "", quantity: "1", unitPrice: "", note: "" };
+  return { key: nextRowKey++, itemName: "", quantity: "1", separatePrice: "", note: "" };
 }
 
 function emptyPriceRow(): PriceRow {
@@ -230,7 +230,7 @@ function ComparisonLine({
       {diff >= 0
         ? `Set, tek tek almaktan ${formatTl(diff)} daha ucuz`
         : `Tek tek almak ${formatTl(-diff)} daha ucuz`}
-      {missing > 0 && <span className={styles.comparisonNote}> ({missing} parçanın fiyatı girilmedi)</span>}
+      {missing > 0 && <span className={styles.comparisonNote}> ({missing} ürünün ayrı fiyatı girilmedi)</span>}
     </p>
   );
 }
@@ -253,11 +253,9 @@ function SetTemplateForm({
   const filledItems = items.filter((row) => row.itemName.trim() !== "");
 
   const totalPieces = filledItems.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
-  const pricedItems = filledItems.filter((row) => row.unitPrice.trim() !== "");
-  const individualTotal = pricedItems.reduce(
-    (sum, row) => sum + (Number(row.quantity) || 0) * Number(row.unitPrice),
-    0
-  );
+  // Satır fiyatı o ürünün setten ayrı alınırsa tamamının fiyatı; adetle çarpılmaz.
+  const pricedItems = filledItems.filter((row) => row.separatePrice.trim() !== "");
+  const individualTotal = pricedItems.reduce((sum, row) => sum + Number(row.separatePrice), 0);
   const setPrice = referenceSetPrice(
     prices.map((row) => ({ priceType: row.priceType, cashPrice: toNumberOrNull(row.cashPrice) }))
   );
@@ -277,7 +275,7 @@ function SetTemplateForm({
             key: nextRowKey++,
             itemName: item.itemName,
             quantity: String(item.quantity),
-            unitPrice: toInputValue(item.estimatedIndividualPrice),
+            separatePrice: toInputValue(item.estimatedSeparatePrice),
             note: "",
           }))
         : [emptyItemRow()]
@@ -304,7 +302,7 @@ function SetTemplateForm({
         items: filledItems.map((row) => ({
           itemName: row.itemName.trim(),
           quantity: Number(row.quantity),
-          estimatedIndividualPrice: toNumberOrNull(row.unitPrice),
+          estimatedSeparatePrice: toNumberOrNull(row.separatePrice),
           note: row.note.trim() || null,
         })),
         prices: prices.map((row) => ({
@@ -359,7 +357,7 @@ function SetTemplateForm({
       <div className={styles.block}>
         <div className={styles.blockHeader}>
           <h4>Parçalar</h4>
-          <span className="muted">Birim fiyat = parça tek alınırsa 1 adedinin fiyatı</span>
+          <span className="muted">Fiyat = o ürün setten ayrı alınsa tamamı kaç TL (ör. 12 düz tabak birlikte)</span>
         </div>
         {items.map((row) => (
           <div key={row.key} className={styles.itemRow}>
@@ -383,9 +381,10 @@ function SetTemplateForm({
               type="number"
               min="0"
               step="0.01"
-              placeholder="Birim ₺"
-              value={row.unitPrice}
-              onChange={(e) => updateItem(row.key, { unitPrice: e.target.value })}
+              placeholder="Ayrı fiyatı ₺"
+              aria-label="Setten ayrı alınırsa fiyatı"
+              value={row.separatePrice}
+              onChange={(e) => updateItem(row.key, { separatePrice: e.target.value })}
             />
             <input
               className={styles.itemNote}
@@ -507,7 +506,7 @@ function SetTemplateForm({
             {pricedItems.length < filledItems.length && (
               <span className="muted">
                 {" "}
-                ({filledItems.length} parçanın {pricedItems.length}'i için fiyat var)
+                ({filledItems.length} ürünün {pricedItems.length} tanesi için fiyat var)
               </span>
             )}
           </span>
@@ -626,10 +625,8 @@ function SetTemplateDetail({ set, onDeleted }: { set: SetTemplate; onDeleted: ()
                 <strong>{item.quantity}×</strong> {item.itemName}
                 {item.note && <span className={styles.detailNote}> · {item.note}</span>}
               </span>
-              {item.estimatedIndividualPrice != null && (
-                <span className="muted">
-                  {formatTl(item.estimatedIndividualPrice)} → {formatTl(item.estimatedIndividualPrice * item.quantity)}
-                </span>
+              {item.estimatedSeparatePrice != null && (
+                <span className="muted">ayrı: {formatTl(item.estimatedSeparatePrice)}</span>
               )}
             </li>
           ))}

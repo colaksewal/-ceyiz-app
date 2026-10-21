@@ -149,7 +149,7 @@
   }
 }
 
-// Masaüstü: Ad | Adet | Birim fiyat | Not | ✕ — telefonda üç satıra bölünür.
+// Masaüstü: Ad | Adet | Ayrı fiyatı | Not | ✕ — telefonda üç satıra bölünür.
 .itemRow {
   grid-template-columns: 2fr 70px 110px 1.5fr 32px;
   grid-template-areas: "name qty price note remove";

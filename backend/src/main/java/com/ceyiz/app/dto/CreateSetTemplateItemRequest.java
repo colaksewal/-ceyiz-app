@@ -5,6 +5,6 @@ import java.math.BigDecimal;
 public record CreateSetTemplateItemRequest(
         String itemName,
         int quantity,
-        BigDecimal estimatedIndividualPrice,
+        BigDecimal estimatedSeparatePrice,
         String note
 ) {}

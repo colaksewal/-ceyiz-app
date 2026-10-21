@@ -70,7 +70,7 @@ public class SetTemplateService {
                     item.itemName().trim(),
                     item.quantity(),
                     i,
-                    item.estimatedIndividualPrice(),
+                    item.estimatedSeparatePrice(),
                     blankToNull(item.note())
             ));
         }
@@ -113,7 +113,7 @@ public class SetTemplateService {
         if (item.quantity() <= 0) {
             throw new IllegalArgumentException("Parça adedi en az 1 olmalı: " + item.itemName());
         }
-        if (isNegative(item.estimatedIndividualPrice())) {
+        if (isNegative(item.estimatedSeparatePrice())) {
             throw new IllegalArgumentException("Parça fiyatı negatif olamaz: " + item.itemName());
         }
     }

@@ -84,7 +84,8 @@ export interface SetTemplateItem {
   itemName: string;
   quantity: number;
   displayOrder: number;
-  estimatedIndividualPrice: number | null;
+  // O ürünün setten ayrı alınırsa tamamının fiyatı (adetle çarpılmaz).
+  estimatedSeparatePrice: number | null;
   note: string | null;
 }
 
@@ -125,7 +126,7 @@ export interface CreateSetTemplatePayload {
 export interface SetTemplateSuggestion {
   name: string | null;
   brand: string | null;
-  items: { itemName: string; quantity: number; estimatedIndividualPrice: number | null }[];
+  items: { itemName: string; quantity: number; estimatedSeparatePrice: number | null }[];
   prices: {
     priceType: PriceType;
     cashPrice: number | null;

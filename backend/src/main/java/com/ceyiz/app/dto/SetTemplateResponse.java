@@ -29,13 +29,14 @@ public record SetTemplateResponse(
                                            List<SetTemplatePriceResponse> prices) {
         int totalPieceCount = items.stream().mapToInt(SetTemplateItemResponse::quantity).sum();
 
-        // Sadece fiyatı girilmiş parçalar toplanır; kaç tanesinin fiyatlı olduğu ayrıca
-        // döndürülür ki arayüz "64 parçanın 58'i için fiyat var" diyebilsin.
+        // Satır fiyatı o ürünün setten ayrı alınırsa tamamının fiyatı, adetle çarpılmaz. Sadece fiyatı
+        // girilmiş satırlar toplanır; kaçının fiyatlı olduğu ayrıca döner ki arayüz "6 ürünün 5'i için
+        // fiyat var" diyebilsin.
         List<SetTemplateItemResponse> pricedItems = items.stream()
-                .filter(item -> item.estimatedIndividualPrice() != null)
+                .filter(item -> item.estimatedSeparatePrice() != null)
                 .toList();
         BigDecimal individualTotal = pricedItems.stream()
-                .map(item -> item.estimatedIndividualPrice().multiply(BigDecimal.valueOf(item.quantity())))
+                .map(SetTemplateItemResponse::estimatedSeparatePrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new SetTemplateResponse(

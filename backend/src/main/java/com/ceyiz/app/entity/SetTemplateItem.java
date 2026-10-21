@@ -27,21 +27,21 @@ public class SetTemplateItem {
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
-    // Birim fiyat (tek alınırsa); toplam = quantity × bu değer, ayrıca saklanmıyor.
-    @Column(name = "estimated_individual_price")
-    private BigDecimal estimatedIndividualPrice;
+    // O ürünün setten ayrı alınırsa TAMAMININ fiyatı (ör. 12 düz tabak birlikte) — adetle çarpılmaz.
+    @Column(name = "estimated_separate_price")
+    private BigDecimal estimatedSeparatePrice;
 
     private String note;
 
     protected SetTemplateItem() {}
 
     public SetTemplateItem(UUID setTemplateId, String itemName, int quantity, int displayOrder,
-                           BigDecimal estimatedIndividualPrice, String note) {
+                           BigDecimal estimatedSeparatePrice, String note) {
         this.setTemplateId = setTemplateId;
         this.itemName = itemName;
         this.quantity = quantity;
         this.displayOrder = displayOrder;
-        this.estimatedIndividualPrice = estimatedIndividualPrice;
+        this.estimatedSeparatePrice = estimatedSeparatePrice;
         this.note = note;
     }
 }

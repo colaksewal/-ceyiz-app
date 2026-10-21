@@ -19,7 +19,7 @@ public record SetTemplateSuggestionResponse(
 ) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Item(String itemName, Integer quantity, BigDecimal estimatedIndividualPrice) {}
+    public record Item(String itemName, Integer quantity, BigDecimal estimatedSeparatePrice) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Price(String priceType, BigDecimal cashPrice, Integer installmentCount, BigDecimal installmentAmount) {}

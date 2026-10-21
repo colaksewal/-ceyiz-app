@@ -1,6 +1,7 @@
 package com.ceyiz.app.ai;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,14 +21,17 @@ public class OllamaClient implements AiClient {
 
     private final WebClient webClient;
     private final String model;
+    private final String keepAlive;
 
     public OllamaClient(
             WebClient.Builder webClientBuilder,
             @Value("${app.ai.ollama.base-url}") String baseUrl,
-            @Value("${app.ai.ollama.model}") String model
+            @Value("${app.ai.ollama.model}") String model,
+            @Value("${app.ai.ollama.keep-alive}") String keepAlive
     ) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
         this.model = model;
+        this.keepAlive = keepAlive;
     }
 
     @Override
@@ -46,7 +50,8 @@ public class OllamaClient implements AiClient {
                     "model", model,
                     "prompt", prompt,
                     "stream", false,
-                    "format", "json"
+                    "format", "json",
+                    "keep_alive", keepAlive
             ));
             if (base64Image != null) {
                 body.put("images", List.of(base64Image));
@@ -63,6 +68,7 @@ public class OllamaClient implements AiClient {
                 log.warn("Ollama boş yanıt döndü");
                 return Optional.empty();
             }
+            logTimings(response, base64Image != null);
             return Optional.of(response.response());
         } catch (Exception e) {
             log.warn("Ollama isteği başarısız oldu: {}", e.getMessage());
@@ -70,8 +76,31 @@ public class OllamaClient implements AiClient {
         }
     }
 
+    // Sürenin nereye gittiğini ayırır: model yükleme (cold start), prompt+görselin okunması,
+    // cevabın üretilmesi. Yavaşlığı hangi adımın yarattığı bu satırdan okunur.
+    private void logTimings(OllamaGenerateResponse r, boolean withImage) {
+        log.info("Ollama yanıtı {} sn (model={}, görsel={}): yükleme {} sn, girdi {} token / {} sn, çıktı {} token / {} sn",
+                seconds(r.totalDuration()), model, withImage,
+                seconds(r.loadDuration()),
+                r.promptEvalCount(), seconds(r.promptEvalDuration()),
+                r.evalCount(), seconds(r.evalDuration()));
+    }
+
+    private static String seconds(Long nanos) {
+        return nanos == null ? "?" : String.format("%.1f", nanos / 1_000_000_000.0);
+    }
+
+    // Süreler Ollama'dan nanosaniye olarak gelir.
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record OllamaGenerateResponse(String response) {
+    private record OllamaGenerateResponse(
+            String response,
+            @JsonProperty("total_duration") Long totalDuration,
+            @JsonProperty("load_duration") Long loadDuration,
+            @JsonProperty("prompt_eval_count") Integer promptEvalCount,
+            @JsonProperty("prompt_eval_duration") Long promptEvalDuration,
+            @JsonProperty("eval_count") Integer evalCount,
+            @JsonProperty("eval_duration") Long evalDuration
+    ) {
     }
 
 }

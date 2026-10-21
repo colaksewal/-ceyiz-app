@@ -1,6 +1,7 @@
 package com.ceyiz.app.service;
 
 import com.ceyiz.app.ai.AiClient;
+import com.ceyiz.app.ai.ImageDownscaler;
 import com.ceyiz.app.dto.ProductSuggestionResponse;
 import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
 import com.ceyiz.app.entity.PriceType;
@@ -70,7 +71,7 @@ public class AiSuggestionService {
 
     private Optional<String> suggestFromImage(MultipartFile file, String promptTemplate) {
         try {
-            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+            String base64 = Base64.getEncoder().encodeToString(ImageDownscaler.downscale(file.getBytes()));
             String prompt = promptTemplate.replace("{{content}}", "Görsel ekte.");
             return aiClient.completeWithImage(prompt, base64);
         } catch (IOException e) {
@@ -122,7 +123,7 @@ public class AiSuggestionService {
                 .map(item -> new SetTemplateSuggestionResponse.Item(
                         item.itemName().trim(),
                         item.quantity() == null || item.quantity() <= 0 ? 1 : item.quantity(),
-                        positiveOrNull(item.estimatedIndividualPrice())
+                        positiveOrNull(item.estimatedSeparatePrice())
                 ))
                 .toList();
 

@@ -7,7 +7,7 @@ açıklama veya metin ekleme:
   "name": "setin adı, ör. 64 Parça Yemek Takımı",
   "brand": "marka adı ya da bulunamazsa null",
   "items": [
-    {"itemName": "parça adı", "quantity": 12, "estimatedIndividualPrice": null}
+    {"itemName": "parça adı", "quantity": 12, "estimatedSeparatePrice": null}
   ],
   "prices": [
     {"priceType": "PESIN", "cashPrice": 12999, "installmentCount": null, "installmentAmount": null}
@@ -18,7 +18,8 @@ Kurallar:
 - items: setin içindeki her parça türü bir satır. quantity o parçadan kaç adet olduğu (ör.
   "12 adet düz tabak" → itemName "Düz tabak", quantity 12). Adet yazmıyorsa 1 kullan.
 - Aynı parçayı iki kez yazma; adetleri topla.
-- estimatedIndividualPrice: sadece içerikte o parçanın TEK BAŞINA fiyatı açıkça yazıyorsa
+- estimatedSeparatePrice: o ürünün setten AYRI alınırsa TAMAMININ fiyatı (ör. 12 düz tabak
+  birlikte ayrıca 1500 TL ise 1500; adet başı fiyat değil). Sadece içerikte açıkça yazıyorsa
   doldur, yoksa null. Tahmin etme.
 - prices: içerikte setin fiyatı yazıyorsa ekle, yoksa boş dizi ([]).
   - priceType sadece şu değerlerden biri olabilir: "PESIN", "TAKSITLI", "ELDEN_KREDI_KARTI".

@@ -1,6 +1,11 @@
 # Ortam sırları
 .env
 
+# SSH anahtarları ve sadece bu bilgisayara ait notlar (sunucu bağlantısı vb.)
+*.key
+*.pem
+*.local.md
+
 # Backend
 backend/target/
 backend/.mvn/

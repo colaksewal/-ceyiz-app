@@ -10,7 +10,7 @@ public record SetTemplateItemResponse(
         String itemName,
         int quantity,
         int displayOrder,
-        BigDecimal estimatedIndividualPrice,
+        BigDecimal estimatedSeparatePrice,
         String note
 ) {
 
@@ -20,7 +20,7 @@ public record SetTemplateItemResponse(
                 item.getItemName(),
                 item.getQuantity(),
                 item.getDisplayOrder(),
-                item.getEstimatedIndividualPrice(),
+                item.getEstimatedSeparatePrice(),
                 item.getNote()
         );
     }
