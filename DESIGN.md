@@ -108,6 +108,16 @@ admin-kontrollü, `AdminTemplatesPage`'deki "AI ile Öner" paneli) — uçtan uc
 Kullanıcının kendi listesine aynı akışla ekleyebilmesi (gerçek `categories`/`products`'a
 yazan ayrı bir endpoint/ekran) sonraki adım, henüz yapılmadı.
 
+**Girdi türleri (2026-10-21):** İki AI kutusu da ("AI ile ürün öner" ve admin set
+şablonlarındaki "AI ile doldur") artık **dosya, metin ya da ikisini birden** kabul ediyor
+(`file` ve `text` multipart alanları, ikisi de opsiyonel ama en az biri zorunlu). Sadece
+metin gelirse model görselsiz çalışıyor; CPU'lu sunucuda bu, görsel işlemeye göre çok
+daha hızlı (bkz. §7.6). Dosyayla birlikte gelen metin, prompt'a "Kullanıcının notu"
+olarak ekleniyor. AI beklerken arayüzde dönen mesajlar ve saniye sayacı gösteriliyor
+(`AiWaiting`), ki ~1 dakikalık görsel isteklerinde kullanıcı uygulama takıldı sanmasın.
+Set şablonu için AI kutusuna seçilen görsel ayrıca `/api/uploads`'a yüklenip setin kart
+görseli olarak kaydediliyor (`set_templates.image_url`, migration V5).
+
 **Senaryo 2 — Bütçe analizi:** kategori bazlı toplam harcanan/planlanan verisi **agregat**
 halde AI'ya gönderilir, AI kullanıcının fark etmeyebileceği örüntüleri yorumlar. (Henüz
 başlanmadı, bkz. §6 Aşama 6.)
@@ -268,6 +278,10 @@ Uçtan uca doğrulama: tam yığın `docker compose up` ile ayağa kaldırılıp
 | ✅ Eski Senaryo 1 kaldırıldı | `AiController`, `AiService`, `ListSuggestionRequest`/`Response`, `list-suggestion.txt` prompt'u, frontend `AiListSuggestion` component'i + `api/ai.ts` tamamen silindi (2026-09-10) — `docker compose build backend` ile temiz derleme doğrulandı |
 | ✅ Yeni Senaryo 1 — "AI ile ekle" backend | `AiClient.completeWithImage`, PDFBox ile PDF metni, `product-suggestion.txt` prompt'u, `AiSuggestionService`/`Controller` — admin panelinde uçtan uca doğrulandı |
 | ✅ Yeni Senaryo 1 — admin panelinde frontend | `AiSuggestionPanel` — dosya yükle → öneri → seç → şablona ekle |
+| ✅ AI'ya metin girişi | Her iki AI kutusunda dosya yerine/yanında metin; görselsiz yol çok daha hızlı (2026-10-21) |
+| ✅ AI bekleme deneyimi | `AiWaiting`: dönen mesajlar (önce "ücretsiz sunucu" esprileri) + saniye sayacı (2026-10-21) |
+| ✅ Set şablonu kart görseli | AI için seçilen görsel kaydedilip set kartında/detayında gösteriliyor, V5 migration (2026-10-21) |
+| ✅ AI performans profili | Süre dökümü loglanıyor; prompt kısaltma, `temperature 0`, kalıcı keep_alive; qwen2.5vl ve OCR denenip reddedildi (bkz. §7.6) |
 | 🔜 Yeni Senaryo 1 — kullanıcının kendi listesine ekleme | Aynı `/api/admin/ai-suggestions` akışının (ya da kullanıcıya açık bir varyantının) gerçek `categories`/`products`'a yazması — henüz yapılmadı |
 | ⬜ `AiService` — bütçe analizi metodu | Senaryo 2 — DB şemasında "planlanan bütçe" alanı henüz yok, önce küçük bir migration gerekiyor. Faz 2'ye ertelendi |
 | ⬜ Cache katmanı (Caffeine) | Maliyet kontrolü — Faz 2'ye ertelendi |
@@ -424,6 +438,42 @@ gelsin" akışı için kabul edilebilir bulundu.
 Uygulanan değişiklikler: sunucuda `ollama pull gemma3:4b` + eski `ollama rm gemma2:9b`
 (disk temizliği), sunucudaki `.env`'de `OLLAMA_MODEL=gemma3:4b`, ve
 `application.yml`'deki fallback default'u da `gemma3:4b` olarak güncellendi.
+
+### 7.6 Performans profili ve denenen iyileştirmeler (2026-10-21)
+
+Görselli set önerisi ~89 sn sürüyordu. `OllamaClient`, Ollama'nın döndürdüğü süreleri
+ayrı ayrı logluyor (`Ollama yanıtı X sn: yükleme / girdi N token / çıktı M token`), böylece
+sürenin hangi adıma gittiği görülebiliyor.
+
+| Ölçüm | Sonuç |
+|---|---|
+| İlk hal (gemma3:4b, görsel) | 89 sn — yükleme 7 sn, girdi 881 token / 61 sn, çıktı 213 token / 21 sn |
+| Görselsiz kısa metin | girdi ~34 token/sn, çıktı ~16 token/sn |
+| İyileştirmelerden sonra (görsel) | ~66 sn + yükleme — girdi 666 token / 55 sn, çıktı 115 token / 11 sn |
+| `qwen2.5vl:3b` (aynı görsel) | ~84 sn — girdi 1480 token / 75 sn → daha yavaş |
+
+**Bulgu:** Darboğaz görselin işlenmesi (~45 sn). gemma3 her görseli kendi içinde
+896x896'ya çevirip sabit 256 token'a dönüştürüyor; bu yüzden görseli önceden küçültmek
+(`ImageDownscaler`) bu modelde süreyi azaltmıyor. Sunucu Oracle Always Free tavanında
+(4 OCPU, GPU yok), donanımla hızlandırma ücretsiz katmanda mümkün değil.
+
+**Uygulananlar:**
+- `set-suggestion.txt` kısaltıldı (1.8 KB → 1.2 KB, ~215 token daha az girdi).
+- İstekte `temperature: 0` (tutarlı JSON) ve `num_predict: 1024` (kendini tekrar eden
+  çıktıya üst sınır).
+- `OLLAMA_KEEP_ALIVE=-1m` docker-compose'dan backend'e geçiriliyor: model bellekten hiç
+  atılmıyor, ~6-7 sn'lik soğuk başlatma ortadan kalkıyor.
+- Metin girişi (bkz. §2.6): görselsiz yol, kullanıcıya hızlı bir alternatif sunuyor.
+
+**Denenip reddedilenler:**
+- `qwen2.5vl:3b`: görseli kendi boyutunda işleyeceği için daha hızlı olması bekleniyordu.
+  Ollama'daki uygulaması aynı görsel için iki kattan fazla token üretti, daha yavaş çıktı.
+- OCR önce (Tesseract, `tur+eng`): görseldeki yazı 1-3 sn'de okunup model sadece metinle
+  çalışıyordu. Hızlıydı ama set bilgilerini (parçalar/fiyatlar) doğru çıkaramadı, geri alındı.
+
+**Ölçüm tuzağı:** Ollama son isteğin işlenmiş girdisini önbellekte tutuyor; aynı görselle
+tekrar denemek girdiyi ~0.3 sn gösteriyor. Gerçekçi ölçüm için her seferinde yeni görsel
+kullanılmalı.
 
 ---
 
