@@ -70,9 +70,26 @@
   }
 }
 
+.aiTextInput {
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-md;
+  background: $color-surface;
+  font: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+}
+
 .aiActions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: $space-2;
 }
 

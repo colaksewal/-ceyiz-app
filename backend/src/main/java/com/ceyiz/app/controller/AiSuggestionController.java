@@ -19,8 +19,11 @@ public class AiSuggestionController {
     private final AiSuggestionService aiSuggestionService;
 
     @PostMapping(value = "/suggestions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductSuggestionResponse> suggest(@RequestParam("file") MultipartFile file) {
-        return aiSuggestionService.suggestFromFile(file)
+    public ResponseEntity<ProductSuggestionResponse> suggest(
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "text", required = false) String text
+    ) {
+        return aiSuggestionService.suggest(file, text)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }

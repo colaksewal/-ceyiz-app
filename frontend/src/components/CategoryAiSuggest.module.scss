@@ -74,8 +74,25 @@ $ai-purple-soft: #c9a4f2;
   }
 }
 
+.textInput {
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  border: 2px dashed $ai-purple-soft;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: $ai-purple;
+  }
+}
+
 .row {
   display: flex;
+  align-items: center;
   gap: $space-2;
 
   @media (max-width: $breakpoint-sm) {

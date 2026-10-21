@@ -6,8 +6,9 @@ import {
   createSetTemplate,
   deleteSetTemplate,
   getSetTemplates,
-  suggestSetFromFile,
+  suggestSet,
 } from "../api/adminSetTemplates";
+import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
 import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
@@ -601,9 +602,11 @@ function SetAiFill({
   onFileChosen: (file: File) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [text, setText] = useState("");
+  const canSuggest = file !== null || text.trim() !== "";
 
   const suggestMutation = useMutation({
-    mutationFn: (f: File) => suggestSetFromFile(f),
+    mutationFn: (input: AiInput) => suggestSet(input),
     onSuccess: (result) => {
       if (result) onFill(result);
     },
@@ -614,10 +617,22 @@ function SetAiFill({
       <div className={styles.aiText}>
         <strong>✨ AI ile doldur</strong>
         <span className="muted">
-          Setin ürün sayfası ekran görüntüsünü ya da PDF'ini yükle; AI parçaları ve fiyatları
-          forma yazsın. Kaydetmeden önce kontrol et. 1-2 dakika sürebilir.
+          Setin ürün sayfası ekran görüntüsünü ya da PDF'ini yükle veya açıklamasını yapıştır; AI
+          parçaları ve fiyatları forma yazsın. Kaydetmeden önce kontrol et. Sadece metin daha hızlı,
+          görsel 1-2 dakika sürebilir.
         </span>
       </div>
+      <textarea
+        className={styles.aiTextInput}
+        rows={4}
+        maxLength={10000}
+        placeholder="ya da buraya yaz / yapıştır, ör. Karaca 24 parça yemek takımı: 6 düz tabak, 6 çukur tabak... Peşin 4.999 TL"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          suggestMutation.reset();
+        }}
+      />
       <div className={styles.aiActions}>
         <label className={styles.filePick}>
           <input
@@ -628,15 +643,21 @@ function SetAiFill({
               setFile(chosen);
               suggestMutation.reset();
               if (chosen) onFileChosen(chosen);
+              e.target.value = "";
             }}
           />
-          <span>{file ? `📎 ${file.name}` : "📷 Dosya seç"}</span>
+          <span>{file ? `📎 ${file.name}` : "📷 Dosya seç (opsiyonel)"}</span>
         </label>
+        {file && (
+          <button type="button" className={styles.removeButton} aria-label="Dosyayı kaldır" onClick={() => setFile(null)}>
+            ✕
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-primary"
-          disabled={!file || suggestMutation.isPending}
-          onClick={() => file && suggestMutation.mutate(file)}
+          disabled={!canSuggest || suggestMutation.isPending}
+          onClick={() => canSuggest && suggestMutation.mutate({ file, text })}
         >
           {suggestMutation.isPending ? "Düşünüyor..." : "Doldur"}
         </button>

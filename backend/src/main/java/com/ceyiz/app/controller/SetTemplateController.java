@@ -39,11 +39,12 @@ public class SetTemplateController {
     // AI'ya ulaşılamazsa ya da yanıt anlaşılamazsa 204 döner; frontend formu elle doldurmaya devam eder.
     @PostMapping(value = "/ai-suggestion", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SetTemplateSuggestionResponse> suggestFromFile(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "text", required = false) String text,
             Authentication authentication
     ) {
         UUID adminId = UUID.fromString(authentication.getName());
-        return setTemplateService.suggestFromFile(adminId, file)
+        return setTemplateService.suggest(adminId, file, text)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }

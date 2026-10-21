@@ -100,9 +100,9 @@ public class SetTemplateService {
     }
 
     /** AI önerisi sadece formu doldurur; kayıt yine createSetTemplate'ten (ve doğrulamasından) geçer. */
-    public Optional<SetTemplateSuggestionResponse> suggestFromFile(UUID adminId, MultipartFile file) {
+    public Optional<SetTemplateSuggestionResponse> suggest(UUID adminId, MultipartFile file, String text) {
         adminAccessService.requireAdmin(adminId);
-        return aiSuggestionService.suggestSetFromFile(file);
+        return aiSuggestionService.suggestSet(file, text);
     }
 
     public void deleteSetTemplate(UUID adminId, UUID setTemplateId) {

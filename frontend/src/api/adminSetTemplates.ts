@@ -1,5 +1,6 @@
 import api from "../lib/api";
 import type { CreateSetTemplatePayload, SetTemplate, SetTemplateSuggestion } from "../types";
+import { toAiFormData, type AiInput } from "./aiSuggestions";
 
 export async function getSetTemplates(): Promise<SetTemplate[]> {
   const response = await api.get<SetTemplate[]>("/admin/set-templates");
@@ -12,10 +13,8 @@ export async function createSetTemplate(payload: CreateSetTemplatePayload): Prom
 }
 
 // 204 = AI'ya ulaşılamadı ya da yanıtı anlaşılamadı.
-export async function suggestSetFromFile(file: File): Promise<SetTemplateSuggestion | null> {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await api.post<SetTemplateSuggestion>("/admin/set-templates/ai-suggestion", formData);
+export async function suggestSet(input: AiInput): Promise<SetTemplateSuggestion | null> {
+  const response = await api.post<SetTemplateSuggestion>("/admin/set-templates/ai-suggestion", toAiFormData(input));
   return response.status === 204 ? null : response.data;
 }
 

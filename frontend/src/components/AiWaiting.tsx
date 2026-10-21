@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import styles from "./AiWaiting.module.scss";
 
 // Sunucu ücretsiz ve ekran kartsız: görselli bir öneri ~1 dk sürüyor. Beklerken mesajlar döner
-// ve geçen süre sayılır ki kullanıcı uygulama takıldı sanmasın.
+// ve geçen süre sayılır ki kullanıcı uygulama takıldı sanmasın. Neden yavaş olduğunu anlatan
+// (param yok, sunucu bedava) mesajlar her seferinde ilk sırada gelir.
 const MESSAGES = [
-  "Sunucumuz ücretsiz, o yüzden biraz nefes nefese çalışıyor 🐢",
-  "Ekran kartımız yok, her şeyi parmak hesabıyla yapıyoruz 🧮",
   "Param olsaydı bu iş 3 saniye sürerdi, söz 💸",
+  "Sunucumuz ücretsiz, o yüzden biraz nefes nefese çalışıyor 🐢",
   "Bedava sunucuda oturuyoruz: kira yok ama hız da yok 🏠",
+  "Ekran kartı alacak param yok, her şeyi parmak hesabıyla yapıyoruz 🧮",
+  "Bir gün zengin olunca bu sunucuyu da güçlendireceğim 🤞",
   "Tabakları tek tek sayıyorum... 🍽️",
   "Fiyatları kuruşu kuruşuna okuyorum 🔍",
   "Sen bir çay koy, ben geliyorum ☕",
@@ -21,15 +23,13 @@ const ROTATE_SECONDS = 4;
 
 export default function AiWaiting() {
   const [seconds, setSeconds] = useState(0);
-  // Her seferinde aynı mesajla başlamasın.
-  const [offset] = useState(() => Math.floor(Math.random() * MESSAGES.length));
 
   useEffect(() => {
     const id = window.setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
 
-  const message = MESSAGES[(offset + Math.floor(seconds / ROTATE_SECONDS)) % MESSAGES.length];
+  const message = MESSAGES[Math.floor(seconds / ROTATE_SECONDS) % MESSAGES.length];
 
   return (
     <div className={styles.waiting} role="status">

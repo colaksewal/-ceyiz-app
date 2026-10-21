@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { suggestFromFile } from "../api/aiSuggestions";
+import { suggestProducts, type AiInput } from "../api/aiSuggestions";
 import AiWaiting from "./AiWaiting";
 import styles from "./CategoryAiSuggest.module.scss";
 
@@ -20,11 +20,13 @@ export default function CategoryAiSuggest({
 }) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [text, setText] = useState("");
   const [items, setItems] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const canSuggest = file !== null || text.trim() !== "";
 
   const suggestMutation = useMutation({
-    mutationFn: (f: File) => suggestFromFile(f),
+    mutationFn: (input: AiInput) => suggestProducts(input),
     onSuccess: (result) => {
       const existing = new Set(existingNames.map(normalize));
       const fresh = (result?.items ?? []).filter((item) => !existing.has(normalize(item)));
@@ -38,6 +40,7 @@ export default function CategoryAiSuggest({
     onSuccess: () => {
       setItems(null);
       setFile(null);
+      setText("");
       setSelected(new Set());
       setOpen(false);
     },
@@ -72,14 +75,26 @@ export default function CategoryAiSuggest({
         <div className={styles.headerText}>
           <strong>AI ile ürün öner</strong>
           <p>
-            Bir fotoğraf (etiket, liste) ya da PDF yükle; AI içindeki ürünleri bu kategoriye
-            önersin. 1-2 dakika sürebilir.
+            Bir fotoğraf (etiket, liste) ya da PDF yükle veya listeyi yaz; AI içindeki ürünleri bu
+            kategoriye önersin. Sadece metin daha hızlı, görsel 1-2 dakika sürebilir.
           </p>
         </div>
         <button type="button" className={styles.close} aria-label="Kapat" onClick={() => setOpen(false)}>
           ✕
         </button>
       </div>
+
+      <textarea
+        className={styles.textInput}
+        rows={3}
+        maxLength={10000}
+        placeholder="ya da buraya yaz / yapıştır, ör. çatal bıçak takımı, 6'lı su bardağı, tencere seti..."
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setItems(null);
+        }}
+      />
 
       <div className={styles.row}>
         <label className={styles.filePick}>
@@ -89,15 +104,21 @@ export default function CategoryAiSuggest({
             onChange={(e) => {
               setFile(e.target.files?.[0] ?? null);
               setItems(null);
+              e.target.value = "";
             }}
           />
-          <span>{file ? `📎 ${file.name}` : "📷 Dosya seç"}</span>
+          <span>{file ? `📎 ${file.name}` : "📷 Dosya seç (opsiyonel)"}</span>
         </label>
+        {file && (
+          <button type="button" className={styles.close} aria-label="Dosyayı kaldır" onClick={() => setFile(null)}>
+            ✕
+          </button>
+        )}
         <button
           type="button"
           className={`btn btn-primary ${styles.pill}`}
-          disabled={!file || suggestMutation.isPending}
-          onClick={() => file && suggestMutation.mutate(file)}
+          disabled={!canSuggest || suggestMutation.isPending}
+          onClick={() => canSuggest && suggestMutation.mutate({ file, text })}
         >
           {suggestMutation.isPending ? "Düşünüyor..." : "Öner"}
         </button>
