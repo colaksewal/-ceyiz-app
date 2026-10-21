@@ -29,8 +29,7 @@ export interface Product {
   status: ProductStatus;
 }
 
-// Note: "TAKTILI" matches the backend enum value verbatim (upstream typo for "TAKSİTLİ").
-export type PriceType = "PESIN" | "TAKTILI" | "ELDEN_KREDI_KARTI";
+export type PriceType = "PESIN" | "TAKSITLI" | "ELDEN_KREDI_KARTI";
 
 export interface PriceEntry {
   id: string;
@@ -78,6 +77,61 @@ export interface CategoryTemplate {
   name: string;
   displayOrder: number;
   products: ProductTemplate[];
+}
+
+export interface SetTemplateItem {
+  id: string;
+  itemName: string;
+  quantity: number;
+  displayOrder: number;
+  estimatedIndividualPrice: number | null;
+  note: string | null;
+}
+
+export interface SetTemplatePrice {
+  id: string;
+  storeName: string | null;
+  priceType: PriceType;
+  cashPrice: number | null;
+  installmentCount: number | null;
+  installmentAmount: number | null;
+  paymentPlanNote: string | null;
+  displayOrder: number;
+}
+
+// totalPieceCount / individualTotal / pricedItemCount backend'de parçalardan hesaplanır.
+export interface SetTemplate {
+  id: string;
+  name: string;
+  brand: string | null;
+  displayOrder: number;
+  createdAt: string;
+  totalPieceCount: number;
+  individualTotal: number;
+  pricedItemCount: number;
+  items: SetTemplateItem[];
+  prices: SetTemplatePrice[];
+}
+
+export interface CreateSetTemplatePayload {
+  name: string;
+  brand: string | null;
+  displayOrder: number;
+  items: Omit<SetTemplateItem, "id" | "displayOrder">[];
+  prices: Omit<SetTemplatePrice, "id" | "displayOrder">[];
+}
+
+// AI'nın fotoğraf/PDF'den çıkardığı set; sadece formu doldurmak için kullanılır.
+export interface SetTemplateSuggestion {
+  name: string | null;
+  brand: string | null;
+  items: { itemName: string; quantity: number; estimatedIndividualPrice: number | null }[];
+  prices: {
+    priceType: PriceType;
+    cashPrice: number | null;
+    installmentCount: number | null;
+    installmentAmount: number | null;
+  }[];
 }
 
 export interface ProductSuggestion {

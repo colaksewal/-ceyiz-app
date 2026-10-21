@@ -13,7 +13,7 @@ import styles from "./ProductPage.module.scss";
 
 const priceTypeLabels: Record<PriceType, string> = {
   PESIN: "Peşin",
-  TAKTILI: "Taksitli",
+  TAKSITLI: "Taksitli",
   ELDEN_KREDI_KARTI: "Elden Kredi Kartı",
 };
 

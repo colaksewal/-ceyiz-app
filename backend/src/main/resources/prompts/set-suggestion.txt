@@ -1,0 +1,33 @@
+Aşağıdaki görsel ya da metin bir ev eşyası SETİNİN ürün sayfası, kataloğu veya etiketidir
+(ör. "Karaca 64 parça yemek takımı", "12 parça tencere seti", "6 kişilik nevresim takımı").
+Setin içeriğini analiz et ve SADECE şu yapıda geçerli bir JSON ile yanıt ver, başka hiçbir
+açıklama veya metin ekleme:
+
+{
+  "name": "setin adı, ör. 64 Parça Yemek Takımı",
+  "brand": "marka adı ya da bulunamazsa null",
+  "items": [
+    {"itemName": "parça adı", "quantity": 12, "estimatedIndividualPrice": null}
+  ],
+  "prices": [
+    {"priceType": "PESIN", "cashPrice": 12999, "installmentCount": null, "installmentAmount": null}
+  ]
+}
+
+Kurallar:
+- items: setin içindeki her parça türü bir satır. quantity o parçadan kaç adet olduğu (ör.
+  "12 adet düz tabak" → itemName "Düz tabak", quantity 12). Adet yazmıyorsa 1 kullan.
+- Aynı parçayı iki kez yazma; adetleri topla.
+- estimatedIndividualPrice: sadece içerikte o parçanın TEK BAŞINA fiyatı açıkça yazıyorsa
+  doldur, yoksa null. Tahmin etme.
+- prices: içerikte setin fiyatı yazıyorsa ekle, yoksa boş dizi ([]).
+  - priceType sadece şu değerlerden biri olabilir: "PESIN", "TAKSITLI", "ELDEN_KREDI_KARTI".
+  - Peşin/tek çekim fiyat → "PESIN" ve cashPrice.
+  - "12 x 1.150 TL" gibi taksit bilgisi → "TAKSITLI", installmentCount 12, installmentAmount 1150.
+  - İndirimli ve indirimsiz fiyat birlikte yazıyorsa indirimli (güncel) fiyatı kullan.
+- Fiyatlar sadece sayı olsun: para birimi, nokta/virgül binlik ayracı yok (12.999 TL → 12999).
+- Set adında parça sayısı yazıyorsa (ör. "64 parça"), items'taki quantity toplamının bu sayıyla
+  tutmasına dikkat et.
+
+İçerik:
+{{content}}

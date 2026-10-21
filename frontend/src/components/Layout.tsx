@@ -32,9 +32,14 @@ export default function Layout() {
             👥 Çeyiz Ekibim
           </NavLink>
           {isAdmin && (
-            <NavLink to="/admin/templates" className={navClass}>
-              🧩 Şablonlar
-            </NavLink>
+            <>
+              <NavLink to="/admin/templates" className={navClass}>
+                🧩 Şablonlar
+              </NavLink>
+              <NavLink to="/admin/set-templates" className={navClass}>
+                🍽 Setler
+              </NavLink>
+            </>
           )}
         </nav>
         <button className={`btn btn-secondary ${styles.logout}`} onClick={handleLogout}>
