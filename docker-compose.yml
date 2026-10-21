@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -42,7 +42,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
        
 
   frontend:
@@ -56,7 +56,7 @@ services:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL}
       API_PROXY_TARGET: ${API_PROXY_TARGET:-}
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
 
   # HTTPS ters vekil (reverse proxy): 80/443'ü dinler, sertifikayı kendisi alır (bkz. Caddyfile).
   caddy:

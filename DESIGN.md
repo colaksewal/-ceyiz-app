@@ -311,7 +311,7 @@ Uçtan uca doğrulama: tam yığın `docker compose up` ile ayağa kaldırılıp
 | ⬜ GitHub Actions pipeline (test + build) | Her push'ta otomatik doğrulama |
 | ✅ Backend'i deploy et | Railway/Render yerine kendi Oracle Cloud sunucumuza (bkz. §7) Docker Compose ile deploy edildi — `http://84.8.158.225:8080` |
 | ✅ Frontend'i deploy et | Aynı sunucuda, Vite dev server container'ı olarak — `http://84.8.158.225:5173`. Not: prod build (nginx ile statik dosya servisi) henüz yok, şimdilik dev server yeterli |
-| 🔜 Faz 3: Domain + HTTPS | Şu an düz IP:port ve HTTP — DuckDNS (ücretsiz alt alan adı) + Caddy (otomatik Let's Encrypt) ile `https://...duckdns.org` adresine geçilecek |
+| ✅ Faz 3: Domain + HTTPS | `https://ceyizim.duckdns.org` (2026-10-21) — DuckDNS ücretsiz alt alan adı + Caddy konteyneri (otomatik Let's Encrypt, `Caddyfile`). Caddy tek giriş: `/api/*` ve `/uploads/*` backend'e, gerisi frontend'e; frontend API'ye aynı origin'den `VITE_API_BASE_URL=/api` ile ulaşıyor. Backend/frontend/Postgres portları sadece `127.0.0.1`'e bağlı, dışarıya yalnızca 80/443 açık. Vite dev server için `allowedHosts`'a alan adı eklendi; backend Caddy arkasında isteği `http` gördüğü için `CORS_ALLOWED_ORIGINS`'te `https://` adresi de bulunmalı |
 | ⬜ README yaz (mimari diyagram, tech tablosu, demo linki, ekran görüntüleri) | CV'ye hazır sunum |
 
 ---
