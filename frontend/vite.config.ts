@@ -22,6 +22,8 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Dev server, IP/localhost dışındaki host adlarından gelen istekleri reddeder.
+    allowedHosts: ["ceyizim.duckdns.org"],
     proxy: proxyTarget
       ? { "/api": proxyOptions, "/uploads": proxyOptions }
       : undefined,
