@@ -20,6 +20,10 @@
 
 .submitBtn {
   margin-top: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    width: 100%;
+  }
 }
 
 .entryGrid {
@@ -42,9 +46,11 @@
   overflow: hidden;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 
-  &:hover {
-    box-shadow: $shadow-md;
-    transform: translateY(-1px);
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: $shadow-md;
+      transform: translateY(-1px);
+    }
   }
 }
 
@@ -71,6 +77,10 @@
   height: 160px;
   object-fit: cover;
   background: $color-surface-muted;
+
+  @media (max-width: $breakpoint-sm) {
+    height: 200px;
+  }
 }
 
 .entryBody {

@@ -19,6 +19,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: $space-2;
+
+  // Telefonda iki buton yan yana tam genişlik; sığmazsa alt alta.
+  @media (max-width: $breakpoint-sm) {
+    flex-basis: 100%;
+
+    > * {
+      flex: 1 1 auto;
+    }
+  }
 }
 
 .templateCta {
@@ -37,10 +46,12 @@
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 
-  &:hover {
-    transform: translateY(-2px);
-    border-color: #1c7ed6;
-    box-shadow: 0 8px 20px rgba(28, 126, 214, 0.18);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      border-color: #1c7ed6;
+      box-shadow: 0 8px 20px rgba(28, 126, 214, 0.18);
+    }
   }
 
   &:active {
@@ -87,8 +98,16 @@
 .form {
   margin: $space-3 0 $space-6;
   padding: $space-4;
+
+  // Tek alanlı kısa form: telefonda da girdi ve buton yan yana kalsın.
+  @media (max-width: $breakpoint-sm) {
+    margin-bottom: $space-5;
+    flex-direction: row;
+    align-items: flex-end;
+  }
 }
 
 .nameField {
   flex: 1;
+  min-width: 0;
 }

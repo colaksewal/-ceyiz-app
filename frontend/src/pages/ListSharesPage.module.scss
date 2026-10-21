@@ -13,6 +13,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: $space-3;
+
+  @media (max-width: $breakpoint-sm) {
+    flex-wrap: wrap;
+  }
+}
+
+.memberInfo {
+  min-width: 0;
 }
 
 .memberName {
@@ -22,12 +31,27 @@
 .memberEmail {
   color: $color-text-muted;
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
 }
 
 .memberActions {
   display: flex;
   align-items: center;
   gap: $space-2;
+
+  // Sahip görünümünde rozet + rol seçimi + çıkar butonu tek satıra sığmıyor.
+  @media (max-width: $breakpoint-sm) {
+    flex: 1 1 100%;
+
+    .roleSelect {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}
+
+.roleSelect {
+  width: auto;
 }
 
 .form {

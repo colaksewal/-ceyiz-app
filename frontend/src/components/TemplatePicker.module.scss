@@ -108,6 +108,10 @@
   font-weight: 600;
   cursor: pointer;
 
+  @media (max-width: $breakpoint-sm) {
+    padding: 0.4rem 0.8rem;
+  }
+
   &:hover {
     border-color: var(--tile);
   }
@@ -129,6 +133,10 @@
   font-size: 0.86rem;
   cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease;
+
+  @media (max-width: $breakpoint-sm) {
+    padding: 0.45rem 0.9rem;
+  }
 }
 
 .chipOn {

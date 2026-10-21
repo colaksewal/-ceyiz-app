@@ -26,13 +26,35 @@
   align-items: center;
   margin-bottom: $space-2;
 
+  // Telefonda her kalem kendi kutusunda: ürün seçimi ve ad tam satır, altında
+  // adet / fiyat / sil yan yana.
   @media (max-width: $breakpoint-sm) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 4.5rem 1fr auto;
+    margin-bottom: $space-3;
+    padding: $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-surface-muted;
+
+    > select,
+    > .itemName {
+      grid-column: 1 / -1;
+    }
   }
 }
 
 .addItemBtn {
   margin-bottom: $space-5;
+
+  @media (max-width: $breakpoint-sm) {
+    width: 100%;
+  }
+}
+
+.submitBtn {
+  @media (max-width: $breakpoint-sm) {
+    width: 100%;
+  }
 }
 
 .setList {
@@ -49,6 +71,23 @@
   justify-content: space-between;
   align-items: center;
   gap: $space-3;
+
+  @media (max-width: $breakpoint-sm) {
+    flex-wrap: wrap;
+  }
+}
+
+.setInfo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.compareBtn {
+  flex-shrink: 0;
+
+  @media (max-width: $breakpoint-sm) {
+    flex: 1 1 100%;
+  }
 }
 
 .setName {

@@ -123,7 +123,7 @@ function ListCards({ lists }: { lists: TrousseauListItem[] | undefined }) {
               <span className={styles.emojiBadge} style={{ background: accent.color }}>
                 {accent.emoji}
               </span>
-              <div>
+              <div className={styles.itemText}>
                 <Link to={`/lists/${list.id}`} className={styles.itemName}>
                   {list.name}
                 </Link>

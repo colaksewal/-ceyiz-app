@@ -24,20 +24,25 @@ export default function Layout() {
           </span>
           Çeyiz Planlayıcı
         </Link>
+        {/* Masaüstünde başlıkta, telefonda ekranın altında sabit sekme çubuğu. */}
         <nav className={styles.nav}>
           <NavLink to="/lists" end className={navClass}>
-            📋 Listelerim
+            <span className={styles.navIcon} aria-hidden="true">📋</span>
+            <span>Listelerim</span>
           </NavLink>
           <NavLink to="/ceyiz-ekibim" className={navClass}>
-            👥 Çeyiz Ekibim
+            <span className={styles.navIcon} aria-hidden="true">👥</span>
+            <span>Çeyiz Ekibim</span>
           </NavLink>
           {isAdmin && (
             <>
               <NavLink to="/admin/templates" className={navClass}>
-                🧩 Şablonlar
+                <span className={styles.navIcon} aria-hidden="true">🧩</span>
+                <span>Şablonlar</span>
               </NavLink>
               <NavLink to="/admin/set-templates" className={navClass}>
-                🍽 Setler
+                <span className={styles.navIcon} aria-hidden="true">🍽</span>
+                <span>Setler</span>
               </NavLink>
             </>
           )}
@@ -46,7 +51,7 @@ export default function Layout() {
           Çıkış Yap
         </button>
       </header>
-      <main className="page">
+      <main className={`page ${styles.main}`}>
         <Outlet />
       </main>
     </div>

@@ -64,7 +64,7 @@ export default function ListSharesPage() {
       <ul className={styles.memberList}>
         {shares?.map((member) => (
           <li key={member.userId} className={`card ${styles.memberRow}`}>
-            <div>
+            <div className={styles.memberInfo}>
               <div className={styles.memberName}>{member.name}</div>
               <div className={styles.memberEmail}>{member.email}</div>
             </div>
@@ -73,6 +73,8 @@ export default function ListSharesPage() {
               {isOwner && member.shareId && (
                 <>
                   <select
+                    aria-label="Rol"
+                    className={styles.roleSelect}
                     value={member.role}
                     onChange={(e) =>
                       updateRoleMutation.mutate({ shareId: member.shareId!, newRole: e.target.value as ShareRole })

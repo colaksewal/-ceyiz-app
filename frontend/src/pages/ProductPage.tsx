@@ -139,6 +139,7 @@ export default function ProductPage() {
             <label>Peşin Fiyat (TL)</label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               value={form.cashPrice}
               onChange={(e) => setForm({ ...form, cashPrice: e.target.value })}
@@ -148,6 +149,7 @@ export default function ProductPage() {
             <label>Taksit Sayısı</label>
             <input
               type="number"
+              inputMode="numeric"
               value={form.installmentCount}
               onChange={(e) => setForm({ ...form, installmentCount: e.target.value })}
             />
@@ -156,6 +158,7 @@ export default function ProductPage() {
             <label>Taksit Tutarı (TL)</label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               value={form.installmentAmount}
               onChange={(e) => setForm({ ...form, installmentAmount: e.target.value })}

@@ -27,10 +27,16 @@
   text-decoration: none;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 
-  &:hover {
-    transform: translateY(-2px);
-    border-color: #f06595;
-    box-shadow: 0 8px 20px rgba(240, 101, 149, 0.18);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      border-color: #f06595;
+      box-shadow: 0 8px 20px rgba(240, 101, 149, 0.18);
+    }
+  }
+
+  &:active {
+    transform: scale(0.99);
   }
 }
 
@@ -71,19 +77,45 @@
 
 .dateField {
   max-width: 180px;
+
+  @media (max-width: $breakpoint-sm) {
+    max-width: none;
+  }
 }
 
+// Kartın tamamı bağlantı gibi davranır (itemName::after kartı kaplar).
 .item {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: $space-3;
   border-left: 4px solid $color-primary;
+
+  .badge {
+    flex-shrink: 0;
+  }
+
+  &:active {
+    background: $color-surface-muted;
+  }
 }
 
 .itemMain {
   display: flex;
   align-items: center;
   gap: $space-3;
+  min-width: 0;
+}
+
+.itemText {
+  min-width: 0;
+
+  @media (max-width: $breakpoint-sm) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
 }
 
 .emojiBadge {
@@ -101,12 +133,24 @@
   color: $color-text-muted;
   margin-left: $space-2;
   font-size: 0.85rem;
+
+  @media (max-width: $breakpoint-sm) {
+    margin-left: 0;
+    font-size: 0.8rem;
+  }
 }
 
 .itemName {
   font-weight: 600;
   text-decoration: none;
   color: $color-text;
+  overflow-wrap: anywhere;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
 
   &:hover {
     color: $color-primary;

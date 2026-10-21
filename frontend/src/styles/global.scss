@@ -21,6 +21,9 @@ body {
   background: $color-bg;
   color: $color-text;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 h1,
@@ -34,6 +37,10 @@ h1 {
   font-size: 1.9rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+
+  @media (max-width: $breakpoint-sm) {
+    font-size: 1.5rem;
+  }
 }
 
 h2 {
@@ -66,6 +73,10 @@ button {
   max-width: 900px;
   margin: 0 auto;
   padding: $space-6 $space-5 $space-8;
+
+  @media (max-width: $breakpoint-sm) {
+    padding: $space-4 $space-4 $space-6;
+  }
 }
 
 .back-link {
@@ -86,6 +97,11 @@ button {
   align-items: center;
   gap: $space-4;
   margin-bottom: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    flex-wrap: wrap;
+    gap: $space-3;
+  }
 }
 
 .stack {
@@ -103,12 +119,19 @@ button {
   padding: $space-5;
   box-shadow: $shadow-sm;
   transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+
+  @media (max-width: $breakpoint-sm) {
+    padding: $space-4;
+  }
 }
 
-.card-list > li.card:hover {
-  box-shadow: $shadow-md;
-  border-color: $color-border-strong;
-  transform: translateY(-1px);
+// Dokunmatik ekranlarda hover "yapışıp" kalmasın diye yalnızca fareli cihazlarda.
+@media (hover: hover) {
+  .card-list > li.card:hover {
+    box-shadow: $shadow-md;
+    border-color: $color-border-strong;
+    transform: translateY(-1px);
+  }
 }
 
 .card-list {
@@ -138,6 +161,12 @@ button {
   display: flex;
   gap: $space-3;
   align-items: flex-end;
+
+  // Telefonda alanlar ve buton alt alta, tam genişlikte.
+  @media (max-width: $breakpoint-sm) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .form-grid {
@@ -177,6 +206,25 @@ select {
   }
 }
 
+// iOS, 16px'ten küçük yazılı alanlara odaklanınca sayfayı yakınlaştırıyor.
+@media (max-width: $breakpoint-sm) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  input,
+  select {
+    min-height: 44px;
+  }
+
+  input[type="file"] {
+    min-height: 0;
+    padding: 0.45rem;
+  }
+}
+
 // ---------- Buttons ----------
 
 .btn {
@@ -196,6 +244,11 @@ select {
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  // Parmakla rahat basılabilecek en küçük alan.
+  @media (max-width: $breakpoint-sm) {
+    min-height: 44px;
   }
 }
 
@@ -222,6 +275,12 @@ select {
   background: transparent;
   color: $color-text-muted;
   padding: 0.4rem 0.6rem;
+
+  @media (max-width: $breakpoint-sm) {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.4rem 0.5rem;
+  }
 
   &:hover:not(:disabled) {
     color: $color-primary;
@@ -259,6 +318,10 @@ select {
   background: $color-surface-muted;
   border: 1px dashed $color-border-strong;
   border-radius: $radius-md;
+
+  @media (max-width: $breakpoint-sm) {
+    padding: $space-6 $space-4;
+  }
 }
 
 .badge {

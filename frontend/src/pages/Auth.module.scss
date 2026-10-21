@@ -10,6 +10,12 @@
   justify-content: center;
   padding: $space-5;
   background: $color-bg;
+
+  @media (max-width: $breakpoint-sm) {
+    justify-content: flex-start;
+    padding: $space-6 $space-4;
+    padding-top: calc(#{$space-8} + env(safe-area-inset-top));
+  }
 }
 
 .brand {
@@ -46,6 +52,10 @@
   border-radius: $radius-lg;
   box-shadow: $shadow-md;
   padding: $space-6;
+
+  @media (max-width: $breakpoint-sm) {
+    padding: $space-5 $space-4;
+  }
 }
 
 .title {

@@ -31,6 +31,7 @@
   @media (max-width: $breakpoint-sm) {
     max-width: none;
     max-height: 92vh;
+    max-height: 92dvh;
     border-radius: 22px 22px 0 0;
     animation: slideUp 0.25s ease;
   }
@@ -55,6 +56,10 @@
   justify-content: space-between;
   gap: $space-3;
   padding: $space-4 $space-5 $space-3;
+
+  @media (max-width: $breakpoint-sm) {
+    padding: $space-3 $space-4;
+  }
 }
 
 .title {
@@ -81,7 +86,12 @@
 
 .body {
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0 $space-5 $space-5;
+
+  @media (max-width: $breakpoint-sm) {
+    padding: 0 $space-4 calc(#{$space-4} + env(safe-area-inset-bottom));
+  }
 }
 
 @keyframes fadeIn {

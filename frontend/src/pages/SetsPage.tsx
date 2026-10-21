@@ -114,6 +114,7 @@ export default function SetsPage() {
             <label>Set Fiyatı (TL)</label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               value={setPrice}
               onChange={(e) => setSetPrice(e.target.value)}
@@ -125,7 +126,11 @@ export default function SetsPage() {
         <h3 className={styles.itemsTitle}>Set İçeriği</h3>
         {items.map((item, index) => (
           <div key={index} className={styles.itemRow}>
-            <select value={item.productId ?? FREE_TEXT} onChange={(e) => handleProductSelect(index, e.target.value)}>
+            <select
+              aria-label="Listeden ürün"
+              value={item.productId ?? FREE_TEXT}
+              onChange={(e) => handleProductSelect(index, e.target.value)}
+            >
               <option value={FREE_TEXT}>Serbest metin</option>
               {productOptions?.map((option) => (
                 <option key={option.productId} value={option.productId}>
@@ -136,20 +141,27 @@ export default function SetsPage() {
             <input
               type="text"
               placeholder="Kalem adı"
+              aria-label="Kalem adı"
+              className={styles.itemName}
               value={item.itemName}
               onChange={(e) => updateItem(index, { itemName: e.target.value })}
               disabled={!!item.productId}
             />
             <input
               type="number"
+              inputMode="numeric"
               min={1}
+              placeholder="Adet"
+              aria-label="Adet"
               value={item.quantity}
               onChange={(e) => updateItem(index, { quantity: Number(e.target.value) })}
             />
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               placeholder="Tahmini birim fiyat"
+              aria-label="Tahmini birim fiyat"
               value={item.estimatedIndividualPrice ?? ""}
               onChange={(e) =>
                 updateItem(index, {
@@ -173,7 +185,7 @@ export default function SetsPage() {
         </button>
 
         <div>
-          <button type="submit" disabled={createMutation.isPending} className="btn btn-primary">
+          <button type="submit" disabled={createMutation.isPending} className={`btn btn-primary ${styles.submitBtn}`}>
             {createMutation.isPending ? "Kaydediliyor..." : "Set Oluştur"}
           </button>
         </div>
@@ -187,14 +199,14 @@ export default function SetsPage() {
         {sets?.map((set) => (
           <li key={set.id} className="card">
             <div className={styles.setRow}>
-              <div>
+              <div className={styles.setInfo}>
                 <span className={styles.setName}>{set.name}</span>
                 {set.storeName && <span className={styles.setStore}> — {set.storeName}</span>}
                 <span className={styles.setPrice}> ({set.setPrice} TL)</span>
               </div>
               <button
                 onClick={() => setExpandedSetId(expandedSetId === set.id ? null : set.id)}
-                className="btn btn-secondary"
+                className={`btn btn-secondary ${styles.compareBtn}`}
               >
                 {expandedSetId === set.id ? "Gizle" : "Karşılaştır"}
               </button>
