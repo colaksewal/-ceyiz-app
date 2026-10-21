@@ -105,6 +105,7 @@ export interface SetTemplate {
   id: string;
   name: string;
   brand: string | null;
+  imageUrl: string | null;
   displayOrder: number;
   createdAt: string;
   totalPieceCount: number;
@@ -117,6 +118,7 @@ export interface SetTemplate {
 export interface CreateSetTemplatePayload {
   name: string;
   brand: string | null;
+  imageUrl: string | null;
   displayOrder: number;
   items: Omit<SetTemplateItem, "id" | "displayOrder">[];
   prices: Omit<SetTemplatePrice, "id" | "displayOrder">[];

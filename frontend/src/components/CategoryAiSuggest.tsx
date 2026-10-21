@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { suggestFromFile } from "../api/aiSuggestions";
+import AiWaiting from "./AiWaiting";
 import styles from "./CategoryAiSuggest.module.scss";
 
 function normalize(name: string): string {
@@ -101,6 +102,8 @@ export default function CategoryAiSuggest({
           {suggestMutation.isPending ? "Düşünüyor..." : "Öner"}
         </button>
       </div>
+
+      {suggestMutation.isPending && <AiWaiting />}
 
       {suggestMutation.isError && <p className="error-text">Öneri alınamadı, tekrar dene.</p>}
 

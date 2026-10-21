@@ -8,6 +8,8 @@ import {
   getSetTemplates,
   suggestSetFromFile,
 } from "../api/adminSetTemplates";
+import { resolveUploadUrl, uploadFile } from "../api/uploads";
+import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
 import { useAuthStore } from "../store/authStore";
 import type { PriceType, SetTemplate, SetTemplatePrice, SetTemplateSuggestion } from "../types";
@@ -18,6 +20,8 @@ const priceTypeLabels: Record<PriceType, string> = {
   TAKSITLI: "Taksitli",
   ELDEN_KREDI_KARTI: "Elden Kredi Kartı",
 };
+
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const tlFormatter = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" });
 
@@ -197,6 +201,9 @@ function SetCardSummary({ set }: { set: SetTemplate }) {
   const setPrice = referenceSetPrice(set.prices);
   return (
     <>
+      {set.imageUrl && (
+        <img src={resolveUploadUrl(set.imageUrl)} alt="" className={styles.setCardImage} loading="lazy" />
+      )}
       <div className={styles.setCardHeader}>
         <span className={styles.setName}>{set.name}</span>
         {set.brand && <span className="badge badge-neutral">{set.brand}</span>}
@@ -246,6 +253,7 @@ function SetTemplateForm({
 }) {
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [items, setItems] = useState<ItemRow[]>(() => [emptyItemRow()]);
   const [prices, setPrices] = useState<PriceRow[]>(() => [emptyPriceRow()]);
 
@@ -293,11 +301,22 @@ function SetTemplateForm({
     );
   }
 
+  // Seçilen görsel hemen sunucuya yüklenir; set kaydedilince sadece adresi sete yazılır.
+  const imageUploadMutation = useMutation({
+    mutationFn: (file: File) => uploadFile(file),
+    onSuccess: setImageUrl,
+  });
+
+  function uploadImage(file: File) {
+    if (IMAGE_TYPES.includes(file.type)) imageUploadMutation.mutate(file);
+  }
+
   const createMutation = useMutation({
     mutationFn: () =>
       createSetTemplate({
         name: name.trim(),
         brand: brand.trim() || null,
+        imageUrl,
         displayOrder: nextOrder,
         items: filledItems.map((row) => ({
           itemName: row.itemName.trim(),
@@ -335,7 +354,7 @@ function SetTemplateForm({
     <form className={`card ${styles.form}`} onSubmit={handleSubmit}>
       <h3 className={styles.formTitle}>Yeni set</h3>
 
-      <SetAiFill onFill={fillFromSuggestion} />
+      <SetAiFill onFill={fillFromSuggestion} onFileChosen={uploadImage} />
 
       <div className="form-grid">
         <div className="field">
@@ -352,6 +371,34 @@ function SetTemplateForm({
           <label>Marka (opsiyonel)</label>
           <input type="text" placeholder="ör. Karaca" value={brand} onChange={(e) => setBrand(e.target.value)} />
         </div>
+      </div>
+
+      <div className={styles.block}>
+        <div className={styles.blockHeader}>
+          <h4>Kart görseli</h4>
+          <span className="muted">AI için yüklediğin görsel otomatik buraya gelir</span>
+        </div>
+        {imageUrl ? (
+          <div className={styles.imageField}>
+            <img src={resolveUploadUrl(imageUrl)} alt="Set görseli" className={styles.imagePreview} />
+            <button type="button" className="btn btn-ghost" onClick={() => setImageUrl(null)}>
+              Görseli kaldır
+            </button>
+          </div>
+        ) : (
+          <label className={styles.filePick}>
+            <input
+              type="file"
+              accept={IMAGE_TYPES.join(",")}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadImage(file);
+              }}
+            />
+            <span>{imageUploadMutation.isPending ? "Yükleniyor..." : "📷 Görsel seç (opsiyonel)"}</span>
+          </label>
+        )}
+        {imageUploadMutation.isError && <p className="error-text">Görsel yüklenemedi.</p>}
       </div>
 
       <div className={styles.block}>
@@ -535,7 +582,9 @@ function SetTemplateForm({
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={!name.trim() || filledItems.length === 0 || createMutation.isPending}
+          disabled={
+            !name.trim() || filledItems.length === 0 || createMutation.isPending || imageUploadMutation.isPending
+          }
         >
           {createMutation.isPending ? "Kaydediliyor..." : "Seti kaydet"}
         </button>
@@ -544,7 +593,13 @@ function SetTemplateForm({
   );
 }
 
-function SetAiFill({ onFill }: { onFill: (suggestion: SetTemplateSuggestion) => void }) {
+function SetAiFill({
+  onFill,
+  onFileChosen,
+}: {
+  onFill: (suggestion: SetTemplateSuggestion) => void;
+  onFileChosen: (file: File) => void;
+}) {
   const [file, setFile] = useState<File | null>(null);
 
   const suggestMutation = useMutation({
@@ -569,8 +624,10 @@ function SetAiFill({ onFill }: { onFill: (suggestion: SetTemplateSuggestion) => 
             type="file"
             accept="image/jpeg,image/png,image/webp,application/pdf"
             onChange={(e) => {
-              setFile(e.target.files?.[0] ?? null);
+              const chosen = e.target.files?.[0] ?? null;
+              setFile(chosen);
               suggestMutation.reset();
+              if (chosen) onFileChosen(chosen);
             }}
           />
           <span>{file ? `📎 ${file.name}` : "📷 Dosya seç"}</span>
@@ -584,6 +641,7 @@ function SetAiFill({ onFill }: { onFill: (suggestion: SetTemplateSuggestion) => 
           {suggestMutation.isPending ? "Düşünüyor..." : "Doldur"}
         </button>
       </div>
+      {suggestMutation.isPending && <AiWaiting />}
       {suggestMutation.isError && (
         <p className="error-text">{errorMessage(suggestMutation.error, "Öneri alınamadı, tekrar dene.")}</p>
       )}
@@ -609,6 +667,8 @@ function SetTemplateDetail({ set, onDeleted }: { set: SetTemplate; onDeleted: ()
 
   return (
     <div className={styles.detail}>
+      {set.imageUrl && <img src={resolveUploadUrl(set.imageUrl)} alt={set.name} className={styles.detailImage} />}
+
       <ComparisonLine
         setPrice={referenceSetPrice(set.prices)}
         individualTotal={set.individualTotal}

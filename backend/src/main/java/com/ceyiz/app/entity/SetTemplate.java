@@ -20,6 +20,9 @@ public class SetTemplate {
 
     private String brand;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
@@ -29,9 +32,10 @@ public class SetTemplate {
 
     protected SetTemplate() {}
 
-    public SetTemplate(String name, String brand, int displayOrder) {
+    public SetTemplate(String name, String brand, String imageUrl, int displayOrder) {
         this.name = name;
         this.brand = brand;
+        this.imageUrl = imageUrl;
         this.displayOrder = displayOrder;
     }
 }

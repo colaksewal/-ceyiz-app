@@ -56,9 +56,14 @@ public class SetTemplateService {
         if (request.items() == null || request.items().isEmpty()) {
             throw new IllegalArgumentException("Set en az bir parça içermeli");
         }
+        String imageUrl = blankToNull(request.imageUrl());
+        // Sadece kendi upload'larımız: kartta dışarıdan rastgele bir adres gösterilmesin.
+        if (imageUrl != null && !imageUrl.startsWith("/uploads/")) {
+            throw new IllegalArgumentException("Geçersiz görsel adresi");
+        }
 
         SetTemplate setTemplate = setTemplateRepository.save(
-                new SetTemplate(request.name().trim(), blankToNull(request.brand()), request.displayOrder())
+                new SetTemplate(request.name().trim(), blankToNull(request.brand()), imageUrl, request.displayOrder())
         );
 
         List<CreateSetTemplateItemRequest> items = request.items();

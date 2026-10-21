@@ -100,6 +100,20 @@
   }
 }
 
+.imageField {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.imagePreview {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: $radius-md;
+  border: 1px solid $color-border;
+}
+
 .aiDone {
   color: $color-success;
   font-weight: 600;
@@ -298,12 +312,23 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: $shadow-md;
   }
+}
+
+// Kartın üstünde kenardan kenara; kartın padding'i negatif margin ile dengelenir.
+.setCardImage {
+  display: block;
+  width: calc(100% + 2 * #{$space-4});
+  margin: (-$space-4) (-$space-4) 0;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: $color-surface-muted;
 }
 
 .setCardHeader {
@@ -344,6 +369,15 @@
   display: flex;
   flex-direction: column;
   gap: $space-4;
+}
+
+.detailImage {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: $radius-md;
+  background: $color-surface-muted;
 }
 
 .detailHeading {
