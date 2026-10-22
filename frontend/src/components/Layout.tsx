@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
 import AiJobCenter from "./AiJobCenter";
@@ -9,6 +10,31 @@ export default function Layout() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const clearAiJobs = useAiJobStore((state) => state.clear);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sayfa değişince menü kapanır.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  // Menü açıkken dışına tıklamak ya da Esc menüyü kapatır.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   function handleLogout() {
     // AI işleri kullanıcıya ait; başka biri aynı tarayıcıda giriş yaparsa görünmesin.
@@ -50,9 +76,26 @@ export default function Layout() {
             </NavLink>
           )}
         </nav>
-        <button className={`btn btn-secondary ${styles.logout}`} onClick={handleLogout}>
-          Çıkış Yap
-        </button>
+        {/* Çıkış Yap gibi seyrek kullanılanlar menüde; küçük buton her genişlikte sığar. */}
+        <div className={styles.menu} ref={menuRef}>
+          <button
+            type="button"
+            className={styles.menuButton}
+            aria-label="Menü"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? "✕" : "☰"}
+          </button>
+          {menuOpen && (
+            <div className={styles.menuPanel} role="menu">
+              <button type="button" role="menuitem" className={styles.menuItem} onClick={handleLogout}>
+                <span aria-hidden="true">🚪</span> Çıkış Yap
+              </button>
+            </div>
+          )}
+        </div>
       </header>
       <main className={`page ${styles.main}`}>
         <Outlet />

@@ -155,13 +155,64 @@
   }
 }
 
-.logout {
+.menu {
+  position: relative;
   margin-left: auto;
   flex-shrink: 0;
+}
 
-  @media (max-width: $breakpoint-sm) {
-    min-height: 36px;
-    padding: 0.35rem 0.8rem;
-    font-size: 0.8rem;
+.menuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid $color-border-strong;
+  border-radius: 50%;
+  background: $color-surface;
+  color: $color-text;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: $color-surface-muted;
+  }
+}
+
+.menuPanel {
+  position: absolute;
+  top: calc(100% + #{$space-2});
+  right: 0;
+  z-index: 40;
+  min-width: 180px;
+  padding: $space-1;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface;
+  box-shadow: $shadow-md;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  width: 100%;
+  min-height: 44px;
+  padding: $space-2 $space-3;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $color-danger;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: $color-danger-bg;
   }
 }
