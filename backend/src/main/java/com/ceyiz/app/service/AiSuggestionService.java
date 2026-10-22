@@ -111,6 +111,7 @@ public class AiSuggestionService {
      * görsele göre çok daha hızlı); dosyayla birlikte gelirse metin, içeriğin yanına not olarak eklenir.
      */
     private <T> Optional<T> suggest(AiInput input, String promptPath, Class<T> responseType) {
+        logInput(promptPath, input);
         String note = input.text();
         String promptTemplate = loadPromptTemplate(promptPath);
         Optional<String> aiResponse;
@@ -123,7 +124,24 @@ public class AiSuggestionService {
             aiResponse = suggestFromPdf(input.fileBytes(), note, promptTemplate);
         }
 
+        log.info("[AI] cevap: {}", aiResponse.map(AiSuggestionService::oneLine).orElse("(yok)"));
         return aiResponse.flatMap(json -> parseResponse(json, responseType));
+    }
+
+    // Prompt'ları iyileştirmek için kullanıcının verdiği girdi ve AI'nın ham cevabı loga yazılır:
+    // docker compose logs backend | grep "\[AI\]". Görselin kendisi değil, sadece türü/boyutu yazılır.
+    private static void logInput(String promptPath, AiInput input) {
+        String file = input.hasFile()
+                ? input.contentType() + ", " + input.fileBytes().length / 1024 + " KB"
+                : "yok";
+        log.info("[AI] istek: tür={} dosya={} metin={}",
+                promptPath.replace("prompts/", "").replace(".txt", ""), file,
+                input.text().isEmpty() ? "(yok)" : oneLine(input.text()));
+    }
+
+    // Çok satırlı metin logda tek satır kalsın, grep ile bütün olarak bulunsun.
+    private static String oneLine(String text) {
+        return text.strip().replaceAll("\\R+", " ⏎ ");
     }
 
     private static boolean isImage(String contentType) {

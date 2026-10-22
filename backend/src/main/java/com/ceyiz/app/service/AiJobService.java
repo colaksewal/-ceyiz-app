@@ -95,8 +95,10 @@ public class AiJobService {
         return new AiJobResponse(job.id, job.status.name(), queuePosition(job), job.result, job.error);
     }
 
+    // İşler tek tek çalıştığı için bu satırdan sonraki "[AI]" satırları (girdi, cevap) bu işe aittir.
     private void run(Job job, Supplier<? extends Optional<?>> work) {
         job.status = Status.RUNNING;
+        log.info("[AI] iş başladı: job={} kullanıcı={}", job.id, job.ownerId);
         try {
             Optional<?> result = work.get();
             job.result = result.orElse(null);
