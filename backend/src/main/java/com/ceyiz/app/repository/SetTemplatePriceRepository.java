@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface SetTemplatePriceRepository extends JpaRepository<SetTemplatePrice, UUID> {
 
     List<SetTemplatePrice> findBySetTemplateIdOrderByDisplayOrder(UUID setTemplateId);
+
+    void deleteBySetTemplateId(UUID setTemplateId);
 }

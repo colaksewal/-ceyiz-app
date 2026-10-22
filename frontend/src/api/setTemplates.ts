@@ -13,6 +13,12 @@ export async function createSetTemplate(payload: CreateSetTemplatePayload): Prom
   return response.data;
 }
 
+// Formun tamamını gönderir; sunucu eski parça ve fiyatların yerine bunları yazar.
+export async function updateSetTemplate(setTemplateId: string, payload: CreateSetTemplatePayload): Promise<SetTemplate> {
+  const response = await api.put<SetTemplate>(`/set-templates/${setTemplateId}`, payload);
+  return response.data;
+}
+
 // Arka planda çalışır: sonuç (SetTemplateSuggestion) iş bitince GET /ai/jobs/{jobId}'den gelir.
 // İş EMPTY biterse AI dosyadan set bilgisi çıkaramamıştır.
 export async function suggestSet(input: AiInput): Promise<AiJobStarted> {

@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -67,7 +69,24 @@ public class AiSuggestionService {
     /** Set ürün sayfası/kataloğundan set adı, marka, parçalar ve fiyatları çıkarır. */
     public Optional<SetTemplateSuggestionResponse> suggestSet(AiInput input) {
         return suggest(input, "prompts/set-suggestion.txt", SetTemplateSuggestionResponse.class)
-                .map(this::sanitizeSetSuggestion);
+                .map(this::sanitizeSetSuggestion)
+                .map(suggestion -> input.text().isEmpty() ? suggestion : useSourceNames(suggestion, input.text()));
+    }
+
+    /**
+     * Parça adlarını kullanıcının yazdığı satırlardan harfi harfine alır (bkz. SourceLineMatcher).
+     * İki parça aynı satıra denk gelirse model aynı ürünü iki kez yazmış demektir; tek satır kalır.
+     */
+    private SetTemplateSuggestionResponse useSourceNames(SetTemplateSuggestionResponse suggestion, String sourceText) {
+        SourceLineMatcher matcher = new SourceLineMatcher(sourceText);
+        Map<String, SetTemplateSuggestionResponse.Item> byName = new LinkedHashMap<>();
+        for (SetTemplateSuggestionResponse.Item item : suggestion.items()) {
+            String name = matcher.match(item.itemName(), suggestion.brand()).orElse(item.itemName());
+            byName.putIfAbsent(name.toLowerCase(),
+                    new SetTemplateSuggestionResponse.Item(name, item.quantity(), item.estimatedSeparatePrice()));
+        }
+        return new SetTemplateSuggestionResponse(suggestion.name(), suggestion.brand(),
+                List.copyOf(byName.values()), suggestion.prices());
     }
 
     /**

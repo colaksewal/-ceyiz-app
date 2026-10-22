@@ -7,6 +7,7 @@ import {
   deleteSetTemplate,
   getSetTemplates,
   suggestSet,
+  updateSetTemplate,
 } from "../api/setTemplates";
 import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
@@ -113,6 +114,7 @@ export default function SetTemplatesPage() {
   // Arka planda AI isteği varsa (kullanıcı sayfaya geri döndüyse) form açık gelir.
   const [formOpen, setFormOpen] = useState(() => setJob !== undefined);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form kapalıyken öneri hazır olursa form açılır ve sonuçla dolar.
   useEffect(() => {
@@ -131,6 +133,7 @@ export default function SetTemplatesPage() {
   const closeSheet = useCallback(() => setOpenId(null), []);
 
   const openSet = sets?.find((s) => s.id === openId) ?? null;
+  const editingSet = sets?.find((s) => s.id === editingId) ?? null;
   const adminSets = sets?.filter((s) => s.createdByAdmin);
   const mySets = sets?.filter((s) => !s.createdByAdmin);
 
@@ -144,7 +147,18 @@ export default function SetTemplatesPage() {
         </p>
       </div>
 
-      {formOpen ? (
+      {editingSet ? (
+        <SetTemplateForm
+          key={editingSet.id}
+          editing={editingSet}
+          nextOrder={editingSet.displayOrder}
+          onCancel={() => setEditingId(null)}
+          onCreated={() => {
+            setEditingId(null);
+            invalidate();
+          }}
+        />
+      ) : formOpen ? (
         <SetTemplateForm
           nextOrder={(isAdmin ? adminSets : mySets)?.length ?? 0}
           onCancel={() => {
@@ -198,6 +212,11 @@ export default function SetTemplatesPage() {
           <SetTemplateDetail
             key={openSet.id}
             set={openSet}
+            onEdit={() => {
+              setOpenId(null);
+              setEditingId(openSet.id);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             onDeleted={() => {
               setOpenId(null);
               invalidate();
@@ -287,20 +306,45 @@ function ComparisonLine({
   );
 }
 
+// editing verilirse form o setin bilgileriyle dolu açılır ve kaydedince seti günceller.
 function SetTemplateForm({
+  editing,
   nextOrder,
   onCancel,
   onCreated,
 }: {
+  editing?: SetTemplate;
   nextOrder: number;
   onCancel: () => void;
   onCreated: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [items, setItems] = useState<ItemRow[]>(() => [emptyItemRow()]);
-  const [prices, setPrices] = useState<PriceRow[]>(() => [emptyPriceRow()]);
+  const [name, setName] = useState(editing?.name ?? "");
+  const [brand, setBrand] = useState(editing?.brand ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(editing?.imageUrl ?? null);
+  const [items, setItems] = useState<ItemRow[]>(() =>
+    editing && editing.items.length > 0
+      ? editing.items.map((item) => ({
+          key: nextRowKey++,
+          itemName: item.itemName,
+          quantity: String(item.quantity),
+          separatePrice: toInputValue(item.estimatedSeparatePrice),
+          note: item.note ?? "",
+        }))
+      : [emptyItemRow()]
+  );
+  const [prices, setPrices] = useState<PriceRow[]>(() =>
+    editing
+      ? editing.prices.map((price) => ({
+          key: nextRowKey++,
+          priceType: price.priceType,
+          storeName: price.storeName ?? "",
+          cashPrice: toInputValue(price.cashPrice),
+          installmentCount: toInputValue(price.installmentCount),
+          installmentAmount: toInputValue(price.installmentAmount),
+          paymentPlanNote: price.paymentPlanNote ?? "",
+        }))
+      : [emptyPriceRow()]
+  );
 
   // Adı boş satırlar (ör. sona eklenip doldurulmamış olan) gönderilmez.
   const filledItems = items.filter((row) => row.itemName.trim() !== "");
@@ -359,8 +403,8 @@ function SetTemplateForm({
   }
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      createSetTemplate({
+    mutationFn: () => {
+      const payload = {
         name: name.trim(),
         brand: brand.trim() || null,
         imageUrl,
@@ -379,7 +423,9 @@ function SetTemplateForm({
           installmentAmount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentAmount) : null,
           paymentPlanNote: row.paymentPlanNote.trim() || null,
         })),
-      }),
+      };
+      return editing ? updateSetTemplate(editing.id, payload) : createSetTemplate(payload);
+    },
     onSuccess: onCreated,
   });
 
@@ -399,9 +445,10 @@ function SetTemplateForm({
 
   return (
     <form className={`card ${styles.form}`} onSubmit={handleSubmit}>
-      <h3 className={styles.formTitle}>Yeni set</h3>
+      <h3 className={styles.formTitle}>{editing ? "Seti düzenle" : "Yeni set"}</h3>
 
-      <SetAiFill imageUrl={imageUrl} onFill={fillFromSuggestion} onFileChosen={uploadImage} />
+      {/* AI isteği yeni set formuna bağlı (SET_JOB_KEY); düzenlerken alanlar elle değiştirilir. */}
+      {!editing && <SetAiFill imageUrl={imageUrl} onFill={fillFromSuggestion} onFileChosen={uploadImage} />}
 
       <div className="form-grid">
         <div className="field">
@@ -633,7 +680,7 @@ function SetTemplateForm({
             !name.trim() || filledItems.length === 0 || createMutation.isPending || imageUploadMutation.isPending
           }
         >
-          {createMutation.isPending ? "Kaydediliyor..." : "Seti kaydet"}
+          {createMutation.isPending ? "Kaydediliyor..." : editing ? "Değişiklikleri kaydet" : "Seti kaydet"}
         </button>
       </div>
     </form>
@@ -765,7 +812,15 @@ function SetAiFill({
   );
 }
 
-function SetTemplateDetail({ set, onDeleted }: { set: SetTemplate; onDeleted: () => void }) {
+function SetTemplateDetail({
+  set,
+  onEdit,
+  onDeleted,
+}: {
+  set: SetTemplate;
+  onEdit: () => void;
+  onDeleted: () => void;
+}) {
   const deleteMutation = useMutation({
     mutationFn: () => deleteSetTemplate(set.id),
     onSuccess: onDeleted,
@@ -830,6 +885,9 @@ function SetTemplateDetail({ set, onDeleted }: { set: SetTemplate; onDeleted: ()
       {set.canDelete && (
         <div className={styles.dangerZone}>
           {deleteMutation.isError && <p className="error-text">Set silinemedi.</p>}
+          <button type="button" className="btn btn-secondary" onClick={onEdit}>
+            ✎ Seti düzenle
+          </button>
           <button
             type="button"
             className="btn btn-danger-ghost"

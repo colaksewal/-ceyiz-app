@@ -27,7 +27,7 @@ import java.util.UUID;
 
 /**
  * Setleri herkes oluşturabilir. Admin'in setleri herkese görünen ortak katalogdur;
- * normal kullanıcının seti sadece kendisine görünür ve sadece kendisi silebilir.
+ * normal kullanıcının seti sadece kendisine görünür ve sadece kendisi düzenleyip silebilir.
  */
 @Service
 @RequiredArgsConstructor
@@ -55,30 +55,50 @@ public class SetTemplateService {
     @Transactional
     public SetTemplateResponse createSetTemplate(UUID userId, CreateSetTemplateRequest request) {
         User user = findUser(userId);
-
-        if (isBlank(request.name())) {
-            throw new IllegalArgumentException("Set adı boş olamaz");
-        }
-        if (request.items() == null || request.items().isEmpty()) {
-            throw new IllegalArgumentException("Set en az bir parça içermeli");
-        }
-        String imageUrl = blankToNull(request.imageUrl());
-        // Sadece kendi upload'larımız: kartta dışarıdan rastgele bir adres gösterilmesin.
-        if (imageUrl != null && !imageUrl.startsWith("/uploads/")) {
-            throw new IllegalArgumentException("Geçersiz görsel adresi");
-        }
+        validateSet(request);
 
         SetTemplate setTemplate = setTemplateRepository.save(
-                new SetTemplate(request.name().trim(), blankToNull(request.brand()), imageUrl,
+                new SetTemplate(request.name().trim(), blankToNull(request.brand()), blankToNull(request.imageUrl()),
                         request.displayOrder(), userId, user.isAdmin())
         );
+        saveItemsAndPrices(setTemplate.getId(), request);
+        return toResponse(setTemplate, user);
+    }
 
+    /**
+     * Düzenleme formu setin tamamını gönderir: eski parçalar ve fiyatlar silinip formdakiler yazılır.
+     * Satır satır eşleştirmeye gerek yok; parça/fiyat satırlarına başka hiçbir tablo bağlı değil.
+     * Yetki silmeyle aynı: kendi seti ya da admin + admin seti.
+     */
+    @Transactional
+    public SetTemplateResponse updateSetTemplate(UUID userId, UUID setTemplateId, CreateSetTemplateRequest request) {
+        User user = findUser(userId);
+        SetTemplate setTemplate = setTemplateRepository.findById(setTemplateId)
+                .orElseThrow(() -> new IllegalArgumentException("Set bulunamadı"));
+        if (!canManage(setTemplate, user)) {
+            throw new SecurityException("Bu seti düzenleme yetkiniz yok");
+        }
+        validateSet(request);
+
+        setTemplate.update(request.name().trim(), blankToNull(request.brand()), blankToNull(request.imageUrl()));
+        setTemplateItemRepository.deleteBySetTemplateId(setTemplateId);
+        setTemplatePriceRepository.deleteBySetTemplateId(setTemplateId);
+        saveItemsAndPrices(setTemplateId, request);
+        return toResponse(setTemplate, user);
+    }
+
+    /**
+     * Set, parçaları ve fiyatları tek transaction'da yazılır: örn. 3. fiyat satırı
+     * doğrulamadan geçemezse daha önce kaydedilen set ve parçalar da geri alınır,
+     * DB'de yarım kalmış (parçasız/fiyatsız) bir set oluşmaz.
+     */
+    private void saveItemsAndPrices(UUID setTemplateId, CreateSetTemplateRequest request) {
         List<CreateSetTemplateItemRequest> items = request.items();
         for (int i = 0; i < items.size(); i++) {
             CreateSetTemplateItemRequest item = items.get(i);
             validateItem(item);
             setTemplateItemRepository.save(new SetTemplateItem(
-                    setTemplate.getId(),
+                    setTemplateId,
                     item.itemName().trim(),
                     item.quantity(),
                     i,
@@ -92,7 +112,7 @@ public class SetTemplateService {
             CreateSetTemplatePriceRequest price = prices.get(i);
             validatePrice(price);
             setTemplatePriceRepository.save(new SetTemplatePrice(
-                    setTemplate.getId(),
+                    setTemplateId,
                     blankToNull(price.storeName()),
                     price.priceType(),
                     price.cashPrice(),
@@ -102,8 +122,20 @@ public class SetTemplateService {
                     i
             ));
         }
+    }
 
-        return toResponse(setTemplate, user);
+    private void validateSet(CreateSetTemplateRequest request) {
+        if (isBlank(request.name())) {
+            throw new IllegalArgumentException("Set adı boş olamaz");
+        }
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new IllegalArgumentException("Set en az bir parça içermeli");
+        }
+        String imageUrl = blankToNull(request.imageUrl());
+        // Sadece kendi upload'larımız: kartta dışarıdan rastgele bir adres gösterilmesin.
+        if (imageUrl != null && !imageUrl.startsWith("/uploads/")) {
+            throw new IllegalArgumentException("Geçersiz görsel adresi");
+        }
     }
 
     /**
@@ -120,16 +152,16 @@ public class SetTemplateService {
         User user = findUser(userId);
         SetTemplate setTemplate = setTemplateRepository.findById(setTemplateId)
                 .orElseThrow(() -> new IllegalArgumentException("Set bulunamadı"));
-        if (!canDelete(setTemplate, user)) {
+        if (!canManage(setTemplate, user)) {
             throw new SecurityException("Bu seti silme yetkiniz yok");
         }
         // Parçalar ve fiyatlar DB'deki ON DELETE CASCADE ile birlikte silinir.
         setTemplateRepository.delete(setTemplate);
     }
 
-    // Admin ortak setleri yönetir; herkes kendi setini silebilir. Admin başkasının özel setini
-    // zaten göremez, dolayısıyla silemez.
-    private static boolean canDelete(SetTemplate setTemplate, User user) {
+    // Admin ortak setleri yönetir; herkes kendi setini düzenleyip silebilir. Admin başkasının özel
+    // setini zaten göremez, dolayısıyla dokunamaz.
+    private static boolean canManage(SetTemplate setTemplate, User user) {
         if (setTemplate.isCreatedByAdmin()) {
             return user.isAdmin();
         }
@@ -185,7 +217,7 @@ public class SetTemplateService {
                 setTemplatePriceRepository.findBySetTemplateIdOrderByDisplayOrder(setTemplate.getId()).stream()
                         .map(SetTemplatePriceResponse::from)
                         .toList();
-        return SetTemplateResponse.from(setTemplate, canDelete(setTemplate, viewer), items, prices);
+        return SetTemplateResponse.from(setTemplate, canManage(setTemplate, viewer), items, prices);
     }
 
     private static boolean isBlank(String value) {
