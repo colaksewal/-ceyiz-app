@@ -79,8 +79,9 @@ public class ListSummaryService {
             throw new IllegalArgumentException("Planlanacak, fiyatı girilmiş ürün yok");
         }
         String content = PlanAdviceText.build(summary, plan);
-        return aiJobService.submit(requesterId,
-                () -> aiSuggestionService.advisePaymentPlan(new AiInput(null, null, content)));
+        AiInput input = new AiInput(null, null, content);
+        return aiJobService.submit(requesterId, AiLogService.KIND_PLAN_ADVICE, input,
+                () -> aiSuggestionService.advisePaymentPlan(input));
     }
 
     private ListSummaryResponse buildSummary(TrousseauList list) {

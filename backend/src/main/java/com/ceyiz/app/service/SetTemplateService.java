@@ -145,7 +145,7 @@ public class SetTemplateService {
     public UUID suggest(UUID userId, MultipartFile file, String text) {
         findUser(userId);
         AiInput input = aiSuggestionService.prepare(file, text);
-        return aiJobService.submit(userId, () -> aiSuggestionService.suggestSet(input));
+        return aiJobService.submit(userId, AiLogService.KIND_SET, input, () -> aiSuggestionService.suggestSet(input));
     }
 
     public void deleteSetTemplate(UUID userId, UUID setTemplateId) {

@@ -3,6 +3,8 @@ package com.ceyiz.app.service;
 import com.ceyiz.app.TooManyRequestsException;
 import com.ceyiz.app.dto.AiJobResponse;
 import jakarta.annotation.PreDestroy;
+import com.ceyiz.app.ai.AiInput;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,7 @@ import java.util.function.Supplier;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AiJobService {
 
     private static final int MAX_ACTIVE_JOBS_PER_USER = 2;
@@ -57,6 +60,7 @@ public class AiJobService {
         }
     }
 
+    private final AiLogService aiLogService;
     private final Map<UUID, Job> jobs = new ConcurrentHashMap<>();
     private final AtomicLong sequence = new AtomicLong();
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
@@ -65,8 +69,11 @@ public class AiJobService {
         return thread;
     });
 
-    /** Boş Optional = AI bir şey çıkaramadı (EMPTY); istisna = hata (FAILED). */
-    public synchronized UUID submit(UUID ownerId, Supplier<? extends Optional<?>> work) {
+    /**
+     * Boş Optional = AI bir şey çıkaramadı (EMPTY); istisna = hata (FAILED). kind ve input
+     * admin ekranındaki AI kaydı için (bkz. AiLogService).
+     */
+    public synchronized UUID submit(UUID ownerId, String kind, AiInput input, Supplier<? extends Optional<?>> work) {
         removeExpiredJobs();
 
         long activeTotal = jobs.values().stream().filter(Job::isActive).count();
@@ -82,6 +89,7 @@ public class AiJobService {
 
         Job job = new Job(ownerId, sequence.incrementAndGet());
         jobs.put(job.id, job);
+        aiLogService.start(job.id, ownerId, kind, input);
         executor.submit(() -> run(job, work));
         return job.id;
     }
@@ -99,8 +107,9 @@ public class AiJobService {
     private void run(Job job, Supplier<? extends Optional<?>> work) {
         job.status = Status.RUNNING;
         log.info("[AI] iş başladı: job={} kullanıcı={}", job.id, job.ownerId);
+        long startedAt = System.currentTimeMillis();
         try {
-            Optional<?> result = work.get();
+            Optional<?> result = aiLogService.runFor(job.id, work);
             job.result = result.orElse(null);
             job.status = result.isPresent() ? Status.DONE : Status.EMPTY;
         } catch (IllegalArgumentException e) {
@@ -112,6 +121,8 @@ public class AiJobService {
             job.status = Status.FAILED;
         } finally {
             job.finishedAt = Instant.now();
+            aiLogService.finish(job.id, job.status.name(), job.result, job.error,
+                    System.currentTimeMillis() - startedAt);
         }
     }
 

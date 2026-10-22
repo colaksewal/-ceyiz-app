@@ -9,13 +9,20 @@ import {
   suggestSet,
   updateSetTemplate,
 } from "../api/setTemplates";
+import { reportAiOutcome } from "../api/aiJobs";
 import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
 import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
 import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
-import type { PriceType, SetTemplate, SetTemplatePrice, SetTemplateSuggestion } from "../types";
+import type {
+  CreateSetTemplatePayload,
+  PriceType,
+  SetTemplate,
+  SetTemplatePrice,
+  SetTemplateSuggestion,
+} from "../types";
 import styles from "./SetTemplatesPage.module.scss";
 
 // Yeni set formundaki AI isteğinin anahtarı (bkz. aiJobStore).
@@ -321,6 +328,8 @@ function SetTemplateForm({
   const [name, setName] = useState(editing?.name ?? "");
   const [brand, setBrand] = useState(editing?.brand ?? "");
   const [imageUrl, setImageUrl] = useState<string | null>(editing?.imageUrl ?? null);
+  // Formu dolduran AI işi; set kaydedilince kaydedilen hal bu işe bildirilir (admin ölçümü).
+  const [aiJobId, setAiJobId] = useState<string | null>(null);
   const [items, setItems] = useState<ItemRow[]>(() =>
     editing && editing.items.length > 0
       ? editing.items.map((item) => ({
@@ -360,11 +369,12 @@ function SetTemplateForm({
 
   // AI önerisi formun tamamını değiştirir; kullanıcı kaydetmeden önce her alanı düzeltebilir.
   // jobImageUrl: form AI beklerken kapanıp açıldıysa, AI'ya verilen görselin yüklendiği adres.
-  function fillFromSuggestion(suggestion: SetTemplateSuggestion, jobImageUrl: string | null) {
+  function fillFromSuggestion(suggestion: SetTemplateSuggestion, jobImageUrl: string | null, jobId: string) {
     const hasContent = name.trim() !== "" || filledItems.length > 0;
     if (hasContent && !window.confirm("Formdaki mevcut bilgiler AI önerisiyle değiştirilecek. Devam edilsin mi?")) {
       return;
     }
+    setAiJobId(jobId);
     if (!imageUrl && jobImageUrl) setImageUrl(jobImageUrl);
     setName(suggestion.name ?? "");
     setBrand(suggestion.brand ?? "");
@@ -402,31 +412,36 @@ function SetTemplateForm({
     if (IMAGE_TYPES.includes(file.type)) imageUploadMutation.mutate(file);
   }
 
+  function buildPayload(): CreateSetTemplatePayload {
+    return {
+      name: name.trim(),
+      brand: brand.trim() || null,
+      imageUrl,
+      displayOrder: nextOrder,
+      items: filledItems.map((row) => ({
+        itemName: row.itemName.trim(),
+        quantity: Number(row.quantity),
+        estimatedSeparatePrice: toNumberOrNull(row.separatePrice),
+        note: row.note.trim() || null,
+      })),
+      prices: prices.map((row) => ({
+        priceType: row.priceType,
+        storeName: row.storeName.trim() || null,
+        cashPrice: toNumberOrNull(row.cashPrice),
+        installmentCount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentCount) : null,
+        installmentAmount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentAmount) : null,
+        paymentPlanNote: row.paymentPlanNote.trim() || null,
+      })),
+    };
+  }
+
   const createMutation = useMutation({
-    mutationFn: () => {
-      const payload = {
-        name: name.trim(),
-        brand: brand.trim() || null,
-        imageUrl,
-        displayOrder: nextOrder,
-        items: filledItems.map((row) => ({
-          itemName: row.itemName.trim(),
-          quantity: Number(row.quantity),
-          estimatedSeparatePrice: toNumberOrNull(row.separatePrice),
-          note: row.note.trim() || null,
-        })),
-        prices: prices.map((row) => ({
-          priceType: row.priceType,
-          storeName: row.storeName.trim() || null,
-          cashPrice: toNumberOrNull(row.cashPrice),
-          installmentCount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentCount) : null,
-          installmentAmount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentAmount) : null,
-          paymentPlanNote: row.paymentPlanNote.trim() || null,
-        })),
-      };
-      return editing ? updateSetTemplate(editing.id, payload) : createSetTemplate(payload);
+    mutationFn: (payload: CreateSetTemplatePayload) =>
+      editing ? updateSetTemplate(editing.id, payload) : createSetTemplate(payload),
+    onSuccess: (_saved, payload) => {
+      if (aiJobId) reportAiOutcome(aiJobId, payload);
+      onCreated();
     },
-    onSuccess: onCreated,
   });
 
   function updateItem(key: number, patch: Partial<ItemRow>) {
@@ -440,7 +455,7 @@ function SetTemplateForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || filledItems.length === 0) return;
-    createMutation.mutate();
+    createMutation.mutate(buildPayload());
   }
 
   return (
@@ -697,7 +712,7 @@ function SetAiFill({
   onFileChosen,
 }: {
   imageUrl: string | null;
-  onFill: (suggestion: SetTemplateSuggestion, jobImageUrl: string | null) => void;
+  onFill: (suggestion: SetTemplateSuggestion, jobImageUrl: string | null, jobId: string) => void;
   onFileChosen: (file: File) => void;
 }) {
   const location = useLocation();
@@ -727,7 +742,7 @@ function SetAiFill({
   useEffect(() => {
     if (!job || isJobActive(job)) return;
     if (job.status === "DONE" && job.result) {
-      onFill(job.result as SetTemplateSuggestion, job.imageUrl ?? null);
+      onFill(job.result as SetTemplateSuggestion, job.imageUrl ?? null, job.jobId);
       setOutcome({ kind: "filled" });
     } else if (job.status === "EMPTY") {
       setOutcome({ kind: "empty" });

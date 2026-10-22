@@ -41,22 +41,37 @@ public class FileStorageService {
             throw new IllegalArgumentException("Sadece JPEG, PNG ya da WEBP resim yüklenebilir");
         }
 
+        try {
+            return write(file.getBytes(), contentType);
+        } catch (IOException e) {
+            throw new IllegalStateException("Dosya kaydedilemedi", e);
+        }
+    }
+
+    /** AI'ya verilen dosyanın kopyası (bkz. AiLogService); türü AiSuggestionService zaten doğruladı. */
+    public String storeBytes(byte[] bytes, String contentType) {
+        if (!ALLOWED_CONTENT_TYPES.contains(contentType) && !"application/pdf".equals(contentType)) {
+            throw new IllegalArgumentException("Desteklenmeyen dosya türü");
+        }
+        try {
+            return write(bytes, contentType);
+        } catch (IOException e) {
+            throw new IllegalStateException("Dosya kaydedilemedi", e);
+        }
+    }
+
+    private String write(byte[] bytes, String contentType) throws IOException {
         String extension = switch (contentType) {
             case "image/jpeg" -> ".jpg";
             case "image/png" -> ".png";
+            case "application/pdf" -> ".pdf";
             default -> ".webp";
         };
 
         // Orijinal dosya adı hiç kullanılmıyor — hem çakışmaları hem path traversal riskini
         // baştan ortadan kaldırıyor.
         String filename = UUID.randomUUID() + extension;
-
-        try {
-            Files.copy(file.getInputStream(), uploadDir.resolve(filename));
-        } catch (IOException e) {
-            throw new IllegalStateException("Dosya kaydedilemedi", e);
-        }
-
+        Files.write(uploadDir.resolve(filename), bytes);
         return "/uploads/" + filename;
     }
 

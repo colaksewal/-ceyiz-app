@@ -8,6 +8,7 @@ import SetsPage from "./pages/SetsPage";
 import ListSharesPage from "./pages/ListSharesPage";
 import ListSummaryPage from "./pages/ListSummaryPage";
 import AdminTemplatesPage from "./pages/AdminTemplatesPage";
+import AdminAiLogsPage from "./pages/AdminAiLogsPage";
 import SetTemplatesPage from "./pages/SetTemplatesPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/lists/:listId/ozet" element={<ListSummaryPage />} />
             <Route path="/products/:productId" element={<ProductPage />} />
             <Route path="/admin/templates" element={<AdminTemplatesPage />} />
+            <Route path="/admin/ai-kayitlari" element={<AdminAiLogsPage />} />
             <Route path="/setler" element={<SetTemplatesPage />} />
             <Route path="/admin/set-templates" element={<Navigate to="/setler" replace />} />
           </Route>

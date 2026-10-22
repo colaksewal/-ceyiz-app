@@ -82,10 +82,16 @@ export default function Layout() {
                 Setler
               </NavLink>
               {isAdmin && (
-                <NavLink to="/admin/templates" className={navClass}>
-                  <span className={styles.navIcon} aria-hidden="true">🧩</span>
-                  Şablonlar
-                </NavLink>
+                <>
+                  <NavLink to="/admin/templates" className={navClass}>
+                    <span className={styles.navIcon} aria-hidden="true">🧩</span>
+                    Şablonlar
+                  </NavLink>
+                  <NavLink to="/admin/ai-kayitlari" className={navClass}>
+                    <span className={styles.navIcon} aria-hidden="true">🤖</span>
+                    AI kayıtları
+                  </NavLink>
+                </>
               )}
               <hr className={styles.menuDivider} />
               <button type="button" className={`${styles.menuItem} ${styles.logout}`} onClick={handleLogout}>

@@ -43,6 +43,7 @@ public class AiSuggestionService {
 
     private final AiClient aiClient;
     private final ObjectMapper objectMapper;
+    private final AiLogService aiLogService;
 
     /**
      * Girdiyi istek sırasında doğrulayıp belleğe alır. Hatalı girdi (boş, çok uzun, desteklenmeyen
@@ -125,6 +126,7 @@ public class AiSuggestionService {
         }
 
         log.info("[AI] cevap: {}", aiResponse.map(AiSuggestionService::oneLine).orElse("(yok)"));
+        aiLogService.recordRawResponse(aiResponse.orElse(null));
         return aiResponse.flatMap(json -> parseResponse(json, responseType));
     }
 
