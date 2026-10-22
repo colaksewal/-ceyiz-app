@@ -53,11 +53,18 @@
   font-size: 1rem;
 }
 
+// Tablet genişliğinde sekmeler sığmazsa "Çıkış Yap"ın üstüne binmek yerine yatay kayar.
 .nav {
   flex: 1;
   display: flex;
   gap: $space-1;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   @media (max-width: $breakpoint-sm) {
     position: fixed;

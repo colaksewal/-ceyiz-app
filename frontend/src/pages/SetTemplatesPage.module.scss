@@ -51,8 +51,10 @@
 // ---------- AI ile doldur ----------
 
 .aiBox {
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow-wrap: anywhere;
   gap: $space-3;
   padding: $space-4;
   border: 2px dashed color-mix(in srgb, $color-primary 35%, white);
@@ -109,11 +111,17 @@
   font-size: 0.9rem;
   cursor: pointer;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 
   input {
     display: none;
+  }
+
+  // Uzun dosya adı kutuyu genişletmesin, "..." ile kısalsın.
+  span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   &:hover {
