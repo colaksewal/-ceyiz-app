@@ -4,7 +4,6 @@ import RegisterPage from "./pages/RegisterPage";
 import ListsPage from "./pages/ListsPage";
 import ListDetailPage from "./pages/ListDetailPage";
 import ProductPage from "./pages/ProductPage";
-import SetsPage from "./pages/SetsPage";
 import ListSharesPage from "./pages/ListSharesPage";
 import ListSummaryPage from "./pages/ListSummaryPage";
 import AdminTemplatesPage from "./pages/AdminTemplatesPage";
@@ -25,7 +24,7 @@ export default function App() {
             <Route path="/lists" element={<ListsPage />} />
             <Route path="/ceyiz-ekibim" element={<ListsPage key="team" mode="team" />} />
             <Route path="/lists/:listId" element={<ListDetailPage />} />
-            <Route path="/lists/:listId/sets" element={<SetsPage />} />
+            <Route path="/lists/:listId/sets" element={<Navigate to=".." relative="path" replace />} />
             <Route path="/lists/:listId/ceyiz-ekibi" element={<ListSharesPage />} />
             <Route path="/lists/:listId/ozet" element={<ListSummaryPage />} />
             <Route path="/products/:productId" element={<ProductPage />} />

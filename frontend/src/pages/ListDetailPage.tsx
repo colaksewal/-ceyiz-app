@@ -48,17 +48,6 @@ export default function ListDetailPage() {
             <p className={styles.subtitle}>{categories.length} kategori</p>
           )}
         </div>
-        <div className={styles.headerActions}>
-          <Link to={`/lists/${listId}/ozet`} className="btn btn-primary">
-            📄 Özet ve Ödeme Planı
-          </Link>
-          <Link to={`/lists/${listId}/ceyiz-ekibi`} className="btn btn-secondary">
-            👥 Çeyiz Ekibi
-          </Link>
-          <Link to={`/lists/${listId}/sets`} className="btn btn-secondary">
-            ⚖️ Set Karşılaştırma
-          </Link>
-        </div>
       </div>
 
       <button type="button" className={styles.templateCta} onClick={() => setTemplatesOpen(true)}>

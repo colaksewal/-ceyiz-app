@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
 import AiJobCenter from "./AiJobCenter";
@@ -11,6 +11,8 @@ export default function Layout() {
   const clearAiJobs = useAiJobStore((state) => state.clear);
   const navigate = useNavigate();
   const location = useLocation();
+  // Bir listenin içindeyken (kategoriler, özet, ekip) o listeye ait sayfalar da menüde çıkar.
+  const listId = useMatch("/lists/:listId/*")?.params.listId;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -49,57 +51,77 @@ export default function Layout() {
   return (
     <div>
       <header className={`${styles.header} no-print`}>
-        <Link to="/lists" className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">
-            💍
-          </span>
-          Çeyiz Planlayıcı
-        </Link>
-        {/* Tüm sayfalar ve Çıkış Yap tek menüde; küçük buton her genişlikte sığar. */}
-        <div className={styles.menu} ref={menuRef}>
-          <button
-            type="button"
-            className={styles.menuButton}
-            aria-label="Menü"
-            aria-haspopup="true"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {menuOpen ? "✕" : "☰"}
-          </button>
-          {menuOpen && (
-            <nav className={styles.menuPanel}>
-              <NavLink to="/lists" end className={navClass}>
-                <span className={styles.navIcon} aria-hidden="true">📋</span>
-                Listelerim
-              </NavLink>
-              <NavLink to="/ceyiz-ekibim" className={navClass}>
-                <span className={styles.navIcon} aria-hidden="true">👥</span>
-                Çeyiz Ekibim
-              </NavLink>
-              <NavLink to="/setler" className={navClass}>
-                <span className={styles.navIcon} aria-hidden="true">🍽</span>
-                Setler
-              </NavLink>
-              {isAdmin && (
-                <>
-                  <NavLink to="/admin/templates" className={navClass}>
-                    <span className={styles.navIcon} aria-hidden="true">🧩</span>
-                    Şablonlar
-                  </NavLink>
-                  <NavLink to="/admin/ai-kayitlari" className={navClass}>
-                    <span className={styles.navIcon} aria-hidden="true">🤖</span>
-                    AI kayıtları
-                  </NavLink>
-                </>
-              )}
-              <hr className={styles.menuDivider} />
-              <button type="button" className={`${styles.menuItem} ${styles.logout}`} onClick={handleLogout}>
-                <span className={styles.navIcon} aria-hidden="true">🚪</span>
-                Çıkış Yap
-              </button>
-            </nav>
-          )}
+        <div className={styles.headerInner}>
+          <Link to="/lists" className={styles.brand}>
+            <span className={styles.brandMark} aria-hidden="true">
+              💍
+            </span>
+            Çeyiz Planlayıcı
+          </Link>
+          {/* Tüm sayfalar ve Çıkış Yap tek menüde; küçük buton her genişlikte sığar. */}
+          <div className={styles.menu} ref={menuRef}>
+            <button
+              type="button"
+              className={styles.menuButton}
+              aria-label="Menü"
+              aria-haspopup="true"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? "✕" : "☰"}
+            </button>
+            {menuOpen && (
+              <nav className={styles.menuPanel}>
+                {listId && (
+                  <>
+                    <span className={styles.menuSection}>Bu liste</span>
+                    <NavLink to={`/lists/${listId}`} end className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">🗂</span>
+                      Kategoriler
+                    </NavLink>
+                    <NavLink to={`/lists/${listId}/ozet`} className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">📄</span>
+                      Özet ve Ödeme Planı
+                    </NavLink>
+                    <NavLink to={`/lists/${listId}/ceyiz-ekibi`} className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">👥</span>
+                      Çeyiz Ekibi
+                    </NavLink>
+                    <hr className={styles.menuDivider} />
+                  </>
+                )}
+                <NavLink to="/lists" end className={navClass}>
+                  <span className={styles.navIcon} aria-hidden="true">📋</span>
+                  Listelerim
+                </NavLink>
+                <NavLink to="/ceyiz-ekibim" className={navClass}>
+                  <span className={styles.navIcon} aria-hidden="true">👥</span>
+                  Çeyiz Ekibim
+                </NavLink>
+                <NavLink to="/setler" className={navClass}>
+                  <span className={styles.navIcon} aria-hidden="true">🍽</span>
+                  Setler
+                </NavLink>
+                {isAdmin && (
+                  <>
+                    <NavLink to="/admin/templates" className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">🧩</span>
+                      Şablonlar
+                    </NavLink>
+                    <NavLink to="/admin/ai-kayitlari" className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">🤖</span>
+                      AI kayıtları
+                    </NavLink>
+                  </>
+                )}
+                <hr className={styles.menuDivider} />
+                <button type="button" className={`${styles.menuItem} ${styles.logout}`} onClick={handleLogout}>
+                  <span className={styles.navIcon} aria-hidden="true">🚪</span>
+                  Çıkış Yap
+                </button>
+              </nav>
+            )}
+          </div>
         </div>
       </header>
       <main className="page">

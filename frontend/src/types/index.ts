@@ -45,27 +45,6 @@ export interface PriceEntry {
   isPreferred: boolean;
 }
 
-export interface ProductSet {
-  id: string;
-  name: string;
-  storeName: string;
-  setPrice: number;
-}
-
-export interface SetItem {
-  productId: string | null;
-  itemName: string;
-  quantity: number;
-  estimatedIndividualPrice: number | null;
-}
-
-export interface SetComparisonResult {
-  setPrice: number;
-  individualTotal: number;
-  savingsAmount: number;
-  missingItemsCount: number;
-}
-
 export interface ProductTemplate {
   id: string;
   name: string;
