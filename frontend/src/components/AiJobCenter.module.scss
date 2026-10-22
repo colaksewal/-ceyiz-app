@@ -2,7 +2,7 @@
 
 $ai-purple: #9c36b5;
 
-// Masaüstünde sağ alt köşe; telefonda alttaki sekme çubuğunun hemen üstü.
+// Masaüstünde sağ alt köşe; telefonda ekranın altında tam genişlik.
 .stack {
   position: fixed;
   right: $space-4;
@@ -16,7 +16,7 @@ $ai-purple: #9c36b5;
   @media (max-width: $breakpoint-sm) {
     left: $space-3;
     right: $space-3;
-    bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    bottom: calc(#{$space-3} + env(safe-area-inset-bottom));
     width: auto;
   }
 }
