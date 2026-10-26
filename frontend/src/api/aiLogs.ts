@@ -1,7 +1,7 @@
 import api from "../lib/api";
 import type { AiJobStatus } from "./aiJobs";
 
-export type AiLogKind = "set-suggestion" | "product-suggestion" | "payment-plan-advice";
+export type AiLogKind = "set-suggestion" | "product-suggestion" | "payment-plan-advice" | "category-organize";
 
 // JSON alanları sunucuda metin olarak tutuluyor; ekranda ayrıştırılıp gösterilir.
 // score: AI önerisinin kullanıcının kaydettiği hale benzerliği (0-100); kaydedilmediyse null.

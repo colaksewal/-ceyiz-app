@@ -39,6 +39,10 @@ public class Product {
         this.name = name;
     }
 
+    public void moveTo(UUID categoryId){
+        this.categoryId = categoryId;
+    }
+
     public void changeStatus(ProductStatus status){
         this.status = status;
     }

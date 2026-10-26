@@ -19,6 +19,19 @@ export interface ListShare {
 export interface Category {
   id: string;
   name: string;
+  // Alt kategoride üst kategorinin kimliği, üst kategoride null (sadece tek seviye).
+  parentId: string | null;
+}
+
+// AI'nın bir kategori için önerdiği düzen (hiçbir şey yazılmadı): alt kategoriler ve aynı ürünler.
+export interface OrganizeProduct {
+  id: string;
+  name: string;
+}
+
+export interface CategoryOrganizeSuggestion {
+  groups: { name: string; products: OrganizeProduct[] }[];
+  duplicates: OrganizeProduct[][];
 }
 
 export type ProductStatus = "PLANNED" | "PURCHASED" | "SKIPPED";

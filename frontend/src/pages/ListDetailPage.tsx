@@ -34,6 +34,9 @@ export default function ListDetailPage() {
     createMutation.mutate();
   }
 
+  // Alt kategoriler üst kategorinin içinde gösterilir; sayfada, sayıda ve şablon eşleşmesinde sadece üst kategoriler.
+  const topLevel = (categories ?? []).filter((category) => category.parentId === null);
+
   if (!listId) return null;
 
   return (
@@ -44,9 +47,7 @@ export default function ListDetailPage() {
       <div className={`page-header ${styles.header}`}>
         <div>
           <h1 className={styles.title}>Kategoriler</h1>
-          {categories && categories.length > 0 && (
-            <p className={styles.subtitle}>{categories.length} kategori</p>
-          )}
+          {topLevel.length > 0 && <p className={styles.subtitle}>{topLevel.length} kategori</p>}
         </div>
       </div>
 
@@ -92,13 +93,17 @@ export default function ListDetailPage() {
       )}
 
       <div className="stack">
-        {categories?.map((category) => (
-          <CategorySection key={category.id} category={category} />
+        {topLevel.map((category) => (
+          <CategorySection
+            key={category.id}
+            category={category}
+            subcategories={(categories ?? []).filter((sub) => sub.parentId === category.id)}
+          />
         ))}
       </div>
 
       <Sheet open={templatesOpen} onClose={closeTemplates} title={<h2 className={styles.sheetTitle}>📋 Şablonlardan getir</h2>}>
-        <TemplatePicker listId={listId} existingCategories={categories ?? []} onDone={closeTemplates} />
+        <TemplatePicker listId={listId} existingCategories={topLevel} onDone={closeTemplates} />
       </Sheet>
     </div>
   );

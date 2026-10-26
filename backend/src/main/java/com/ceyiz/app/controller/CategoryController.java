@@ -1,10 +1,14 @@
 package com.ceyiz.app.controller;
 
+import com.ceyiz.app.dto.AiJobStartedResponse;
+import com.ceyiz.app.dto.ApplyCategoryOrganizeRequest;
 import com.ceyiz.app.dto.CategoryResponse;
 import com.ceyiz.app.dto.CreateCategoryRequest;
 import com.ceyiz.app.dto.UpdateCategoryRequest;
+import com.ceyiz.app.service.CategoryOrganizeService;
 import com.ceyiz.app.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +21,7 @@ import java.util.UUID;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final CategoryOrganizeService categoryOrganizeService;
 
     @PostMapping("/api/lists/{listId}/categories")
     public ResponseEntity<CategoryResponse> createCategory(
@@ -25,7 +30,7 @@ public class CategoryController {
             Authentication authentication
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
-        var created = categoryService.createCategory(listId, request.name(), requesterId);
+        var created = categoryService.createCategory(listId, request.name(), request.parentId(), requesterId);
         return ResponseEntity.ok(CategoryResponse.from(created));
     }
 
@@ -59,6 +64,28 @@ public class CategoryController {
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
         categoryService.deleteCategory(categoryId, requesterId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Arka planda çalışır (GET /api/ai/jobs/{jobId}); hiçbir şey yazmaz, sadece öneri üretir.
+    @PostMapping("/api/categories/{categoryId}/ai-organize")
+    public ResponseEntity<AiJobStartedResponse> aiOrganize(
+            @PathVariable UUID categoryId,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        UUID jobId = categoryOrganizeService.requestOrganize(categoryId, requesterId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
+    }
+
+    @PostMapping("/api/categories/{categoryId}/organize")
+    public ResponseEntity<Void> organize(
+            @PathVariable UUID categoryId,
+            @RequestBody ApplyCategoryOrganizeRequest request,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        categoryOrganizeService.apply(categoryId, request, requesterId);
         return ResponseEntity.noContent().build();
     }
 }

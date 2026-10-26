@@ -11,5 +11,7 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     List<Category> findByListId(UUID listId);
 
+    List<Category> findByParentId(UUID parentId);
+
     boolean existsByListIdIn(Collection<UUID> listIds);
 }

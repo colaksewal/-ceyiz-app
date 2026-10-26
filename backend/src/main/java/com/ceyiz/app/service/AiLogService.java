@@ -38,6 +38,7 @@ public class AiLogService {
     public static final String KIND_SET = "set-suggestion";
     public static final String KIND_PRODUCTS = "product-suggestion";
     public static final String KIND_PLAN_ADVICE = "payment-plan-advice";
+    public static final String KIND_ORGANIZE = "category-organize";
 
     private static final Locale TR = Locale.forLanguageTag("tr");
 
@@ -122,7 +123,7 @@ public class AiLogService {
         adminAccessService.requireAdmin(adminId);
         Map<String, List<AiLog>> byKind = aiLogRepository.findAll().stream()
                 .collect(Collectors.groupingBy(AiLog::getKind));
-        return List.of(KIND_SET, KIND_PRODUCTS, KIND_PLAN_ADVICE).stream()
+        return List.of(KIND_SET, KIND_PRODUCTS, KIND_PLAN_ADVICE, KIND_ORGANIZE).stream()
                 .map(kind -> stats(kind, byKind.getOrDefault(kind, List.of())))
                 .toList();
     }

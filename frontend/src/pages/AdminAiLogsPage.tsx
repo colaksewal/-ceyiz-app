@@ -10,6 +10,7 @@ const kindLabels: Record<AiLogKind, string> = {
   "set-suggestion": "Set doldurma",
   "product-suggestion": "Ürün önerisi",
   "payment-plan-advice": "Ödeme planı yorumu",
+  "category-organize": "Kategori düzenleme",
 };
 
 const statusLabels: Record<string, string> = {

@@ -3,6 +3,7 @@ package com.ceyiz.app.service;
 import com.ceyiz.app.ai.AiClient;
 import com.ceyiz.app.ai.AiInput;
 import com.ceyiz.app.ai.ImageDownscaler;
+import com.ceyiz.app.dto.CategoryOrganizeSuggestion;
 import com.ceyiz.app.dto.PaymentPlanAdviceResponse;
 import com.ceyiz.app.dto.ProductSuggestionResponse;
 import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
@@ -65,6 +66,11 @@ public class AiSuggestionService {
 
     public Optional<ProductSuggestionResponse> suggest(AiInput input) {
         return suggest(input, "prompts/product-suggestion.txt", ProductSuggestionResponse.class);
+    }
+
+    /** Girdi: kategorideki ürün adları (satır satır). Alt kategori grupları ve olası tekrarlar döner. */
+    public Optional<CategoryOrganizeSuggestion> organizeCategory(AiInput input) {
+        return suggest(input, "prompts/category-organize.txt", CategoryOrganizeSuggestion.class);
     }
 
     /** Set ürün sayfası/kataloğundan set adı, marka, parçalar ve fiyatları çıkarır. */

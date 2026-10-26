@@ -18,11 +18,21 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final ListAccessService listAccessService;
 
-    public Category createCategory(UUID listId, String name, UUID requesterId){
+    public Category createCategory(UUID listId, String name, UUID parentId, UUID requesterId){
 
         listAccessService.requireAtLeastEditor(listId, requesterId);
 
-        Category category = new Category(listId, name);
+        if (parentId != null) {
+            var parent = findCategory(parentId);
+            if (!parent.getListId().equals(listId)) {
+                throw new IllegalArgumentException("Üst kategori bu listeye ait değil");
+            }
+            if (parent.getParentId() != null) {
+                throw new IllegalArgumentException("Alt kategorinin altına kategori eklenemez");
+            }
+        }
+
+        Category category = new Category(listId, parentId, name);
         return categoryRepository.save(category);
     }
 
