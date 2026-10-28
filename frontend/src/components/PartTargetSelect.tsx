@@ -22,10 +22,15 @@ export default function PartTargetSelect({
   preview,
   value,
   onChange,
+  newName,
+  onNewNameChange,
 }: {
   preview: SetPlacementPreview;
   value: string;
   onChange: (key: string) => void;
+  // "Yeni ekle" seçiliyken açılacak yeni ürünün adı.
+  newName: string;
+  onNewNameChange: (name: string) => void;
 }) {
   const categoriesByKey = new Map(preview.categories.map((category) => [category.key, category]));
   const productsByKey = new Map(preview.products.map((product) => [product.key, product]));
@@ -107,6 +112,20 @@ export default function PartTargetSelect({
           <option value={NEW_PRODUCT}>➕ Yeni ekle</option>
         </select>
       </label>
+
+      {target && productKey === NEW_PRODUCT && (
+        <label className={`${styles.field} ${styles.fullRow}`}>
+          <span>Yeni ürün adı</span>
+          <input
+            type="text"
+            aria-label="Yeni ürün adı"
+            maxLength={255}
+            placeholder="Ürünün adını yaz"
+            value={newName}
+            onChange={(e) => onNewNameChange(e.target.value)}
+          />
+        </label>
+      )}
     </div>
   );
 }

@@ -28,3 +28,13 @@
     min-width: 0;
   }
 }
+
+// Yeni ürün adı kutusu üç sütunun altında tam satır.
+.fullRow {
+  grid-column: 1 / -1;
+
+  input {
+    width: 100%;
+    min-width: 0;
+  }
+}

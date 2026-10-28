@@ -57,7 +57,7 @@ export async function addSetToList(
   listId: string,
   setTemplateId: string,
   priceId: string | null,
-  placements: { setTemplateItemId: string; destinationKey: string }[]
+  placements: { setTemplateItemId: string; destinationKey: string; newProductName: string | null }[]
 ): Promise<AddSetToListResult> {
   const response = await api.post<AddSetToListResult>(`/lists/${listId}/sets/from-template`, {
     setTemplateId,

@@ -150,12 +150,16 @@ public class ProductSetService {
             throw new IllegalArgumentException("Setin parçası yok");
         }
         Map<UUID, String> chosen = new HashMap<>();
+        Map<UUID, String> customNames = new HashMap<>();
         for (AddSetToListRequest.Placement placement : request.placements() == null
                 ? List.<AddSetToListRequest.Placement>of() : request.placements()) {
             if (items.stream().noneMatch(item -> item.getId().equals(placement.setTemplateItemId()))) {
                 throw new IllegalArgumentException("Bu sete ait olmayan parça");
             }
             chosen.put(placement.setTemplateItemId(), placement.destinationKey());
+            if (placement.newProductName() != null && !placement.newProductName().isBlank()) {
+                customNames.put(placement.setTemplateItemId(), placement.newProductName().strip());
+            }
         }
 
         SetTemplatePrice price = pickPrice(
@@ -205,8 +209,12 @@ public class ProductSetService {
             }
             Category target = resolveDestination(listId, key, categories, allowedNewKeys);
 
-            String productName = item.getQuantity() > 1
-                    ? item.getItemName() + " (" + item.getQuantity() + " adet)" : item.getItemName();
+            // Kullanıcı yeni ürüne kendi adını yazdıysa o; yoksa parçanın adı (adet varsa "(N adet)" ile).
+            String productName = customNames.getOrDefault(item.getId(), item.getQuantity() > 1
+                    ? item.getItemName() + " (" + item.getQuantity() + " adet)" : item.getItemName());
+            if (productName.length() > 255) {
+                throw new IllegalArgumentException("Ürün adı en fazla 255 karakter olabilir");
+            }
             List<Product> existing = productsByCategory.computeIfAbsent(
                     target.getId(), id -> new ArrayList<>(productRepository.findByCategoryId(id)));
             Product product = existing.stream()

@@ -77,12 +77,22 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
   // --- Parçaları kategorilere dağıt: önizlemede parça başına seçilen hedef (anahtar).
   const [preview, setPreview] = useState<SetPlacementPreview | null>(null);
   const [choices, setChoices] = useState<Record<string, string>>({});
+  // "Yeni ekle" seçilen parçalarda açılacak ürünün adı (varsayılan: parçanın adı).
+  const [newNames, setNewNames] = useState<Record<string, string>>({});
 
   const previewMutation = useMutation({
     mutationFn: () => previewSetPlacement(selectedListId, set.id),
     onSuccess: (loaded) => {
       setPreview(loaded);
       setChoices(Object.fromEntries(loaded.items.map((item) => [item.id, item.suggestedKey])));
+      setNewNames(
+        Object.fromEntries(
+          loaded.items.map((item) => [
+            item.id,
+            item.quantity > 1 ? `${item.itemName} (${item.quantity} adet)` : item.itemName,
+          ])
+        )
+      );
     },
   });
 
@@ -92,7 +102,11 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
         selectedListId,
         set.id,
         priceId || null,
-        Object.entries(choices).map(([setTemplateItemId, destinationKey]) => ({ setTemplateItemId, destinationKey }))
+        Object.entries(choices).map(([setTemplateItemId, destinationKey]) => ({
+          setTemplateItemId,
+          destinationKey,
+          newProductName: newNames[setTemplateItemId]?.trim() || null,
+        }))
       ),
     onSuccess: (added) => {
       setPreview(null);
@@ -273,6 +287,8 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
                     preview={preview}
                     value={choices[item.id] ?? item.suggestedKey}
                     onChange={(key) => setChoices((prev) => ({ ...prev, [item.id]: key }))}
+                    newName={newNames[item.id] ?? item.itemName}
+                    onNewNameChange={(name) => setNewNames((prev) => ({ ...prev, [item.id]: name }))}
                   />
                 </div>
               ))}
