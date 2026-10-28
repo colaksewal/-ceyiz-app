@@ -69,8 +69,10 @@ public class AiSuggestionService {
     }
 
     /** Girdi: kategorideki ürün adları (satır satır). Alt kategori grupları ve olası tekrarlar döner. */
-    public Optional<CategoryOrganizeSuggestion> organizeCategory(AiInput input) {
-        return suggest(input, "prompts/category-organize.txt", CategoryOrganizeSuggestion.class);
+    // Mutfak'ta AI'ya 8 standart grup verilir ve ürünleri bunlara yerleştirmesi istenir.
+    public Optional<CategoryOrganizeSuggestion> organizeCategory(AiInput input, boolean kitchen) {
+        String prompt = kitchen ? "prompts/category-organize-kitchen.txt" : "prompts/category-organize.txt";
+        return suggest(input, prompt, CategoryOrganizeSuggestion.class);
     }
 
     /** Set ürün sayfası/kataloğundan set adı, marka, parçalar ve fiyatları çıkarır. */

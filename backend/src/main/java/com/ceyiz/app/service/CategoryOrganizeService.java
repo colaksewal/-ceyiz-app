@@ -65,17 +65,24 @@ public class CategoryOrganizeService {
             throw new IllegalArgumentException("Bir seferde en fazla " + MAX_PRODUCTS + " ürün düzenlenebilir");
         }
 
+        boolean kitchen = KitchenGroups.isKitchen(category.getName());
         Map<String, List<Product>> byName = groupByName(products);
         String content = byName.values().stream().map(same -> same.get(0).getName()).collect(Collectors.joining("\n"));
         AiInput input = new AiInput(null, null, content);
         return aiJobService.submit(requesterId, AiLogService.KIND_ORGANIZE, input, () -> {
             // AI cevap veremese bile birebir aynı ürünler gösterilsin.
-            CategoryOrganizeSuggestion suggestion = aiSuggestionService.organizeCategory(input)
+            CategoryOrganizeSuggestion suggestion = aiSuggestionService.organizeCategory(input, kitchen)
                     .orElse(new CategoryOrganizeSuggestion(List.of(), List.of()));
+            List<Group> groups = kitchen ? buildKitchenGroups(byName, suggestion) : buildGroups(byName, suggestion);
+            Set<UUID> placed = groups.stream().flatMap(group -> group.products().stream())
+                    .map(CategoryOrganizeResponse.Product::id).collect(Collectors.toSet());
+            List<CategoryOrganizeResponse.Product> ungrouped = products.stream()
+                    .filter(product -> !placed.contains(product.getId()))
+                    .map(product -> new CategoryOrganizeResponse.Product(product.getId(), product.getName()))
+                    .toList();
             CategoryOrganizeResponse response = new CategoryOrganizeResponse(
-                    buildGroups(byName, suggestion),
-                    buildDuplicates(products, byName, suggestion));
-            return response.groups().isEmpty() && response.duplicates().isEmpty()
+                    groups, buildDuplicates(products, byName, suggestion), ungrouped);
+            return placed.isEmpty() && response.duplicates().isEmpty()
                     ? Optional.<CategoryOrganizeResponse>empty()
                     : Optional.of(response);
         });
@@ -183,6 +190,42 @@ public class CategoryOrganizeService {
                 .filter(group -> group.products().size() >= MIN_GROUP_SIZE)
                 .limit(MAX_GROUPS)
                 .toList();
+    }
+
+    /**
+     * Mutfak: gruplar her zaman 8 standart gruptur (boş olanlar dahil, kullanıcı elle ürün atabilsin).
+     * AI'nın yerleştirdiği ürünler korunur; AI'nın atladıkları anahtar kelime kurallarıyla (KitchenGroups)
+     * yerleştirilir, hâlâ eşleşmeyenler gruplanmamış kalır. AI'nın uydurduğu grup adları atılır.
+     */
+    private List<Group> buildKitchenGroups(Map<String, List<Product>> byName, CategoryOrganizeSuggestion suggestion) {
+        Map<String, List<CategoryOrganizeResponse.Product>> members = new LinkedHashMap<>();
+        KitchenGroups.ALL.forEach(name -> members.put(name, new ArrayList<>()));
+        Set<UUID> assigned = new HashSet<>();
+
+        for (var raw : suggestion.groups() == null ? List.<CategoryOrganizeSuggestion.Group>of() : suggestion.groups()) {
+            String standard = raw == null || raw.name() == null ? null : KitchenGroups.ALL.stream()
+                    .filter(name -> normalize(name).equals(normalize(raw.name())))
+                    .findFirst().orElse(null);
+            if (standard == null || raw.items() == null) continue;
+            for (String itemName : raw.items()) {
+                if (itemName == null) continue;
+                for (Product product : byName.getOrDefault(normalize(itemName), List.of())) {
+                    if (assigned.add(product.getId())) {
+                        members.get(standard).add(new CategoryOrganizeResponse.Product(product.getId(), product.getName()));
+                    }
+                }
+            }
+        }
+        for (List<Product> same : byName.values()) {
+            for (Product product : same) {
+                if (assigned.contains(product.getId())) continue;
+                KitchenGroups.classify(product.getName()).ifPresent(standard -> {
+                    assigned.add(product.getId());
+                    members.get(standard).add(new CategoryOrganizeResponse.Product(product.getId(), product.getName()));
+                });
+            }
+        }
+        return members.entrySet().stream().map(entry -> new Group(entry.getKey(), entry.getValue())).toList();
     }
 
     // Aynı adlı ürünler kesin tekrardır; AI'nın işaretlediği adlar da aynı kümeye katılır.

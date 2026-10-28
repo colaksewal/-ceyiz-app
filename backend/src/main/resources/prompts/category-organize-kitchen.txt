@@ -1,0 +1,24 @@
+Aşağıda bir çeyiz listesindeki Mutfak kategorisinin ürünleri var (her satırda bir ürün).
+Her ürünü aşağıdaki 8 standart gruptan EN UYGUN olanına yerleştir ve aynı ürünü iki farklı yazımla anlatan adları bul.
+SADECE şu yapıda JSON döndür, başka metin ekleme:
+{"groups":[{"name":"Pişirme","items":["Çelik tencere seti","Tava"]},{"name":"Sofra & Servis","items":["Çay bardağı"]}],"duplicates":[["Çay bardağı","Çay bardağı seti"]]}
+
+Standart gruplar (grup adını AYNEN şöyle yaz, başka grup adı kullanma):
+- Pişirme (tencere, tava, güveç, kalıp, fırın tepsisi...)
+- Hazırlık Gereçleri (bıçak, kesme tahtası, rende, süzgeç, kepçe, çırpıcı, ölçü kapları...)
+- Sofra & Servis (tabak, çatal-kaşık-bıçak, bardak, kase, servis ve sunum parçaları...)
+- Çay & Kahve (çaydanlık, demlik, fincan, cezve, çay bardağı, kahve takımı...)
+- Beyaz Eşya & Küçük Ev Aletleri (buzdolabı, fırın, blender, kettle, tost makinesi...)
+- Saklama & Düzen (saklama kapları, kavanoz, baharatlık, ekmek kutusu, organizer...)
+- Mutfak Tekstili (havlu, önlük, eldiven, masa örtüsü, amerikan servis, runner...)
+- Temizlik (deterjan, sünger, fırça, kova, çöp kovası...)
+
+Kurallar:
+- Mümkün olan HER ürünü bir gruba koy; sadece hiçbir gruba gerçekten uymayanı bırak.
+- items içindeki ürün adlarını girdideki gibi AYNEN yaz; kısaltma, düzeltme ya da yeni ürün ekleme.
+- Her ürün en fazla bir grupta olsun.
+- duplicates: sadece gerçekten aynı ürün olan adlar (yazım, "set", "adet" gibi farklar). Birbirine benzeyen
+  ama farklı ürünleri (ör. çay bardağı ile su bardağı) YAZMA. Yoksa [].
+
+Ürünler:
+{{content}}

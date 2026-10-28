@@ -32,6 +32,8 @@ export interface OrganizeProduct {
 export interface CategoryOrganizeSuggestion {
   groups: { name: string; products: OrganizeProduct[] }[];
   duplicates: OrganizeProduct[][];
+  // Hiçbir gruba yerleşmeyen ürünler; önizlemede elle bir gruba atanır.
+  ungrouped: OrganizeProduct[];
 }
 
 export type ProductStatus = "PLANNED" | "PURCHASED" | "SKIPPED";

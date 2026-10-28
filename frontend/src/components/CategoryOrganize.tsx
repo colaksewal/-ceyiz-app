@@ -42,6 +42,7 @@ export default function CategoryOrganize({
   const [open, setOpen] = useState(() => job !== undefined);
   const [groups, setGroups] = useState<GroupDraft[] | null>(null);
   const [duplicates, setDuplicates] = useState<OrganizeProduct[][]>([]);
+  const [ungrouped, setUngrouped] = useState<OrganizeProduct[]>([]);
   // Birleştirilmesi kapatılan kümeler ve her kümede kalacak ürün (varsayılan: ilki).
   const [mergeOff, setMergeOff] = useState<Set<number>>(new Set());
   const [keep, setKeep] = useState<Record<number, string>>({});
@@ -64,9 +65,11 @@ export default function CategoryOrganize({
       const result = job.status === "DONE" ? (job.result as CategoryOrganizeSuggestion) : null;
       setGroups((result?.groups ?? []).map((group) => ({ ...group, on: true })));
       setDuplicates(result?.duplicates ?? []);
+      setUngrouped(result?.ungrouped ?? []);
       setMergeOff(new Set());
       setKeep({});
-      setEmpty(!result || (result.groups.length === 0 && result.duplicates.length === 0));
+      // Mutfak'ta boş gruplar da gelir; ürünü olan grup ya da birleştirme yoksa önerilecek bir şey yok.
+      setEmpty(!result || (result.groups.every((g) => g.products.length === 0) && result.duplicates.length === 0));
       setResultJobId(job.jobId);
     }
     setOpen(true);
@@ -78,6 +81,7 @@ export default function CategoryOrganize({
   function start() {
     setGroups(null);
     setDuplicates([]);
+    setUngrouped([]);
     setEmpty(false);
     setJobError(null);
     startMutation.mutate();
@@ -89,6 +93,7 @@ export default function CategoryOrganize({
     setOpen(false);
     setGroups(null);
     setDuplicates([]);
+    setUngrouped([]);
     setEmpty(false);
   }
 
@@ -141,9 +146,38 @@ export default function CategoryOrganize({
     setGroups((prev) => prev && prev.map((g, i) => (i === index ? { ...g, name } : g)));
   }
 
-  function removeFromGroup(index: number, productId: string) {
-    setGroups((prev) =>
-      prev && prev.map((g, i) => (i === index ? { ...g, products: g.products.filter((p) => p.id !== productId) } : g))
+  // Ürünü bir gruptan (from) başka bir gruba ya da gruplanmamışa (to = null) taşır; elle düzeltme budur.
+  function moveProduct(product: OrganizeProduct, from: number | null, to: number | null) {
+    if (from === to) return;
+    setGroups(
+      (prev) =>
+        prev &&
+        prev.map((g, i) => {
+          if (i === from) return { ...g, products: g.products.filter((p) => p.id !== product.id) };
+          if (i === to) return { ...g, products: [...g.products, product] };
+          return g;
+        })
+    );
+    if (from === null) setUngrouped((prev) => prev.filter((p) => p.id !== product.id));
+    if (to === null) setUngrouped((prev) => [...prev, product]);
+  }
+
+  function moveSelect(product: OrganizeProduct, from: number | null, disabled: boolean) {
+    return (
+      <select
+        className={styles.moveSelect}
+        aria-label={`${product.name} grubu`}
+        disabled={disabled}
+        value={from === null ? "" : String(from)}
+        onChange={(e) => moveProduct(product, from, e.target.value === "" ? null : Number(e.target.value))}
+      >
+        <option value="">Gruplanmamış</option>
+        {(groups ?? []).map((g, i) => (
+          <option key={i} value={i}>
+            {g.name || "(adsız)"}
+          </option>
+        ))}
+      </select>
     );
   }
 
@@ -251,22 +285,33 @@ export default function CategoryOrganize({
                   onChange={(e) => renameGroup(index, e.target.value)}
                 />
               </div>
-              <div className={aiStyles.chips}>
+              <div className={styles.productRows}>
+                {group.products.length === 0 && <span className={styles.emptyGroup}>Boş</span>}
                 {group.products.map((product) => (
-                  <button
-                    key={product.id}
-                    type="button"
-                    className={`${aiStyles.chip} ${aiStyles.chipOn}`}
-                    disabled={!group.on}
-                    title="Bu gruptan çıkar"
-                    onClick={() => removeFromGroup(index, product.id)}
-                  >
-                    {product.name} ✕
-                  </button>
+                  <div key={product.id} className={styles.productRow}>
+                    <span>{product.name}</span>
+                    {moveSelect(product, index, !group.on)}
+                  </div>
                 ))}
               </div>
             </div>
           ))}
+        </>
+      )}
+
+      {groups !== null && ungrouped.length > 0 && (
+        <>
+          <p className={styles.sectionTitle}>Gruplanmamış ({ungrouped.length}) — ürünün yanından grup seç</p>
+          <div className={styles.section}>
+            <div className={styles.productRows}>
+              {ungrouped.map((product) => (
+                <div key={product.id} className={styles.productRow}>
+                  <span>{product.name}</span>
+                  {moveSelect(product, null, false)}
+                </div>
+              ))}
+            </div>
+          </div>
         </>
       )}
 

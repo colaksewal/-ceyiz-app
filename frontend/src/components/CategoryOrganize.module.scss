@@ -63,3 +63,38 @@
   font-size: 0.75rem;
   color: $color-text-muted;
 }
+
+.productRows {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.productRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.emptyGroup {
+  font-size: 0.8rem;
+  color: $color-text-muted;
+}
+
+// Global select { width: 100% } kuralını eziyoruz.
+.moveSelect {
+  width: auto;
+  max-width: 12rem;
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+
+  @media (max-width: $breakpoint-sm) {
+    min-height: 32px;
+    font-size: 0.8rem;
+  }
+}
