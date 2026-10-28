@@ -39,3 +39,40 @@
   margin: 0;
   font-size: 0.85rem;
 }
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding-top: $space-2;
+  border-top: 1px solid $color-border;
+}
+
+.previewTitle {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.previewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+
+  // Global select { width: 100% } kuralını eziyoruz.
+  select {
+    width: auto;
+    max-width: 100%;
+    flex: 0 1 15rem;
+  }
+}
+
+.previewActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+}

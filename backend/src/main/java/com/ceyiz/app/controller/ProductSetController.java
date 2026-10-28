@@ -4,6 +4,7 @@ import com.ceyiz.app.dto.AddSetToListRequest;
 import com.ceyiz.app.dto.AddSetToListResponse;
 import com.ceyiz.app.dto.CreateProductSetRequest;
 import com.ceyiz.app.dto.ProductSetResponse;
+import com.ceyiz.app.dto.SetPlacementPreview;
 import com.ceyiz.app.dto.SetComparisonResult;
 import com.ceyiz.app.service.ProductSetService;
 import com.ceyiz.app.service.SetComparisonService;
@@ -31,6 +32,17 @@ public class ProductSetController {
         UUID requesterId = UUID.fromString(authentication.getName());
         var created = productSetService.createSet(listId, request, requesterId);
         return ResponseEntity.ok(ProductSetResponse.from(created));
+    }
+
+    // Ekleme öncesi önizleme: parçaların önerilen hedefleri ve seçilebilecek kategoriler. Hiçbir şey yazılmaz.
+    @GetMapping("/api/lists/{listId}/sets/from-template/{setTemplateId}/preview")
+    public ResponseEntity<SetPlacementPreview> previewFromTemplate(
+            @PathVariable UUID listId,
+            @PathVariable UUID setTemplateId,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(productSetService.previewPlacement(listId, setTemplateId, requesterId));
     }
 
     // Katalogdaki seti (kopyalayarak) listeye ekler: set + parçaları kategorilere dağılmış ürünler.

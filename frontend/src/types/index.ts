@@ -95,6 +95,13 @@ export interface SetTemplatePrice {
 }
 
 // totalPieceCount / individualTotal / pricedItemCount backend'de parçalardan hesaplanır.
+// Katalog setini listeye eklemeden önceki önizleme: her parça ve önerilen hedefi. Hedef anahtarı
+// ("c:<id>" mevcut kategori, "n:<üst>|<ad>" açılacak kategori, "skip" listeye ekleme) olduğu gibi geri gönderilir.
+export interface SetPlacementPreview {
+  items: { id: string; itemName: string; quantity: number; suggestedKey: string }[];
+  destinations: { key: string; label: string }[];
+}
+
 export interface AddSetToListResult {
   id: string;
   name: string;

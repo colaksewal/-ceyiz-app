@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import type { AddSetToListResult, CreateSetTemplatePayload, SetTemplate } from "../types";
+import type { AddSetToListResult, CreateSetTemplatePayload, SetPlacementPreview, SetTemplate } from "../types";
 import type { AiJobStarted } from "./aiJobs";
 import { toAiFormData, type AiInput } from "./aiSuggestions";
 
@@ -26,9 +26,24 @@ export async function suggestSet(input: AiInput): Promise<AiJobStarted> {
   return response.data;
 }
 
-// Katalog setini listeye ekler (set + parçaları kategorilere dağılmış ürünler). priceId boşsa en ucuz fiyat.
-export async function addSetToList(listId: string, setTemplateId: string, priceId: string | null): Promise<AddSetToListResult> {
-  const response = await api.post<AddSetToListResult>(`/lists/${listId}/sets/from-template`, { setTemplateId, priceId });
+// Ekleme öncesi önizleme: parçaların önerilen hedef kategorileri ve seçilebilecek tüm hedefler.
+export async function previewSetPlacement(listId: string, setTemplateId: string): Promise<SetPlacementPreview> {
+  const response = await api.get<SetPlacementPreview>(`/lists/${listId}/sets/from-template/${setTemplateId}/preview`);
+  return response.data;
+}
+
+// Katalog setini listeye ekler (set + parçaları seçilen kategorilerde ürünler). priceId boşsa en ucuz fiyat.
+export async function addSetToList(
+  listId: string,
+  setTemplateId: string,
+  priceId: string | null,
+  placements: { setTemplateItemId: string; destinationKey: string }[]
+): Promise<AddSetToListResult> {
+  const response = await api.post<AddSetToListResult>(`/lists/${listId}/sets/from-template`, {
+    setTemplateId,
+    priceId,
+    placements,
+  });
   return response.data;
 }
 

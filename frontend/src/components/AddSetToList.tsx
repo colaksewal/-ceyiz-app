@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { getMyLists } from "../api/lists";
-import { addSetToList } from "../api/setTemplates";
-import type { AddSetToListResult, PriceType, SetTemplate } from "../types";
+import { addSetToList, previewSetPlacement } from "../api/setTemplates";
+import type { AddSetToListResult, PriceType, SetPlacementPreview, SetTemplate } from "../types";
 import styles from "./AddSetToList.module.scss";
 
 const priceTypeLabels: Record<PriceType, string> = {
@@ -32,11 +32,29 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
   const [listId, setListId] = useState("");
   const [priceId, setPriceId] = useState("");
   const [result, setResult] = useState<{ listId: string; added: AddSetToListResult } | null>(null);
+  // Önizleme: parça başına seçilen hedef (anahtar). Boşken önizleme kapalıdır.
+  const [preview, setPreview] = useState<SetPlacementPreview | null>(null);
+  const [choices, setChoices] = useState<Record<string, string>>({});
   const selectedListId = listId || editableLists[0]?.id || "";
 
+  const previewMutation = useMutation({
+    mutationFn: () => previewSetPlacement(selectedListId, set.id),
+    onSuccess: (loaded) => {
+      setPreview(loaded);
+      setChoices(Object.fromEntries(loaded.items.map((item) => [item.id, item.suggestedKey])));
+    },
+  });
+
   const mutation = useMutation({
-    mutationFn: () => addSetToList(selectedListId, set.id, priceId || null),
+    mutationFn: () =>
+      addSetToList(
+        selectedListId,
+        set.id,
+        priceId || null,
+        Object.entries(choices).map(([setTemplateItemId, destinationKey]) => ({ setTemplateItemId, destinationKey }))
+      ),
     onSuccess: (added) => {
+      setPreview(null);
       setResult({ listId: selectedListId, added });
       // Yeni kategoriler/ürünler ve set fiyatı listede, özette ve ödeme planında görünsün.
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -54,8 +72,8 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
     <div className={styles.box}>
       <h4 className={styles.heading}>Listeme ekle</h4>
       <p className={styles.hint}>
-        Set katalogda kalır. Listene set (tek fiyatla) ve parçaları kategorilere dağılmış ürünler olarak eklenir;
-        yerleşmeyen parçaları sonra elle taşırsın.
+        Set katalogda kalır. Listene set (tek fiyatla) ve parçaları ürünler olarak eklenir; eklemeden önce her
+        parçanın hangi kategoriye gideceğini seçersin.
       </p>
 
       <div className={styles.row}>
@@ -64,6 +82,7 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
           value={selectedListId}
           onChange={(e) => {
             setListId(e.target.value);
+            setPreview(null);
             setResult(null);
           }}
         >
@@ -94,15 +113,50 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
         <button
           type="button"
           className="btn btn-primary"
-          disabled={!selectedListId || mutation.isPending}
+          disabled={!selectedListId || previewMutation.isPending || mutation.isPending}
           onClick={() => {
             setResult(null);
-            mutation.mutate();
+            previewMutation.mutate();
           }}
         >
-          {mutation.isPending ? "Ekleniyor..." : "Listeme ekle"}
+          {previewMutation.isPending ? "Hazırlanıyor..." : "Listeme ekle"}
         </button>
       </div>
+
+      {previewMutation.isError && <p className="error-text">{errorMessage(previewMutation.error)}</p>}
+
+      {preview && (
+        <div className={styles.preview}>
+          <p className={styles.previewTitle}>Her parça hangi kategoriye gitsin?</p>
+          {preview.items.map((item) => (
+            <div key={item.id} className={styles.previewRow}>
+              <span>
+                {item.quantity > 1 && <strong>{item.quantity}× </strong>}
+                {item.itemName}
+              </span>
+              <select
+                aria-label={`${item.itemName} kategorisi`}
+                value={choices[item.id] ?? item.suggestedKey}
+                onChange={(e) => setChoices((prev) => ({ ...prev, [item.id]: e.target.value }))}
+              >
+                {preview.destinations.map((destination) => (
+                  <option key={destination.key} value={destination.key}>
+                    {destination.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+          <div className={styles.previewActions}>
+            <button type="button" className="btn btn-ghost" onClick={() => setPreview(null)}>
+              Vazgeç
+            </button>
+            <button type="button" className="btn btn-primary" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+              {mutation.isPending ? "Ekleniyor..." : "Onayla ve ekle"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {mutation.isError && <p className="error-text">{errorMessage(mutation.error)}</p>}
       {result && (
