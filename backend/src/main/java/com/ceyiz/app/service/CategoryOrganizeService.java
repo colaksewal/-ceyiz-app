@@ -122,7 +122,7 @@ public class CategoryOrganizeService {
             String name = cleanName(group.name());
             if (name == null) continue;
             if (KitchenGroups.isKitchen(category.getName())) {
-                // Mutfak'ta alt kategori sadece 8 standart gruptur; yazım standarda çevrilir.
+                // Mutfak'ta alt kategori sadece 4 standart gruptur; yazım standarda çevrilir.
                 name = KitchenGroups.ALL.stream()
                         .filter(standard -> normalize(standard).equals(normalize(group.name())))
                         .findFirst()
@@ -204,7 +204,7 @@ public class CategoryOrganizeService {
     }
 
     /**
-     * Mutfak: gruplar her zaman 8 standart gruptur (boş olanlar dahil, kullanıcı elle ürün atabilsin).
+     * Mutfak: gruplar her zaman 4 standart gruptur (boş olanlar dahil, kullanıcı elle ürün atabilsin).
      * AI'nın yerleştirdiği ürünler korunur; AI'nın atladıkları anahtar kelime kurallarıyla (KitchenGroups)
      * yerleştirilir, hâlâ eşleşmeyenler gruplanmamış kalır. AI'nın uydurduğu grup adları atılır.
      */

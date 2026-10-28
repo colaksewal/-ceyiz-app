@@ -4,18 +4,14 @@ veya metin ekleme:
 
 {"categoryName": "Mutfak", "items": ["ürün adı 1", "ürün adı 2"]}
 
-Sadece şu 8 gruptan birine giren mutfak ürünlerini yaz:
-- Pişirme (tencere, tava, güveç, kalıp, fırın tepsisi...)
-- Hazırlık Gereçleri (bıçak, kesme tahtası, rende, süzgeç, kepçe, çırpıcı, ölçü kapları...)
-- Sofra & Servis (tabak, çatal-kaşık-bıçak, bardak, kase, servis ve sunum parçaları...)
-- Çay & Kahve (çaydanlık, demlik, fincan, cezve, çay bardağı, kahve takımı...)
-- Beyaz Eşya & Küçük Ev Aletleri (buzdolabı, fırın, blender, kettle, tost makinesi...)
-- Saklama & Düzen (saklama kapları, kavanoz, baharatlık, ekmek kutusu, organizer...)
-- Mutfak Tekstili (havlu, önlük, eldiven, masa örtüsü, amerikan servis, runner...)
-- Temizlik (deterjan, sünger, fırça, kova, çöp kovası...)
+Sadece şu 4 gruptan birine giren mutfak ürünlerini yaz:
+- Pişirme (düdüklü, tencere, tava, sos tava, güveç, kek kalıbı, kurabiye kalıpları, çaydanlık, demlik...)
+- Küçük Ev Aletleri (mikrodalga, tost makinesi, hamur karıştırıcı, filtre kahve makinesi, çaycı/kettle, buzdolabı...)
+- Sofra Ürünleri (servis tabakları, tepsi, kaseler, çatal-kaşık setleri, çay bardakları, kahve fincanları, çerez seti, ekmek sepeti, tuzluk, sosluk, yağlık, masa örtüsü, sofra bezi...)
+- Mutfak Gereçleri (bıçak seti, makas, rende, süzgeç, elek, havan, maşa, çırpıcı, karıştırma kabı, sebze kurutucu, kavanoz, organizer, buz kalıbı, havlu, önlük, sabunluk, süpürge...)
 
 Kurallar:
-- Bu 8 gruba girmeyen ürünleri (mobilya, dekorasyon, banyo/yatak odası eşyası vb.) YAZMA.
+- Bu 4 gruba girmeyen ürünleri (mobilya, dekorasyon, banyo/yatak odası eşyası vb.) YAZMA.
 - items listesinde sadece ürün/eşya adları olsun; fiyat, miktar veya para birimi bilgisi ekleme.
 - Hiçbir ürün bulamazsan items'ı boş dizi ([]) olarak döndür.
 

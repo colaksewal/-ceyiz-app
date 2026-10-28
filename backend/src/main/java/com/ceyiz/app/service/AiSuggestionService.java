@@ -64,14 +64,14 @@ public class AiSuggestionService {
         return input;
     }
 
-    // Mutfak'ta öneri sadece 8 standart gruba giren ürünlerle sınırlanır (bkz. KitchenGroups).
+    // Mutfak'ta öneri sadece 4 standart gruba giren ürünlerle sınırlanır (bkz. KitchenGroups).
     public Optional<ProductSuggestionResponse> suggest(AiInput input, boolean kitchen) {
         String prompt = kitchen ? "prompts/product-suggestion-kitchen.txt" : "prompts/product-suggestion.txt";
         return suggest(input, prompt, ProductSuggestionResponse.class);
     }
 
     /** Girdi: kategorideki ürün adları (satır satır). Alt kategori grupları ve olası tekrarlar döner. */
-    // Mutfak'ta AI'ya 8 standart grup verilir ve ürünleri bunlara yerleştirmesi istenir.
+    // Mutfak'ta AI'ya 4 standart grup verilir ve ürünleri bunlara yerleştirmesi istenir.
     public Optional<CategoryOrganizeSuggestion> organizeCategory(AiInput input, boolean kitchen) {
         String prompt = kitchen ? "prompts/category-organize-kitchen.txt" : "prompts/category-organize.txt";
         return suggest(input, prompt, CategoryOrganizeSuggestion.class);

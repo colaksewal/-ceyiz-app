@@ -15,7 +15,7 @@ export function toAiFormData({ file, text }: AiInput): FormData {
 }
 
 // Arka planda çalışır: sonuç (ProductSuggestion) iş bitince GET /ai/jobs/{jobId}'den gelir.
-// kitchen: Mutfak'ta öneri sadece 8 standart gruba giren ürünlerle sınırlanır.
+// kitchen: Mutfak'ta öneri sadece 4 standart gruba giren ürünlerle sınırlanır.
 export async function suggestProducts(input: AiInput, kitchen = false): Promise<AiJobStarted> {
   const formData = toAiFormData(input);
   if (kitchen) formData.append("kitchen", "true");

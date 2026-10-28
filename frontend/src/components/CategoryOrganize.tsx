@@ -35,7 +35,7 @@ export default function CategoryOrganize({
   categoryName: string;
 }) {
   const jobKey = `organize:${categoryId}`;
-  // Mutfak'ta alt kategori adları 8 standart gruptur, değiştirilemez (sunucu da reddeder).
+  // Mutfak'ta alt kategori adları 4 standart gruptur, değiştirilemez (sunucu da reddeder).
   const kitchen = isKitchenCategory(categoryName);
   const location = useLocation();
   const queryClient = useQueryClient();

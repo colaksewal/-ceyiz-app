@@ -37,7 +37,7 @@ export default function CategoryAiSuggest({
   jobLabel: string;
   existingNames: string[];
   onAddItems: (items: string[]) => Promise<unknown>;
-  // Mutfak: AI sadece 8 standart gruba giren ürünleri önerir.
+  // Mutfak: AI sadece 4 standart gruba giren ürünleri önerir.
   kitchen?: boolean;
 }) {
   const location = useLocation();
@@ -134,7 +134,7 @@ export default function CategoryAiSuggest({
           <strong>AI ile ürün öner</strong>
           <p>
             Bir fotoğraf (etiket, liste) ya da PDF yükle veya listeyi yaz; AI içindeki ürünleri bu
-            kategoriye önersin.{kitchen && " Mutfak için sadece 8 standart gruba (Pişirme, Sofra & Servis...) giren ürünler önerilir."}{" "}
+            kategoriye önersin.{kitchen && " Mutfak için sadece 4 standart gruba (Pişirme, Sofra Ürünleri...) giren ürünler önerilir."}{" "}
             Sadece metin daha hızlı, görsel 1-2 dakika sürebilir.
           </p>
         </div>

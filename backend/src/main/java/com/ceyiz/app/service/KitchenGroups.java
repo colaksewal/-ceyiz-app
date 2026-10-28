@@ -5,53 +5,47 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Mutfak kategorisinin standart alt grupları ve ürün adından grubu bulan kural tabanlı sınıflandırıcı.
+ * Mutfak kategorisinin 4 standart alt kategorisi ve ürün adından grubu bulan kural tabanlı sınıflandırıcı.
  * Eşleşmeyen ürün gruplanmamış kalır; kullanıcı elle atar. Kurallar sırayla denenir, ilk eşleşen kazanır
- * (ör. "çatal bıçak takımı" Hazırlık'taki "bıçak"a düşmesin diye Sofra kuralı önce gelir).
- * Frontend'deki lib/productGroups.ts ile aynı liste ve yazım tutulmalı.
+ * (ör. "çay bardağı" Sofra'ya, "çaydanlık" Pişirme'ye, "kahve makinesi" Küçük Ev Aletleri'ne düşsün diye
+ * özel kurallar genel olanlardan önce gelir).
  */
 public final class KitchenGroups {
 
     public static final String COOKING = "Pişirme";
-    public static final String PREP = "Hazırlık Gereçleri";
-    public static final String TABLEWARE = "Sofra & Servis";
-    public static final String TEA_COFFEE = "Çay & Kahve";
-    public static final String APPLIANCES = "Beyaz Eşya & Küçük Ev Aletleri";
-    public static final String STORAGE = "Saklama & Düzen";
-    public static final String TEXTILES = "Mutfak Tekstili";
-    public static final String CLEANING = "Temizlik";
+    public static final String APPLIANCES = "Küçük Ev Aletleri";
+    public static final String TABLEWARE = "Sofra Ürünleri";
+    public static final String UTENSILS = "Mutfak Gereçleri";
 
-    public static final List<String> ALL = List.of(
-            COOKING, PREP, TABLEWARE, TEA_COFFEE, APPLIANCES, STORAGE, TEXTILES, CLEANING
-    );
+    public static final List<String> ALL = List.of(COOKING, APPLIANCES, TABLEWARE, UTENSILS);
 
     private static final Locale TR = Locale.forLanguageTag("tr");
     private static final String KITCHEN_CATEGORY = "mutfak";
 
     private record Rule(String group, List<String> keywords) {}
 
+    // Türkçe ünsüz yumuşaması için (bardak/bardağı) k ile biten kelimelerin ğ'li kökü de yazılır.
     private static final List<Rule> RULES = List.of(
             new Rule(APPLIANCES, List.of("buzdolabı", "derin dondurucu", "bulaşık makine", "çamaşır makine",
-                    "mikrodalga", "davlumbaz", "set üstü", "ankastre", "ocak", "ocağ", "blender", "mikser", "mutfak robotu",
-                    "doğrayıcı", "rondo", "kettle", "su ısıtıcı", "air fryer", "airfryer", "tost makine",
-                    "ekmek kızartma", "kahve makine", "çay makine", "meyve sıkacağ", "izgara", "waffle",
-                    "fritöz", "yoğurma makine")),
-            new Rule(TEXTILES, List.of("amerikan servis", "masa örtüsü", "runner", "mutfak havlusu", "kurulama bezi",
-                    "eldiven", "önlük", "tutacak", "tutacağ", "peçete", "mutfak perdesi", "sandalye minderi", "kilim")),
-            new Rule(TEA_COFFEE, List.of("çay", "kahve", "fincan", "cezve", "demlik", "demliğ", "french press", "kupa", "mug",
-                    "termos", "nescafe")),
-            new Rule(COOKING, List.of("tencere", "tava", "güveç", "düdüklü", "kek kalıbı", "fırın tepsisi",
-                    "sahan", "wok", "buharlı pişirici", "pişirme")),
-            new Rule(TABLEWARE, List.of("yemek takımı", "kahvaltı takımı", "çatal", "kaşık", "kaşığ", "tabak", "tabağ", "bardak", "bardağ", "kase",
-                    "servis", "sürahi", "şekerlik", "tuzluk", "biberlik", "peçetelik", "salata", "çorba", "tatlı",
-                    "sunum", "kek altlığı", "tepsi", "yumurtalık", "sosluk")),
-            new Rule(CLEANING, List.of("deterjan", "sünger", "paspas", "kova", "çöp", "sabunluk", "kağıt havlu",
-                    "bulaşık teli", "bulaşık fırçası", "temizlik", "süpürge", "mop", "sıvı sabun")),
-            new Rule(STORAGE, List.of("saklama", "kavanoz", "baharatlık", "ekmek kutusu", "şeker kutusu", "organizer",
-                    "düzenleyici", "raf", "kutu", "sepet", "vakum", "bulaşıklık", "kurutmalık", "askı")),
-            new Rule(PREP, List.of("bıçak", "bıçağ", "kesme tahtası", "rende", "doğrama", "süzgeç", "süzgeci", "kevgir", "karıştırma",
-                    "merdane", "açacak", "açacağ", "soyacak", "soyacağ", "ölçü", "terazi", "elek", "eleğ", "havan", "sıkacak", "sıkacağ", "makas", "çırpıcı",
-                    "spatula", "kepçe", "maşa", "oklava", "pasta torbası", "hamur"))
+                    "mikrodalga", "davlumbaz", "set üstü", "ankastre", "ocak", "ocağ", "blender", "mikser",
+                    "mutfak robotu", "doğrayıcı", "rondo", "kettle", "su ısıtıcı", "çaycı", "air fryer", "airfryer",
+                    "tost makine", "ekmek kızartma", "kahve makine", "çay makine", "meyve sıkacağ", "waffle",
+                    "fritöz", "hamur karıştırıcı", "karıştırıcı", "yoğurma makine", "elektrikli")),
+            new Rule(COOKING, List.of("tencere", "tava", "güveç", "düdüklü", "kek kalıb", "kurabiye", "pasta kalıb",
+                    "fırın tepsisi", "sahan", "wok", "buharlı pişirici", "pişirme", "çaydanlık", "çaydanlığ",
+                    "demlik", "demliğ", "cezve")),
+            new Rule(TABLEWARE, List.of("yemek takımı", "kahvaltı takımı", "çatal", "kaşık", "kaşığ", "tabak", "tabağ",
+                    "bardak", "bardağ", "fincan", "kupa", "mug", "kase", "servis", "sürahi", "şekerlik", "tuzluk",
+                    "biberlik", "peçetelik", "peçete", "salata", "çorba", "tatlı", "sunum", "kek altlığ", "tepsi",
+                    "yumurtalık", "sosluk", "yağlık", "sirkelik", "çerez", "ekmek sepeti", "masa örtü", "sofra bezi",
+                    "runner", "çay", "kahve", "termos")),
+            new Rule(UTENSILS, List.of("bıçak", "bıçağ", "makas", "rende", "doğrama", "süzgeç", "kevgir", "elek",
+                    "eleğ", "havan", "maşa", "çırpıcı", "karıştırma", "kurutucu", "kavanoz", "organizer",
+                    "düzenleyici", "buz kalıb", "havlu", "önlük", "sabunluk", "süpürge", "kesme tahtası", "merdane",
+                    "açacak", "açacağ", "soyacak", "soyacağ", "ölçü", "terazi", "sıkacak", "sıkacağ", "spatula",
+                    "kepçe", "oklava", "pasta torbası", "hamur", "saklama", "baharatlık", "kutu", "sepet", "raf",
+                    "eldiven", "tutacak", "tutacağ", "kurulama bezi", "deterjan", "sünger", "paspas", "kova", "çöp",
+                    "fırça", "askı", "vakum", "bulaşıklık", "kurutmalık", "temizlik", "mop", "sıvı sabun"))
     );
 
     private KitchenGroups() {}
