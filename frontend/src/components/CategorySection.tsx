@@ -62,6 +62,7 @@ export default function CategorySection({
     mutationFn: () => createProduct(category.id, productName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products", category.id] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       setProductName("");
     },
   });
@@ -111,8 +112,15 @@ export default function CategorySection({
   }
 
   // Ürünler ilk açılışta yükleniyor; o zamana kadar özet satırı gösterilmez.
-  const purchasedCount = products?.filter((p) => p.status === "PURCHASED").length ?? 0;
-  const progress = products && products.length > 0 ? (purchasedCount / products.length) * 100 : 0;
+  // Ürünler yüklüyse canlı sayı, değilse (kategori kapalı) sunucunun kategori listesiyle gönderdiği sayı.
+  const ownCount = products ? products.length : category.productCount;
+  const ownPurchased = products ? products.filter((p) => p.status === "PURCHASED").length : category.purchasedCount;
+  // Üst kategorinin başlığı alt kategorilerindeki ürünleri de sayar.
+  const subCount = subcategories.reduce((sum, sub) => sum + sub.productCount, 0);
+  const subPurchased = subcategories.reduce((sum, sub) => sum + sub.purchasedCount, 0);
+  const totalCount = ownCount + subCount;
+  const purchasedCount = ownPurchased + subPurchased;
+  const progress = totalCount > 0 ? (purchasedCount / totalCount) * 100 : 0;
   const emoji = pickCategoryEmoji(category.id, category.name);
   // Ürünler üst kategori ile alt kategorileri arasında elle taşınabilir (AI'nın yerleştirmediklerini atamak için).
   const targets = isSub ? moveTargets : subcategories.length > 0 ? [category, ...subcategories] : undefined;
@@ -147,11 +155,10 @@ export default function CategorySection({
             <span className={styles.emoji}>{emoji}</span>
             <span className={styles.titleBlock}>
               <span className={styles.title}>{category.name}</span>
-              {products && (
-                <span className={styles.summary}>
-                  {products.length} ürün · {purchasedCount} alındı
-                </span>
-              )}
+              <span className={styles.summary}>
+                {totalCount} ürün · {purchasedCount} alındı
+                {subcategories.length > 0 && ` · ${subcategories.length} alt kategori`}
+              </span>
             </span>
             <span className={styles.chevron} aria-hidden>
               ›
@@ -179,7 +186,7 @@ export default function CategorySection({
         </p>
       )}
 
-      {products && products.length > 0 && (
+      {totalCount > 0 && (
         <div className={styles.progressTrack}>
           <div className={styles.progressBar} style={{ width: `${progress}%` }} />
         </div>
@@ -189,7 +196,11 @@ export default function CategorySection({
         <div className={styles.body}>
           {isLoading && <p className="muted">Yükleniyor...</p>}
           {products && products.length === 0 && (
-            <p className={styles.emptyHint}>Bu kategoride henüz ürün yok.</p>
+            <p className={styles.emptyHint}>
+              {subCount > 0
+                ? `Doğrudan bu kategoride ürün yok; ${subCount} ürün aşağıdaki alt kategorilerde.`
+                : "Bu kategoride henüz ürün yok."}
+            </p>
           )}
 
           {products && products.length > 0 && !isSub && subcategories.length > 0 && (
@@ -244,6 +255,7 @@ export default function CategorySection({
                 onAddItems={async (items) => {
                   await Promise.all(items.map((item) => createProduct(category.id, item)));
                   queryClient.invalidateQueries({ queryKey: ["products", category.id] });
+                  queryClient.invalidateQueries({ queryKey: ["categories"] });
                 }}
               />
             </div>
@@ -278,11 +290,13 @@ function ProductRow({
       if (changes.categoryId) {
         // Başka kategoriye taşındı: hem eski hem yeni kategorinin ürün listesi tazelenir.
         queryClient.invalidateQueries({ queryKey: ["products"] });
+        queryClient.invalidateQueries({ queryKey: ["categories"] });
         return;
       }
       queryClient.setQueryData<Product[]>(productsKey, (old) =>
         old?.map((p) => (p.id === updated.id ? updated : p))
       );
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       setRenaming(false);
     },
   });
@@ -293,6 +307,7 @@ function ProductRow({
       queryClient.setQueryData<Product[]>(productsKey, (old) =>
         old?.filter((p) => p.id !== product.id)
       );
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 

@@ -2,12 +2,15 @@ package com.ceyiz.app.service;
 
 import com.ceyiz.app.entity.Category;
 import com.ceyiz.app.repository.CategoryRepository;
+import com.ceyiz.app.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -17,6 +20,18 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ListAccessService listAccessService;
+    private final ProductRepository productRepository;
+
+    /** Kategori id -> [ürün sayısı, alınan sayısı] (doğrudan ürünler). Ürünsüz kategori haritada yoktur. */
+    public Map<UUID, int[]> productCounts(List<Category> categories) {
+        Map<UUID, int[]> counts = new HashMap<>();
+        if (categories.isEmpty()) return counts;
+        for (Object[] row : productRepository.countByCategoryIds(
+                categories.stream().map(Category::getId).toList(), com.ceyiz.app.entity.ProductStatus.PURCHASED)) {
+            counts.put((UUID) row[0], new int[]{((Number) row[1]).intValue(), ((Number) row[2]).intValue()});
+        }
+        return counts;
+    }
 
     public Category createCategory(UUID listId, String name, UUID parentId, UUID requesterId){
 

@@ -40,8 +40,13 @@ public class CategoryController {
             Authentication authentication
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
-        var categories = categoryService.getCategoriesForList(listId, requesterId).stream()
-                .map(CategoryResponse::from)
+        var found = categoryService.getCategoriesForList(listId, requesterId);
+        var counts = categoryService.productCounts(found);
+        var categories = found.stream()
+                .map(category -> {
+                    int[] count = counts.getOrDefault(category.getId(), new int[]{0, 0});
+                    return CategoryResponse.from(category, count[0], count[1]);
+                })
                 .toList();
         return ResponseEntity.ok(categories);
     }

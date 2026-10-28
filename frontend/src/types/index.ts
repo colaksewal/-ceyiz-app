@@ -21,6 +21,9 @@ export interface Category {
   name: string;
   // Alt kategoride üst kategorinin kimliği, üst kategoride null (sadece tek seviye).
   parentId: string | null;
+  // Kategorinin DOĞRUDAN ürünleri (alt kategorilerinki dahil değil); kategori açılmadan başlıkta görünür.
+  productCount: number;
+  purchasedCount: number;
 }
 
 // AI'nın bir kategori için önerdiği düzen (hiçbir şey yazılmadı): alt kategoriler ve aynı ürünler.
