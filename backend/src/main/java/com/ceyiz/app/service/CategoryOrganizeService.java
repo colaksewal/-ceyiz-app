@@ -51,6 +51,7 @@ public class CategoryOrganizeService {
     private final ListAccessService listAccessService;
     private final AiSuggestionService aiSuggestionService;
     private final AiJobService aiJobService;
+    private final TemplateGroupService templateGroupService;
 
     /** Arka planda çalışır, iş kimliği döner; sonuç CategoryOrganizeResponse. */
     public UUID requestOrganize(UUID categoryId, UUID requesterId) {
@@ -65,15 +66,21 @@ public class CategoryOrganizeService {
             throw new IllegalArgumentException("Bir seferde en fazla " + MAX_PRODUCTS + " ürün düzenlenebilir");
         }
 
-        boolean kitchen = KitchenGroups.isKitchen(category.getName());
+        // Alt kategorileri admin belirler: kategorinin şablonundaki alt şablonlar. Tanımlı değilse ayırma yapılamaz.
+        List<TemplateGroupService.Group> definedGroups = templateGroupService.groupsFor(category.getName());
+        if (definedGroups.isEmpty()) {
+            throw new IllegalArgumentException("Bu kategori için admin henüz alt kategori tanımlamamış");
+        }
+        List<String> groupNames = definedGroups.stream().map(TemplateGroupService.Group::name).toList();
+        String groupsText = TemplateGroupService.toPromptText(definedGroups);
         Map<String, List<Product>> byName = groupByName(products);
         String content = byName.values().stream().map(same -> same.get(0).getName()).collect(Collectors.joining("\n"));
         AiInput input = new AiInput(null, null, content);
         return aiJobService.submit(requesterId, AiLogService.KIND_ORGANIZE, input, () -> {
             // AI cevap veremese bile birebir aynı ürünler gösterilsin.
-            CategoryOrganizeSuggestion suggestion = aiSuggestionService.organizeCategory(input, kitchen)
+            CategoryOrganizeSuggestion suggestion = aiSuggestionService.organizeCategory(input, groupsText)
                     .orElse(new CategoryOrganizeSuggestion(List.of(), List.of()));
-            List<Group> groups = kitchen ? buildKitchenGroups(byName, suggestion) : buildGroups(byName, suggestion);
+            List<Group> groups = buildFixedGroups(byName, suggestion, groupNames);
             Set<UUID> placed = groups.stream().flatMap(group -> group.products().stream())
                     .map(CategoryOrganizeResponse.Product::id).collect(Collectors.toSet());
             List<CategoryOrganizeResponse.Product> ungrouped = products.stream()
@@ -82,11 +89,8 @@ public class CategoryOrganizeService {
                     .toList();
             CategoryOrganizeResponse response = new CategoryOrganizeResponse(
                     groups, buildDuplicates(products, byName, suggestion), ungrouped);
-            // Mutfak'ta AI hiçbir şey yerleştiremese bile sonuç dönülür: ürünler "Gruplanmamış" gelir ve
-            // kullanıcı elle atar.
-            return !kitchen && placed.isEmpty() && response.duplicates().isEmpty()
-                    ? Optional.<CategoryOrganizeResponse>empty()
-                    : Optional.of(response);
+            // AI hiçbir şey yerleştiremese bile sonuç dönülür: ürünler "Gruplanmamış" gelir ve kullanıcı elle atar.
+            return Optional.of(response);
         });
     }
 
@@ -121,14 +125,10 @@ public class CategoryOrganizeService {
         for (var group : request.groups() == null ? List.<ApplyCategoryOrganizeRequest.Group>of() : request.groups()) {
             String name = cleanName(group.name());
             if (name == null) continue;
-            if (KitchenGroups.isKitchen(category.getName())) {
-                // Mutfak'ta alt kategori sadece 4 standart gruptur; yazım standarda çevrilir.
-                name = KitchenGroups.ALL.stream()
-                        .filter(standard -> normalize(standard).equals(normalize(group.name())))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Mutfak'ta sadece standart gruplar kullanılabilir: " + group.name()));
-            }
+            // Alt kategori sadece admin'in tanımladıkları olabilir; yazım admin'in yazımına çevrilir.
+            name = templateGroupService.canonical(category.getName(), group.name())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Sadece admin'in tanımladığı alt kategoriler kullanılabilir: " + group.name()));
             String groupName = name;
             List<Product> toMove = (group.productIds() == null ? List.<UUID>of() : group.productIds()).stream()
                     .filter(id -> own.containsKey(id) && !removed.contains(id) && moved.add(id))
@@ -173,48 +173,20 @@ public class CategoryOrganizeService {
         productRepository.save(keep);
     }
 
-    // Modelin yazdığı adlar girdidekilerle eşleşmeyebilir; eşleşmeyenler sessizce atlanır.
-    private List<Group> buildGroups(Map<String, List<Product>> byName, CategoryOrganizeSuggestion suggestion) {
-        Map<String, Group> groups = new LinkedHashMap<>();
-        Set<UUID> assigned = new HashSet<>();
-        for (var raw : suggestion.groups() == null ? List.<CategoryOrganizeSuggestion.Group>of() : suggestion.groups()) {
-            String name = raw == null ? null : cleanName(raw.name());
-            if (name == null || raw.items() == null) continue;
-
-            List<CategoryOrganizeResponse.Product> members = new ArrayList<>();
-            for (String itemName : raw.items()) {
-                if (itemName == null) continue;
-                for (Product product : byName.getOrDefault(normalize(itemName), List.of())) {
-                    if (assigned.add(product.getId())) {
-                        members.add(new CategoryOrganizeResponse.Product(product.getId(), product.getName()));
-                    }
-                }
-            }
-            if (members.isEmpty()) continue;
-            groups.merge(normalize(name), new Group(name, members), (a, b) -> {
-                List<CategoryOrganizeResponse.Product> all = new ArrayList<>(a.products());
-                all.addAll(b.products());
-                return new Group(a.name(), all);
-            });
-        }
-        return groups.values().stream()
-                .filter(group -> group.products().size() >= MIN_GROUP_SIZE)
-                .limit(MAX_GROUPS)
-                .toList();
-    }
-
     /**
-     * Mutfak: gruplar her zaman 4 standart gruptur (boş olanlar dahil, kullanıcı elle ürün atabilsin).
-     * AI'nın yerleştirdiği ürünler korunur; AI'nın atladıkları anahtar kelime kurallarıyla (KitchenGroups)
-     * yerleştirilir, hâlâ eşleşmeyenler gruplanmamış kalır. AI'nın uydurduğu grup adları atılır.
+     * Gruplar her zaman admin'in tanımladığı alt kategorilerdir (boş olanlar dahil, kullanıcı elle ürün atabilsin).
+     * AI'nın yerleştirdiği ürünler korunur; AI'nın atladıkları (varsa o alt kategori tanımlıysa) anahtar kelime
+     * kurallarıyla (KitchenGroups) yerleştirilir, hâlâ eşleşmeyenler gruplanmamış kalır. AI'nın uydurduğu grup
+     * adları atılır.
      */
-    private List<Group> buildKitchenGroups(Map<String, List<Product>> byName, CategoryOrganizeSuggestion suggestion) {
+    private List<Group> buildFixedGroups(Map<String, List<Product>> byName, CategoryOrganizeSuggestion suggestion,
+                                         List<String> groupNames) {
         Map<String, List<CategoryOrganizeResponse.Product>> members = new LinkedHashMap<>();
-        KitchenGroups.ALL.forEach(name -> members.put(name, new ArrayList<>()));
+        groupNames.forEach(name -> members.put(name, new ArrayList<>()));
         Set<UUID> assigned = new HashSet<>();
 
         for (var raw : suggestion.groups() == null ? List.<CategoryOrganizeSuggestion.Group>of() : suggestion.groups()) {
-            String standard = raw == null || raw.name() == null ? null : KitchenGroups.ALL.stream()
+            String standard = raw == null || raw.name() == null ? null : groupNames.stream()
                     .filter(name -> normalize(name).equals(normalize(raw.name())))
                     .findFirst().orElse(null);
             if (standard == null || raw.items() == null) continue;
@@ -230,7 +202,7 @@ public class CategoryOrganizeService {
         for (List<Product> same : byName.values()) {
             for (Product product : same) {
                 if (assigned.contains(product.getId())) continue;
-                KitchenGroups.classify(product.getName()).ifPresent(standard -> {
+                KitchenGroups.classify(product.getName()).filter(members::containsKey).ifPresent(standard -> {
                     assigned.add(product.getId());
                     members.get(standard).add(new CategoryOrganizeResponse.Product(product.getId(), product.getName()));
                 });

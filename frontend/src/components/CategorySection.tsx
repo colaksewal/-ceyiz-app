@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCategory, renameCategory } from "../api/categories";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
-import { isKitchenCategory } from "../lib/kitchen";
 import { pickCategoryEmoji } from "../lib/listAccent";
 import { isJobActive, useAiJobStore } from "../store/aiJobStore";
 import CategoryAiSuggest from "./CategoryAiSuggest";
@@ -238,7 +237,7 @@ export default function CategorySection({
             </button>
           </form>
 
-          {products && !isSub && products.length >= 4 && (
+          {products && !isSub && category.groupNames.length > 0 && products.length >= 4 && (
             <div className={styles.aiSlot}>
               <CategoryOrganize categoryId={category.id} categoryName={category.name} />
             </div>
@@ -250,7 +249,8 @@ export default function CategorySection({
                 jobKey={aiJobKey}
                 jobLabel={`${category.name} için ürün önerisi`}
                 existingNames={products.map((p) => p.name)}
-                kitchen={!isSub && isKitchenCategory(category.name)}
+                categoryId={isSub ? undefined : category.id}
+                restrictTo={isSub ? undefined : category.groupNames}
                 onAddItems={async (items) => {
                   await Promise.all(items.map((item) => createProduct(category.id, item)));
                   queryClient.invalidateQueries({ queryKey: ["products", category.id] });

@@ -24,6 +24,9 @@ export interface Category {
   // Kategorinin DOĞRUDAN ürünleri (alt kategorilerinki dahil değil); kategori açılmadan başlıkta görünür.
   productCount: number;
   purchasedCount: number;
+  // Üst kategoride admin'in şablonlarda tanımladığı alt kategori adları (ör. Mutfak: Pişirme, ...). Boşsa bu
+  // kategoride alt kategori yoktur; alt kategorileri sadece admin belirler.
+  groupNames: string[];
 }
 
 // AI'nın bir kategori için önerdiği düzen (hiçbir şey yazılmadı): alt kategoriler ve aynı ürünler.

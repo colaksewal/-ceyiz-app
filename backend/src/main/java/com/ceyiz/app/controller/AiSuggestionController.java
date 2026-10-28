@@ -35,17 +35,21 @@ public class AiSuggestionController {
     private final AiSuggestionService aiSuggestionService;
     private final AiJobService aiJobService;
     private final AiLogService aiLogService;
+    private final com.ceyiz.app.service.TemplateGroupService templateGroupService;
 
     @PostMapping(value = "/suggestions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AiJobStartedResponse> suggest(
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "text", required = false) String text,
-            @RequestParam(value = "kitchen", defaultValue = "false") boolean kitchen,
+            @RequestParam(value = "categoryId", required = false) UUID categoryId,
             Authentication authentication
     ) {
         UUID userId = UUID.fromString(authentication.getName());
         AiInput input = aiSuggestionService.prepare(file, text);
-        UUID jobId = aiJobService.submit(userId, AiLogService.KIND_PRODUCTS, input, () -> aiSuggestionService.suggest(input, kitchen));
+        // Kategorinin admin tanımlı alt kategorileri varsa öneri sadece onlara girenlerle sınırlanır.
+        String groupsText = categoryId == null ? null : templateGroupService.promptFor(categoryId, userId);
+        UUID jobId = aiJobService.submit(userId, AiLogService.KIND_PRODUCTS, input,
+                () -> aiSuggestionService.suggest(input, groupsText));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
     }
 

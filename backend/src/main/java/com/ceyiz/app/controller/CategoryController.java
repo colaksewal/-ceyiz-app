@@ -7,6 +7,7 @@ import com.ceyiz.app.dto.CreateCategoryRequest;
 import com.ceyiz.app.dto.UpdateCategoryRequest;
 import com.ceyiz.app.service.CategoryOrganizeService;
 import com.ceyiz.app.service.CategoryService;
+import com.ceyiz.app.service.TemplateGroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.UUID;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final TemplateGroupService templateGroupService;
     private final CategoryOrganizeService categoryOrganizeService;
 
     @PostMapping("/api/lists/{listId}/categories")
@@ -42,10 +44,13 @@ public class CategoryController {
         UUID requesterId = UUID.fromString(authentication.getName());
         var found = categoryService.getCategoriesForList(listId, requesterId);
         var counts = categoryService.productCounts(found);
+        var groups = templateGroupService.allGroupNames();
         var categories = found.stream()
                 .map(category -> {
                     int[] count = counts.getOrDefault(category.getId(), new int[]{0, 0});
-                    return CategoryResponse.from(category, count[0], count[1]);
+                    var groupNames = category.getParentId() != null ? java.util.List.<String>of()
+                            : groups.getOrDefault(TemplateGroupService.normalizeName(category.getName()), java.util.List.of());
+                    return CategoryResponse.from(category, count[0], count[1], groupNames);
                 })
                 .toList();
         return ResponseEntity.ok(categories);

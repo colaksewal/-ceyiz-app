@@ -21,6 +21,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final ListAccessService listAccessService;
     private final ProductRepository productRepository;
+    private final TemplateGroupService templateGroupService;
 
     /** Kategori id -> [ürün sayısı, alınan sayısı] (doğrudan ürünler). Ürünsüz kategori haritada yoktur. */
     public Map<UUID, int[]> productCounts(List<Category> categories) {
@@ -47,7 +48,16 @@ public class CategoryService {
             }
         }
 
-        Category category = new Category(listId, parentId, name);
+        // Alt kategorileri admin belirler (şablonlardaki alt şablonlar); kullanıcı kendi alt kategorisini açamaz.
+        String categoryName = name;
+        if (parentId != null) {
+            var parent = findCategory(parentId);
+            categoryName = templateGroupService.canonical(parent.getName(), name).orElseThrow(() ->
+                    new IllegalArgumentException("Alt kategorileri admin belirler: \"" + parent.getName()
+                            + "\" için tanımlı alt kategorilerden biri olmalı"));
+        }
+
+        Category category = new Category(listId, parentId, categoryName);
         return categoryRepository.save(category);
     }
 

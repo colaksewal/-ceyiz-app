@@ -55,6 +55,7 @@ public class ProductSetService {
     private final SetTemplatePriceRepository setTemplatePriceRepository;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final TemplateGroupService templateGroupService;
     private final PriceEntryRepository priceEntryRepository;
 
     private static final Locale TR = Locale.forLanguageTag("tr");
@@ -98,10 +99,10 @@ public class ProductSetService {
         return new SetPlacementPreview(
                 items.stream()
                         .map(item -> new SetPlacementPreview.Item(item.getId(), item.getItemName(), item.getQuantity(),
-                                suggestedKey(item, kitchenSet, categories, products, template.getName())))
+                                suggestedKey(item, kitchenSet, categories, products, kitchenGroups(), template.getName())))
                         .toList(),
-                suggestedSetKey(template.getName(), items, categories),
-                placementCategories(categories, template.getName()),
+                suggestedSetKey(template.getName(), items, categories, kitchenGroups()),
+                placementCategories(categories, kitchenGroups(), template.getName()),
                 products.stream()
                         .map(product -> new SetPlacementPreview.Product(
                                 "p:" + product.getId(), product.getName(), "c:" + product.getCategoryId()))
@@ -110,11 +111,12 @@ public class ProductSetService {
 
     // Set tek ürün olarak eklenirken önerilen kategori: set adı mutfak grubuna giriyorsa o (Cam Bardak Seti -> Sofra
     // Ürünleri), yoksa parçaların en çok denk geldiği grup; mutfak değilse setin adıyla açılacak kategori.
-    private static String suggestedSetKey(String setName, List<SetTemplateItem> items, List<Category> categories) {
-        String group = KitchenGroups.classify(setName).orElse(null);
+    private static String suggestedSetKey(String setName, List<SetTemplateItem> items, List<Category> categories,
+                                          List<String> kitchenGroups) {
+        String group = KitchenGroups.classify(setName).filter(kitchenGroups::contains).orElse(null);
         if (group == null) {
             group = items.stream()
-                    .map(item -> KitchenGroups.classify(item.getItemName()).orElse(null))
+                    .map(item -> KitchenGroups.classify(item.getItemName()).filter(kitchenGroups::contains).orElse(null))
                     .filter(Objects::nonNull)
                     .collect(Collectors.groupingBy(g -> g, Collectors.counting()))
                     .entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
@@ -124,7 +126,8 @@ public class ProductSetService {
 
     // Kademeli seçim için kategoriler: listedekiler ile eklenirken açılacak olanlar (Mutfak, standart Mutfak
     // alt kategorileri, setin adıyla kategori). Anahtarlar keyFor ile aynıdır, böylece ekleme isteğinde doğrulanır.
-    private static List<SetPlacementPreview.Category> placementCategories(List<Category> categories, String setName) {
+    private static List<SetPlacementPreview.Category> placementCategories(
+            List<Category> categories, List<String> kitchenGroups, String setName) {
         List<SetPlacementPreview.Category> result = new ArrayList<>(categories.stream()
                 .map(category -> new SetPlacementPreview.Category("c:" + category.getId(), category.getName(),
                         category.getParentId() == null ? null : "c:" + category.getParentId(), false))
@@ -133,7 +136,8 @@ public class ProductSetService {
         if (kitchenKey.startsWith("n:")) {
             result.add(new SetPlacementPreview.Category(kitchenKey, KITCHEN, null, true));
         }
-        for (String group : KitchenGroups.ALL) {
+        // Açılabilecek alt kategoriler sadece admin'in Mutfak için tanımladıklarıdır.
+        for (String group : kitchenGroups) {
             String key = keyFor(categories, KITCHEN, group);
             if (key.startsWith("n:")) {
                 result.add(new SetPlacementPreview.Category(key, group, kitchenKey, true));
@@ -197,7 +201,7 @@ public class ProductSetService {
         // Kullanıcının seçebileceği "yeni açılacak" hedefler ekleme başında sabitlenir (rastgele ad açtırılmasın).
         Map<UUID, Product> listProducts = productsOf(categories).stream()
                 .collect(Collectors.toMap(Product::getId, product -> product));
-        Set<String> allowedNewKeys = placementCategories(categories, template.getName()).stream()
+        Set<String> allowedNewKeys = placementCategories(categories, kitchenGroups(), template.getName()).stream()
                 .map(SetPlacementPreview.Category::key).filter(key -> key.startsWith("n:"))
                 .collect(Collectors.toSet());
         boolean kitchenSet = isKitchenSet(items);
@@ -208,7 +212,7 @@ public class ProductSetService {
         int linked = 0;
         for (SetTemplateItem item : items) {
             String key = chosen.getOrDefault(item.getId(),
-                    suggestedKey(item, kitchenSet, initialCategories, List.copyOf(listProducts.values()), template.getName()));
+                    suggestedKey(item, kitchenSet, initialCategories, List.copyOf(listProducts.values()), kitchenGroups(), template.getName()));
             if (SKIP_KEY.equals(key)) {
                 setItemRepository.save(new SetItem(set.getId(), null, item.getItemName(), item.getQuantity(),
                         item.getEstimatedSeparatePrice()));
@@ -316,7 +320,7 @@ public class ProductSetService {
             }
         } else {
             List<Category> categories = new ArrayList<>(categoryRepository.findByListId(listId));
-            Set<String> allowedNewKeys = placementCategories(categories, template.getName()).stream()
+            Set<String> allowedNewKeys = placementCategories(categories, kitchenGroups(), template.getName()).stream()
                     .map(SetPlacementPreview.Category::key).filter(k -> k.startsWith("n:"))
                     .collect(Collectors.toSet());
             Category target = resolveDestination(listId, key, categories, allowedNewKeys);
@@ -380,7 +384,7 @@ public class ProductSetService {
         }
 
         List<Category> categories = new ArrayList<>(categoryRepository.findByListId(listId));
-        Set<String> allowedNewKeys = placementCategories(categories, template.getName()).stream()
+        Set<String> allowedNewKeys = placementCategories(categories, kitchenGroups(), template.getName()).stream()
                 .map(SetPlacementPreview.Category::key).filter(key -> key.startsWith("n:"))
                 .collect(Collectors.toSet());
         Category target = resolveDestination(listId, request.categoryKey(), categories, allowedNewKeys);
@@ -462,6 +466,11 @@ public class ProductSetService {
                 .orElseThrow(() -> new IllegalArgumentException("Set bulunamadı"));
     }
 
+    // Mutfak'ın admin tanımlı alt kategorileri (şablonlardan).
+    private List<String> kitchenGroups() {
+        return templateGroupService.groupNames(KITCHEN);
+    }
+
     private static boolean isKitchenSet(List<SetTemplateItem> items) {
         return items.stream().anyMatch(item -> KitchenGroups.classify(item.getItemName()).isPresent());
     }
@@ -469,14 +478,14 @@ public class ProductSetService {
     // Mutfak setinde parça sınıflandırıcının bulduğu alt kategoriye, bulunamazsa Mutfak'a; mutfak olmayan
     // sette setin adıyla açılan kategoriye önerilir.
     private static String suggestedKey(SetTemplateItem item, boolean kitchenSet, List<Category> categories,
-                                       List<Product> products, String setName) {
+                                       List<Product> products, List<String> kitchenGroups, String setName) {
         // Listede parçayla aynı adlı ürün varsa önce o önerilir (yanlış eşleşmeyi önlemek için sadece tam eşleşme).
         Product sameName = products.stream()
                 .filter(product -> normalize(product.getName()).equals(normalize(item.getItemName())))
                 .findFirst().orElse(null);
         if (sameName != null) return "p:" + sameName.getId();
         if (!kitchenSet) return keyFor(categories, null, setName);
-        String group = KitchenGroups.classify(item.getItemName()).orElse(null);
+        String group = KitchenGroups.classify(item.getItemName()).filter(kitchenGroups::contains).orElse(null);
         return group == null ? keyFor(categories, null, KITCHEN) : keyFor(categories, KITCHEN, group);
     }
 

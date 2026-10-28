@@ -5,7 +5,6 @@ import { isAxiosError } from "axios";
 import { applyOrganize, startOrganize, type ApplyOrganize } from "../api/categories";
 import { reportAiOutcome } from "../api/aiJobs";
 import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
-import { isKitchenCategory } from "../lib/kitchen";
 import type { CategoryOrganizeSuggestion, OrganizeProduct } from "../types";
 import AiWaiting from "./AiWaiting";
 import aiStyles from "./CategoryAiSuggest.module.scss";
@@ -35,8 +34,6 @@ export default function CategoryOrganize({
   categoryName: string;
 }) {
   const jobKey = `organize:${categoryId}`;
-  // Mutfak'ta alt kategori adları 4 standart gruptur, değiştirilemez (sunucu da reddeder).
-  const kitchen = isKitchenCategory(categoryName);
   const location = useLocation();
   const queryClient = useQueryClient();
   const job = useAiJob(jobKey);
@@ -150,10 +147,6 @@ export default function CategoryOrganize({
     setGroups((prev) => prev && prev.map((g, i) => (i === index ? { ...g, on: !g.on } : g)));
   }
 
-  function renameGroup(index: number, name: string) {
-    setGroups((prev) => prev && prev.map((g, i) => (i === index ? { ...g, name } : g)));
-  }
-
   // Ürünü bir gruptan (from) başka bir gruba ya da gruplanmamışa (to = null) taşır; elle düzeltme budur.
   function moveProduct(product: OrganizeProduct, from: number | null, to: number | null) {
     if (from === to) return;
@@ -218,8 +211,8 @@ export default function CategoryOrganize({
         <div className={aiStyles.headerText}>
           <strong>AI ile düzenle</strong>
           <p>
-            Bu kategorideki ürünleri alt kategorilere (ör. Pişirme, Servis) ayırır ve aynı ürünü iki kez
-            yazdıysan birleştirmeyi önerir. Sen onaylamadan hiçbir şey değişmez.
+            Bu kategorideki ürünleri admin'in belirlediği alt kategorilere (ör. Pişirme, Sofra Ürünleri) ayırır ve aynı
+            ürünü iki kez yazdıysan birleştirmeyi önerir. Sen onaylamadan hiçbir şey değişmez.
           </p>
         </div>
         <button type="button" className={aiStyles.close} aria-label="Kapat" onClick={close}>
@@ -283,19 +276,7 @@ export default function CategoryOrganize({
                   checked={group.on}
                   onChange={() => toggleGroup(index)}
                 />
-                {kitchen ? (
-                  <strong className={styles.nameInput}>{group.name}</strong>
-                ) : (
-                <input
-                  type="text"
-                  className={styles.nameInput}
-                  aria-label="Alt kategori adı"
-                  maxLength={60}
-                  value={group.name}
-                  disabled={!group.on}
-                  onChange={(e) => renameGroup(index, e.target.value)}
-                />
-                )}
+                <strong className={styles.nameInput}>{group.name}</strong>
               </div>
               <div className={styles.productRows}>
                 {group.products.length === 0 && <span className={styles.emptyGroup}>Boş</span>}

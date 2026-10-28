@@ -64,17 +64,22 @@ public class AiSuggestionService {
         return input;
     }
 
-    // Mutfak'ta öneri sadece 4 standart gruba giren ürünlerle sınırlanır (bkz. KitchenGroups).
-    public Optional<ProductSuggestionResponse> suggest(AiInput input, boolean kitchen) {
-        String prompt = kitchen ? "prompts/product-suggestion-kitchen.txt" : "prompts/product-suggestion.txt";
-        return suggest(input, prompt, ProductSuggestionResponse.class);
+    // groupsText doluysa (kategorinin admin tanımlı alt kategorileri, bkz. TemplateGroupService) öneri sadece bu alt
+    // kategorilere giren ürünlerle sınırlanır.
+    public Optional<ProductSuggestionResponse> suggest(AiInput input, String groupsText) {
+        if (groupsText == null) {
+            return suggest(input, "prompts/product-suggestion.txt", ProductSuggestionResponse.class);
+        }
+        return suggest(input, "prompts/product-suggestion-groups.txt", ProductSuggestionResponse.class,
+                Map.of("{{groups}}", groupsText));
     }
 
     /** Girdi: kategorideki ürün adları (satır satır). Alt kategori grupları ve olası tekrarlar döner. */
-    // Mutfak'ta AI'ya 4 standart grup verilir ve ürünleri bunlara yerleştirmesi istenir.
-    public Optional<CategoryOrganizeSuggestion> organizeCategory(AiInput input, boolean kitchen) {
-        String prompt = kitchen ? "prompts/category-organize-kitchen.txt" : "prompts/category-organize.txt";
-        return suggest(input, prompt, CategoryOrganizeSuggestion.class);
+    // AI'ya kategorinin admin tanımlı alt kategorileri (ad + örnek ürünler) verilir ve ürünleri bunlara yerleştirmesi
+    // istenir; kendi alt kategori uyduramaz.
+    public Optional<CategoryOrganizeSuggestion> organizeCategory(AiInput input, String groupsText) {
+        return suggest(input, "prompts/category-organize-groups.txt", CategoryOrganizeSuggestion.class,
+                Map.of("{{groups}}", groupsText));
     }
 
     /** Set ürün sayfası/kataloğundan set adı, marka, parçalar ve fiyatları çıkarır. */
@@ -122,9 +127,17 @@ public class AiSuggestionService {
      * görsele göre çok daha hızlı); dosyayla birlikte gelirse metin, içeriğin yanına not olarak eklenir.
      */
     private <T> Optional<T> suggest(AiInput input, String promptPath, Class<T> responseType) {
+        return suggest(input, promptPath, responseType, Map.of());
+    }
+
+    // vars: istem şablonundaki ek yer tutucular ("{{groups}}" gibi), içerik konmadan önce doldurulur.
+    private <T> Optional<T> suggest(AiInput input, String promptPath, Class<T> responseType, Map<String, String> vars) {
         logInput(promptPath, input);
         String note = input.text();
         String promptTemplate = loadPromptTemplate(promptPath);
+        for (Map.Entry<String, String> var : vars.entrySet()) {
+            promptTemplate = promptTemplate.replace(var.getKey(), var.getValue());
+        }
         Optional<String> aiResponse;
 
         if (!input.hasFile()) {

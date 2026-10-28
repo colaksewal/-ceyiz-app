@@ -15,10 +15,10 @@ export function toAiFormData({ file, text }: AiInput): FormData {
 }
 
 // Arka planda çalışır: sonuç (ProductSuggestion) iş bitince GET /ai/jobs/{jobId}'den gelir.
-// kitchen: Mutfak'ta öneri sadece 4 standart gruba giren ürünlerle sınırlanır.
-export async function suggestProducts(input: AiInput, kitchen = false): Promise<AiJobStarted> {
+// categoryId: verilirse ve kategorinin admin tanımlı alt kategorileri varsa öneri sadece onlara giren ürünlerle sınırlanır.
+export async function suggestProducts(input: AiInput, categoryId?: string): Promise<AiJobStarted> {
   const formData = toAiFormData(input);
-  if (kitchen) formData.append("kitchen", "true");
+  if (categoryId) formData.append("categoryId", categoryId);
   const response = await api.post<AiJobStarted>("/ai/suggestions", formData);
   return response.data;
 }
