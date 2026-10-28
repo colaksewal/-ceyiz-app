@@ -12,6 +12,7 @@ import {
 import { reportAiOutcome } from "../api/aiJobs";
 import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
+import AddSetToList from "../components/AddSetToList";
 import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
 import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
@@ -896,6 +897,8 @@ function SetTemplateDetail({
           </ul>
         </div>
       )}
+
+      <AddSetToList set={set} />
 
       {set.canDelete && (
         <div className={styles.dangerZone}>

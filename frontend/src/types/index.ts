@@ -95,6 +95,14 @@ export interface SetTemplatePrice {
 }
 
 // totalPieceCount / individualTotal / pricedItemCount backend'de parçalardan hesaplanır.
+export interface AddSetToListResult {
+  id: string;
+  name: string;
+  setPrice: number;
+  newProductCount: number;
+  existingProductCount: number;
+}
+
 export interface SetTemplate {
   id: string;
   name: string;
@@ -171,6 +179,8 @@ export interface ListSummary {
         preferred: boolean;
       } | null;
       priceEntryCount: number;
+      // Ürün listeye eklenmiş bir setin parçasıysa setin adı; fiyat sette durur.
+      setName: string | null;
     }[];
   }[];
   sets: { name: string; storeName: string | null; setPrice: number }[];

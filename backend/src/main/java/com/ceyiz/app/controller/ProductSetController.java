@@ -1,5 +1,7 @@
 package com.ceyiz.app.controller;
 
+import com.ceyiz.app.dto.AddSetToListRequest;
+import com.ceyiz.app.dto.AddSetToListResponse;
 import com.ceyiz.app.dto.CreateProductSetRequest;
 import com.ceyiz.app.dto.ProductSetResponse;
 import com.ceyiz.app.dto.SetComparisonResult;
@@ -29,6 +31,17 @@ public class ProductSetController {
         UUID requesterId = UUID.fromString(authentication.getName());
         var created = productSetService.createSet(listId, request, requesterId);
         return ResponseEntity.ok(ProductSetResponse.from(created));
+    }
+
+    // Katalogdaki seti (kopyalayarak) listeye ekler: set + parçaları kategorilere dağılmış ürünler.
+    @PostMapping("/api/lists/{listId}/sets/from-template")
+    public ResponseEntity<AddSetToListResponse> addFromTemplate(
+            @PathVariable UUID listId,
+            @RequestBody AddSetToListRequest request,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(productSetService.addFromTemplate(listId, request, requesterId));
     }
 
     @GetMapping("/api/lists/{listId}/sets")

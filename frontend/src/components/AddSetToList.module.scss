@@ -1,0 +1,41 @@
+@use "../styles/variables" as *;
+
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding: $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background: $color-surface;
+}
+
+.heading {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.hint {
+  margin: 0;
+  color: $color-text-muted;
+  font-size: 0.8rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2;
+
+  // Global select { width: 100% } kuralını eziyoruz.
+  select {
+    width: auto;
+    max-width: 100%;
+    flex: 1 1 10rem;
+  }
+}
+
+.success {
+  margin: 0;
+  font-size: 0.85rem;
+}

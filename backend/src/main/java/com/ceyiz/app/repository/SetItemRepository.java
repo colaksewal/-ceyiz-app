@@ -11,4 +11,6 @@ public interface SetItemRepository extends JpaRepository<SetItem, UUID> {
     List<SetItem> findBySetId(UUID setId);
 
     List<SetItem> findByProductId(UUID productId);
+
+    List<SetItem> findBySetIdIn(java.util.Collection<UUID> setIds);
 }

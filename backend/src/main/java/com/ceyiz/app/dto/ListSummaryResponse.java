@@ -42,12 +42,17 @@ public record ListSummaryResponse(
             List<ProductSummary> products
     ) {}
 
-    /** price: kullanılan fiyat notu; yoksa en ucuz not (preferred=false); hiç not yoksa null. */
+    /**
+     * price: kullanılan fiyat notu; yoksa en ucuz not (preferred=false); hiç not yoksa null.
+     * setName: ürün listeye eklenmiş bir setin parçasıysa o setin adı; fiyat sette durduğu için
+     * fiyatsız olması "fiyatsız ürün" sayılmaz.
+     */
     public record ProductSummary(
             String name,
             ProductStatus status,
             PriceSummary price,
-            int priceEntryCount
+            int priceEntryCount,
+            String setName
     ) {}
 
     /** total: peşin fiyat ya da taksitlerin toplamı. */

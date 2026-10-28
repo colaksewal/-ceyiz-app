@@ -168,7 +168,7 @@ function Categories({ summary }: { summary: ListSummary }) {
                           </span>
                         </>
                       ) : (
-                        <span className="muted">fiyat yok</span>
+                        <span className="muted">{product.setName ? `set fiyatına dahil` : "fiyat yok"}</span>
                       )}
                     </td>
                   </tr>

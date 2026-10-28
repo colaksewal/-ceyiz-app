@@ -22,6 +22,10 @@ import com.ceyiz.app.repository.ListShareRepository;
 import com.ceyiz.app.repository.PriceEntryRepository;
 import com.ceyiz.app.repository.ProductRepository;
 import com.ceyiz.app.repository.ProductSetRepository;
+import com.ceyiz.app.repository.SetItemRepository;
+import com.ceyiz.app.entity.PriceType;
+import com.ceyiz.app.entity.ProductSet;
+import com.ceyiz.app.entity.SetItem;
 import com.ceyiz.app.repository.UserRepository;
 import com.ceyiz.app.service.PaymentPlanCalculator.PlanItem;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +37,10 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -55,6 +61,7 @@ public class ListSummaryService {
     private final ProductRepository productRepository;
     private final PriceEntryRepository priceEntryRepository;
     private final ProductSetRepository productSetRepository;
+    private final SetItemRepository setItemRepository;
     private final ListShareRepository listShareRepository;
     private final UserRepository userRepository;
     private final AiSuggestionService aiSuggestionService;
@@ -105,6 +112,20 @@ public class ListSummaryService {
         Map<UUID, List<Product>> productsByCategory = products.stream()
                 .collect(Collectors.groupingBy(Product::getCategoryId));
 
+        // Katalogdan listeye eklenen setler (bkz. ProductSetService.addFromTemplate): fiyat sette durur,
+        // parça ürünleri fiyatsızdır. Elle girilen eski setler toplamlara katılmaya devam etmez.
+        List<ProductSet> listSets = productSetRepository.findByListId(list.getId()).stream()
+                .filter(set -> set.getSetTemplateId() != null)
+                .toList();
+        List<SetItem> setItems = listSets.isEmpty() ? List.of()
+                : setItemRepository.findBySetIdIn(listSets.stream().map(ProductSet::getId).toList());
+        Map<UUID, String> setNameByProduct = new HashMap<>();
+        for (SetItem setItem : setItems) {
+            if (setItem.getProductId() == null) continue;
+            listSets.stream().filter(set -> set.getId().equals(setItem.getSetId())).findFirst()
+                    .ifPresent(set -> setNameByProduct.putIfAbsent(setItem.getProductId(), set.getName()));
+        }
+
         List<CategorySummary> categorySummaries = new ArrayList<>();
         int purchased = 0, planned = 0, skipped = 0, unpricedPlanned = 0;
         BigDecimal purchasedTotal = BigDecimal.ZERO, remainingTotal = BigDecimal.ZERO;
@@ -120,7 +141,8 @@ public class ListSummaryService {
             for (Product product : categoryProducts) {
                 List<PriceEntry> entries = entriesByProduct.getOrDefault(product.getId(), List.of());
                 PriceSummary price = choosePrice(entries).orElse(null);
-                productSummaries.add(new ProductSummary(product.getName(), product.getStatus(), price, entries.size()));
+                String setName = setNameByProduct.get(product.getId());
+                productSummaries.add(new ProductSummary(product.getName(), product.getStatus(), price, entries.size(), setName));
 
                 BigDecimal amount = price == null ? BigDecimal.ZERO : price.total();
                 switch (product.getStatus()) {
@@ -132,7 +154,7 @@ public class ListSummaryService {
                     }
                     case PLANNED -> {
                         planned++;
-                        if (price == null) unpricedPlanned++;
+                        if (price == null && setName == null) unpricedPlanned++;
                         remainingTotal = remainingTotal.add(amount);
                         categoryTotal = categoryTotal.add(amount);
                     }
@@ -141,6 +163,42 @@ public class ListSummaryService {
             }
             categorySummaries.add(new CategorySummary(
                     displayNames.get(category.getId()), categoryProducts.size(), categoryPurchased, categoryTotal, productSummaries));
+        }
+
+        // Liste setleri tek kalem olarak sayılır: durum parçalarından türer (hepsi alındıysa alındı,
+        // hepsi atlandıysa atlandı, aksi halde planlandı). Ürün sayıları setin parçalarıyla zaten sayıldı.
+        Map<UUID, Product> productsById = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+        for (ProductSet set : listSets) {
+            List<ProductStatus> statuses = setItems.stream()
+                    .filter(item -> item.getSetId().equals(set.getId()))
+                    .map(item -> item.getProductId() == null ? null : productsById.get(item.getProductId()))
+                    .filter(Objects::nonNull)
+                    .map(Product::getStatus)
+                    .toList();
+            ProductStatus status = ProductStatus.PLANNED;
+            if (!statuses.isEmpty() && statuses.stream().allMatch(s -> s == ProductStatus.PURCHASED)) {
+                status = ProductStatus.PURCHASED;
+            } else if (!statuses.isEmpty() && statuses.stream().allMatch(s -> s == ProductStatus.SKIPPED)) {
+                status = ProductStatus.SKIPPED;
+            }
+            boolean priced = set.getSetPrice().signum() > 0;
+            PriceSummary setPrice = priced
+                    ? new PriceSummary(set.getStoreName(), set.getPriceType() == null ? PriceType.PESIN : set.getPriceType(),
+                            set.getSetPrice(), set.getInstallmentCount(), set.getInstallmentAmount(), true)
+                    : null;
+            BigDecimal amount = priced ? set.getSetPrice() : BigDecimal.ZERO;
+            switch (status) {
+                case PURCHASED -> purchasedTotal = purchasedTotal.add(amount);
+                case PLANNED -> {
+                    remainingTotal = remainingTotal.add(amount);
+                    if (!priced) unpricedPlanned++;
+                }
+                case SKIPPED -> { }
+            }
+            categorySummaries.add(new CategorySummary(
+                    "Set: " + set.getName(), 1, status == ProductStatus.PURCHASED ? 1 : 0,
+                    status == ProductStatus.SKIPPED ? BigDecimal.ZERO : amount,
+                    List.of(new ProductSummary(set.getName(), status, setPrice, 0, null))));
         }
 
         List<SetSummary> sets = productSetRepository.findByListId(list.getId()).stream()
@@ -165,7 +223,8 @@ public class ListSummaryService {
             for (ProductSummary product : category.products()) {
                 if (product.status() != ProductStatus.PLANNED) continue;
                 if (product.price() == null || product.price().total().signum() <= 0) {
-                    unpriced.add(product.name());
+                    // Sete bağlı parçanın fiyatı sette durur; fiyatsız sayılmaz.
+                    if (product.setName() == null) unpriced.add(product.name());
                 } else {
                     items.add(new PlanItem(category.name(), product.name(), product.price()));
                 }
