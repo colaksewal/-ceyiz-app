@@ -292,6 +292,34 @@ function SetCardSummary({ set }: { set: SetTemplate }) {
   );
 }
 
+// Parçaların ayrı fiyat toplamı ("tek tek") ve varsa set fiyatı; set fiyatı girilmemiş olsa da görünür.
+function SetTotals({ set }: { set: SetTemplate }) {
+  const setPrice = referenceSetPrice(set.prices);
+  const missing = set.items.length - set.pricedItemCount;
+  return (
+    <div className={styles.totals}>
+      <div className={styles.totalRow}>
+        <span>
+          Tek tek toplam
+          {set.pricedItemCount > 0 && missing > 0 && (
+            <small className={styles.totalNote}> · {missing} parçanın ayrı fiyatı girilmedi</small>
+          )}
+        </span>
+        <strong>{set.pricedItemCount > 0 ? formatTl(set.individualTotal) : "—"}</strong>
+      </div>
+      {set.pricedItemCount === 0 && (
+        <p className={styles.totalNote}>Parçaların ayrı fiyatı girilmemiş; düzenleyip ekleyebilirsin.</p>
+      )}
+      {setPrice != null && (
+        <div className={styles.totalRow}>
+          <span>Set fiyatı</span>
+          <strong>{formatTl(setPrice)}</strong>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ComparisonLine({
   setPrice,
   individualTotal,
@@ -906,6 +934,7 @@ function SetTemplateDetail({
             </li>
           ))}
         </ul>
+        <SetTotals set={set} />
       </div>
 
       {set.prices.length > 0 && (
