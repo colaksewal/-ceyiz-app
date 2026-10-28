@@ -115,7 +115,7 @@ public class ListSummaryService {
         // Katalogdan listeye eklenen setler (bkz. ProductSetService.addFromTemplate): fiyat sette durur,
         // parça ürünleri fiyatsızdır. Elle girilen eski setler toplamlara katılmaya devam etmez.
         List<ProductSet> listSets = productSetRepository.findByListId(list.getId()).stream()
-                .filter(set -> set.getSetTemplateId() != null)
+                .filter(set -> set.getSetTemplateId() != null && !set.isAsProduct())
                 .toList();
         List<SetItem> setItems = listSets.isEmpty() ? List.of()
                 : setItemRepository.findBySetIdIn(listSets.stream().map(ProductSet::getId).toList());

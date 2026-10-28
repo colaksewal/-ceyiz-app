@@ -28,6 +28,10 @@ public class Product {
     // Ürün sayfası linki (opsiyonel).
     private String url;
 
+    // Ürün bir setten ("Cam Bardak Seti") açıldıysa o liste seti; parçaları ürünün altında listelenir.
+    @Column(name = "product_set_id")
+    private UUID productSetId;
+
     protected Product(){}
 
     public Product(UUID categoryId, String name){
@@ -36,6 +40,10 @@ public class Product {
         this.name = name;
         this.status = ProductStatus.PLANNED;
 
+    }
+
+    public void linkToSet(UUID productSetId){
+        this.productSetId = productSetId;
     }
 
     public void changeUrl(String url){

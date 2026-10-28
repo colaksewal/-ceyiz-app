@@ -19,6 +19,28 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ListAccessService listAccessService;
+    private final com.ceyiz.app.repository.SetItemRepository setItemRepository;
+    private final com.ceyiz.app.repository.ProductSetRepository productSetRepository;
+
+    /** Ürünleri, setten geldilerse parçalarıyla birlikte yanıta çevirir (tek sorguyla). */
+    public List<com.ceyiz.app.dto.ProductResponse> toResponses(List<Product> products) {
+        List<UUID> setIds = products.stream().map(Product::getProductSetId).filter(java.util.Objects::nonNull).distinct().toList();
+        java.util.Map<UUID, List<com.ceyiz.app.dto.ProductResponse.Part>> partsBySet = setIds.isEmpty() ? java.util.Map.of()
+                : setItemRepository.findBySetIdIn(setIds).stream().collect(java.util.stream.Collectors.groupingBy(
+                        com.ceyiz.app.entity.SetItem::getSetId,
+                        java.util.stream.Collectors.mapping(
+                                item -> new com.ceyiz.app.dto.ProductResponse.Part(item.getItemName(), item.getQuantity()),
+                                java.util.stream.Collectors.toList())));
+        return products.stream()
+                .map(product -> com.ceyiz.app.dto.ProductResponse.from(product,
+                        product.getProductSetId() == null ? List.of()
+                                : partsBySet.getOrDefault(product.getProductSetId(), List.of())))
+                .toList();
+    }
+
+    public com.ceyiz.app.dto.ProductResponse toResponse(Product product) {
+        return toResponses(List.of(product)).get(0);
+    }
 
 
     public Product createProduct(UUID categoryId, String name ,UUID requesterId){
@@ -70,6 +92,10 @@ public class ProductService {
         requireEditorForProduct(product, requesterId);
 
         productRepository.delete(product);
+        // Set ürünüyse setin kaydı (parçalarıyla) da silinir; böylece aynı set listeye yeniden eklenebilir.
+        if (product.getProductSetId() != null) {
+            productSetRepository.deleteById(product.getProductSetId());
+        }
     }
 
     // Elle taşıma sadece aynı listede, aynı üst kategorinin kendisi ile alt kategorileri arasında olur.

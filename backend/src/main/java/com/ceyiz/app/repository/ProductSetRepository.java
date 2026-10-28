@@ -11,4 +11,6 @@ public interface ProductSetRepository extends JpaRepository<ProductSet, UUID> {
     List<ProductSet> findByListId(UUID listId);
 
     boolean existsByListIdAndSetTemplateId(UUID listId, UUID setTemplateId);
+
+    java.util.Optional<ProductSet> findByListIdAndSetTemplateId(UUID listId, UUID setTemplateId);
 }

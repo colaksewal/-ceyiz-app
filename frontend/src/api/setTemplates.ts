@@ -1,5 +1,6 @@
 import api from "../lib/api";
 import type {
+  AddSetAsProductResult,
   AddSetToListResult,
   AttachSetToProductResult,
   CreateSetTemplatePayload,
@@ -43,6 +44,15 @@ export async function attachSetToProduct(
     setTemplateId,
     priceId,
   });
+  return response.data;
+}
+
+// Seti listeye TEK ÜRÜN olarak ekler: ürün setin adı/linki/fiyat notlarıyla açılır, parçalar ürünün altında listelenir.
+export async function addSetAsProduct(
+  listId: string,
+  payload: { setTemplateId: string; priceId: string | null; categoryKey: string; productName: string | null }
+): Promise<AddSetAsProductResult> {
+  const response = await api.post<AddSetAsProductResult>(`/lists/${listId}/sets/as-product`, payload);
   return response.data;
 }
 

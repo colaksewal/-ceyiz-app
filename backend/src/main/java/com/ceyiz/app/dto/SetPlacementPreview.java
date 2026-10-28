@@ -8,8 +8,10 @@ import java.util.UUID;
  * hedefi kademeli seçtirmek için listedeki kategoriler ve ürünler. Hedef anahtarı ("c:&lt;kategori id&gt;" mevcut
  * kategoride yeni ürün, "n:&lt;üst&gt;|&lt;ad&gt;" eklenirken açılacak kategoride yeni ürün, "p:&lt;ürün id&gt;" mevcut
  * ürüne ekle, "skip" listeye ekleme) olduğu gibi AddSetToListRequest.placements içinde geri gönderilir.
+ * setSuggestedKey: seti tek ürün olarak eklerken önerilen kategori.
  */
-public record SetPlacementPreview(List<Item> items, List<Category> categories, List<Product> products) {
+public record SetPlacementPreview(
+        List<Item> items, String setSuggestedKey, List<Category> categories, List<Product> products) {
 
     public record Item(UUID id, String itemName, int quantity, String suggestedKey) {}
 

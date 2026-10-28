@@ -4,9 +4,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { getListProductPaths } from "../api/listProducts";
 import { getMyLists } from "../api/lists";
-import { addSetToList, attachSetToProduct, previewSetPlacement } from "../api/setTemplates";
+import { addSetAsProduct, addSetToList, attachSetToProduct, previewSetPlacement } from "../api/setTemplates";
+import CategoryPicker from "./CategoryPicker";
 import PartTargetSelect from "./PartTargetSelect";
-import type { AddSetToListResult, PriceType, SetPlacementPreview, SetTemplate } from "../types";
+import type {
+  AddSetAsProductResult,
+  AddSetToListResult,
+  PriceType,
+  SetPlacementPreview,
+  SetTemplate,
+} from "../types";
 import styles from "./AddSetToList.module.scss";
 
 const priceTypeLabels: Record<PriceType, string> = {
@@ -17,9 +24,10 @@ const priceTypeLabels: Record<PriceType, string> = {
 
 const tlFormatter = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" });
 
-type Mode = "product" | "categories";
+type Mode = "asProduct" | "product" | "categories";
 
 type Done =
+  | { kind: "asProduct"; listId: string; result: AddSetAsProductResult }
   | { kind: "product"; productId: string; productName: string; added: number }
   | { kind: "categories"; listId: string; added: AddSetToListResult };
 
@@ -43,11 +51,41 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
   const queryClient = useQueryClient();
   const { data: lists } = useQuery({ queryKey: ["lists"], queryFn: getMyLists });
   const editableLists = (lists ?? []).filter((list) => list.role !== "VIEWER");
-  const [mode, setMode] = useState<Mode>("product");
+  const [mode, setMode] = useState<Mode>("asProduct");
   const [listId, setListId] = useState("");
   const [priceId, setPriceId] = useState("");
   const [done, setDone] = useState<Done | null>(null);
   const selectedListId = listId || editableLists[0]?.id || "";
+
+  // --- Set ürün olarak ekle: setin adıyla yeni ürün, parçalar ürünün altında
+  const { data: asProductPreview, isLoading: asProductLoading } = useQuery({
+    queryKey: ["setPlacement", selectedListId, set.id],
+    queryFn: () => previewSetPlacement(selectedListId, set.id),
+    enabled: mode === "asProduct" && selectedListId !== "",
+  });
+  const [chosenKey, setChosenKey] = useState<string | null>(null);
+  const [chosenName, setChosenName] = useState<string | null>(null);
+  const categoryKey = chosenKey ?? asProductPreview?.setSuggestedKey ?? "";
+  const productNameInput = chosenName ?? set.name;
+  const pieceTotal = set.items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const asProductMutation = useMutation({
+    mutationFn: () =>
+      addSetAsProduct(selectedListId, {
+        setTemplateId: set.id,
+        priceId: priceId || null,
+        categoryKey,
+        productName: productNameInput.trim() || null,
+      }),
+    onSuccess: (result) => {
+      setDone({ kind: "asProduct", listId: selectedListId, result });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["setPlacement"] });
+      queryClient.invalidateQueries({ queryKey: ["listSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["paymentPlan"] });
+    },
+  });
 
   // --- Mevcut ürüne ekle
   const [productFilter, setProductFilter] = useState("");
@@ -132,7 +170,7 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
     <label className={styles.field}>
       <span>Fiyat</span>
       <select aria-label="Fiyat" value={priceId} onChange={(e) => setPriceId(e.target.value)}>
-      <option value="">{mode === "product" ? "Tüm fiyatları ekle" : "En ucuz fiyat"}</option>
+      <option value="">{mode === "categories" ? "En ucuz fiyat" : "Tüm fiyatları ekle"}</option>
       {set.prices.map((price) => (
         <option key={price.id} value={price.id}>
           {priceTypeLabels[price.priceType]}
@@ -154,6 +192,23 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
       <p className={styles.hint}>Set katalogda kalır. Listene nasıl ekleneceğini seç.</p>
 
       <div className={styles.modes} role="radiogroup" aria-label="Ekleme şekli">
+        <label className={`${styles.mode} ${mode === "asProduct" ? styles.modeActive : ""}`}>
+          <input
+            type="radio"
+            name={`mode-${set.id}`}
+            checked={mode === "asProduct"}
+            onChange={() => {
+              setMode("asProduct");
+              reset();
+            }}
+          />
+          <span>
+            <strong>Set ürün olarak ekle</strong>
+            <small>
+              Setin adı, linki ve fiyatıyla yeni bir ürün açılır; içindekiler adetleriyle ürünün altında listelenir.
+            </small>
+          </span>
+        </label>
         <label className={`${styles.mode} ${mode === "product" ? styles.modeActive : ""}`}>
           <input
             type="radio"
@@ -195,6 +250,7 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
             onChange={(e) => {
               setListId(e.target.value);
               setProductId("");
+              setChosenKey(null);
               reset();
             }}
           >
@@ -208,7 +264,49 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
         {priceSelect}
       </div>
 
-      {mode === "product" ? (
+      {mode === "asProduct" ? (
+        <>
+          {asProductLoading && <p className="muted">Hazırlanıyor...</p>}
+          {asProductPreview && (
+            <>
+              <CategoryPicker
+                preview={asProductPreview}
+                value={categoryKey}
+                onChange={(key) => {
+                  setChosenKey(key);
+                  setDone(null);
+                }}
+              />
+              <label className={styles.field}>
+                <span>Ürün adı</span>
+                <input
+                  type="text"
+                  maxLength={255}
+                  value={productNameInput}
+                  onChange={(e) => setChosenName(e.target.value)}
+                />
+              </label>
+              <p className={styles.hint}>
+                🧩 {pieceTotal} parça ürünün altında listelenir. Fiyat ürüne fiyat notu olarak girer.
+              </p>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!categoryKey || asProductMutation.isPending}
+                  onClick={() => {
+                    setDone(null);
+                    asProductMutation.mutate();
+                  }}
+                >
+                  {asProductMutation.isPending ? "Ekleniyor..." : "Ürün olarak ekle"}
+                </button>
+              </div>
+            </>
+          )}
+          {asProductMutation.isError && <p className="error-text">{errorMessage(asProductMutation.error)}</p>}
+        </>
+      ) : mode === "product" ? (
         <div className={styles.productPicker}>
           <label className={styles.field}>
             <span>Hangi ürüne eklensin?</span>
@@ -311,6 +409,13 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
         </>
       )}
 
+      {done?.kind === "asProduct" && (
+        <p className={styles.success}>
+          ✓ "{done.result.productName}" ürünü açıldı ({done.result.partCount} parça
+          {done.result.priceNoteCount > 0 && `, ${done.result.priceNoteCount} fiyat notu`}).{" "}
+          <Link to={`/lists/${done.listId}`}>Listeye git</Link>
+        </p>
+      )}
       {done?.kind === "product" && (
         <p className={styles.success}>
           ✓ "{done.productName}" ürününe {done.added} fiyat notu eklendi.{" "}

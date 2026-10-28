@@ -15,6 +15,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     List<Product> findByCategoryIdIn(Collection<UUID> categoryIds);
 
+    boolean existsByProductSetId(UUID productSetId);
+
     // [kategori id, ürün sayısı, alınan (PURCHASED) sayısı]; ürünü olmayan kategori satır dönmez.
     @Query("""
             SELECT p.categoryId, COUNT(p),

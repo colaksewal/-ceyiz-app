@@ -42,7 +42,16 @@ public class ProductSet {
     @Column(name = "installment_amount")
     private BigDecimal installmentAmount;
 
+    // true: set listede tek ürün olarak eklendi (Product.productSetId); fiyatı ürünün fiyat notlarında durur,
+    // özet ve ödeme planında ayrıca sayılmaz.
+    @Column(name = "as_product", nullable = false)
+    private boolean asProduct = false;
+
     protected ProductSet() {}
+
+    public void markAsProduct() {
+        this.asProduct = true;
+    }
 
     public ProductSet(UUID listId, String name, String storeName, BigDecimal setPrice, UUID setTemplateId,
                       PriceType priceType, Integer installmentCount, BigDecimal installmentAmount) {

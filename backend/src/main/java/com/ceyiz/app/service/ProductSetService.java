@@ -6,6 +6,8 @@ import com.ceyiz.app.entity.SetItem;
 import com.ceyiz.app.repository.ProductSetRepository;
 import com.ceyiz.app.repository.SetItemRepository;
 import com.ceyiz.app.dto.AddSetToListRequest;
+import com.ceyiz.app.dto.AddSetAsProductRequest;
+import com.ceyiz.app.dto.AddSetAsProductResponse;
 import com.ceyiz.app.dto.AddSetToListResponse;
 import com.ceyiz.app.dto.AttachSetToProductRequest;
 import com.ceyiz.app.dto.AttachSetToProductResponse;
@@ -96,11 +98,26 @@ public class ProductSetService {
                         .map(item -> new SetPlacementPreview.Item(item.getId(), item.getItemName(), item.getQuantity(),
                                 suggestedKey(item, kitchenSet, categories, products, template.getName())))
                         .toList(),
+                suggestedSetKey(template.getName(), items, categories),
                 placementCategories(categories, template.getName()),
                 products.stream()
                         .map(product -> new SetPlacementPreview.Product(
                                 "p:" + product.getId(), product.getName(), "c:" + product.getCategoryId()))
                         .toList());
+    }
+
+    // Set tek ürün olarak eklenirken önerilen kategori: set adı mutfak grubuna giriyorsa o (Cam Bardak Seti -> Sofra
+    // Ürünleri), yoksa parçaların en çok denk geldiği grup; mutfak değilse setin adıyla açılacak kategori.
+    private static String suggestedSetKey(String setName, List<SetTemplateItem> items, List<Category> categories) {
+        String group = KitchenGroups.classify(setName).orElse(null);
+        if (group == null) {
+            group = items.stream()
+                    .map(item -> KitchenGroups.classify(item.getItemName()).orElse(null))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(g -> g, Collectors.counting()))
+                    .entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+        }
+        return group == null ? keyFor(categories, null, setName) : keyFor(categories, KITCHEN, group);
     }
 
     // Kademeli seçim için kategoriler: listedekiler ile eklenirken açılacak olanlar (Mutfak, standart Mutfak
@@ -266,13 +283,97 @@ public class ProductSetService {
             throw new IllegalArgumentException("Setin fiyatı girilmemiş");
         }
 
-        String contents = setTemplateItemRepository.findBySetTemplateIdOrderByDisplayOrder(template.getId()).stream()
+        int added = addPriceNotes(product, template, prices, true);
+        if (added == 0) {
+            throw new IllegalArgumentException("Bu set fiyatı bu ürüne zaten eklenmiş");
+        }
+        // Ürünün linki yoksa setin linki ürüne eklenir.
+        if (product.getUrl() == null && template.getUrl() != null) {
+            product.changeUrl(template.getUrl());
+            productRepository.save(product);
+        }
+        return new AttachSetToProductResponse(productId, product.getName(), added);
+    }
+
+    /**
+     * Seti listede TEK ÜRÜN olarak ekler ("Cam Bardak Seti"): ürün setin adı (ya da kullanıcının yazdığı ad), linki
+     * ve fiyat notlarıyla seçilen kategoride açılır; setin parçaları adetleriyle ürünün altında listelenir.
+     * Fiyat sadece ürünün fiyat notlarında durur, setin kendisi özet/ödeme planında ayrıca sayılmaz.
+     */
+    @Transactional
+    public AddSetAsProductResponse addAsProduct(UUID listId, AddSetAsProductRequest request, UUID requesterId) {
+        listAccessService.requireAtLeastEditor(listId, requesterId);
+        if (request.setTemplateId() == null) {
+            throw new IllegalArgumentException("Set seçilmeli");
+        }
+        SetTemplate template = visibleTemplate(request.setTemplateId(), requesterId);
+
+        // Aynı set aynı listeye bir kez eklenir. İstisnalar, yeniden eklenebilsin diye eski kayıt silinir:
+        //  - ürünü silinmiş (artık hiçbir ürünün bağlı olmadığı) set ürünü,
+        //  - eskiden "parçaları tek tek yerleştir" ile eklenmiş liste seti (sadece set kaydı gider; o sırada açılan
+        //    parça ürünlerine dokunulmaz, kullanıcı gerekirse onları siler).
+        ProductSet previous = productSetRepository.findByListIdAndSetTemplateId(listId, template.getId()).orElse(null);
+        if (previous != null) {
+            if (previous.isAsProduct() && productRepository.existsByProductSetId(previous.getId())) {
+                throw new IllegalArgumentException("Bu set zaten listende");
+            }
+            productSetRepository.delete(previous);
+            productSetRepository.flush();
+        }
+
+        List<SetTemplateItem> items = setTemplateItemRepository.findBySetTemplateIdOrderByDisplayOrder(template.getId());
+        if (items.isEmpty()) {
+            throw new IllegalArgumentException("Setin parçası yok");
+        }
+        List<SetTemplatePrice> allPrices = setTemplatePriceRepository.findBySetTemplateIdOrderByDisplayOrder(template.getId());
+        List<SetTemplatePrice> prices = request.priceId() != null
+                ? List.of(pickPrice(allPrices, request.priceId())) : allPrices;
+
+        String productName = request.productName() == null || request.productName().isBlank()
+                ? template.getName() : request.productName().strip();
+        if (productName.length() > 255) {
+            throw new IllegalArgumentException("Ürün adı en fazla 255 karakter olabilir");
+        }
+
+        List<Category> categories = new ArrayList<>(categoryRepository.findByListId(listId));
+        Set<String> allowedNewKeys = placementCategories(categories, template.getName()).stream()
+                .map(SetPlacementPreview.Category::key).filter(key -> key.startsWith("n:"))
+                .collect(Collectors.toSet());
+        Category target = resolveDestination(listId, request.categoryKey(), categories, allowedNewKeys);
+
+        SetTemplatePrice cheapest = pickPrice(allPrices, null);
+        BigDecimal total = cheapest == null ? null : totalOf(cheapest);
+        ProductSet set = new ProductSet(listId, template.getName(), cheapest == null ? null : cheapest.getStoreName(),
+                total == null ? BigDecimal.ZERO : total, template.getId(), null, null, null);
+        set.markAsProduct();
+        set = productSetRepository.save(set);
+
+        Product product = new Product(target.getId(), productName);
+        product.changeUrl(template.getUrl());
+        product.linkToSet(set.getId());
+        product = productRepository.save(product);
+
+        int partCount = 0;
+        for (SetTemplateItem item : items) {
+            setItemRepository.save(new SetItem(set.getId(), null, item.getItemName(), item.getQuantity(),
+                    item.getEstimatedSeparatePrice()));
+            partCount += item.getQuantity();
+        }
+        int notes = addPriceNotes(product, template, prices, false);
+        return new AddSetAsProductResponse(product.getId(), product.getName(), partCount, notes);
+    }
+
+    // Setin fiyat(lar)ını ürüne fiyat notu olarak ekler; aynı not tekrar eklenmez. includeContents: not içine parça
+    // listesi de yazılır (mevcut ürüne eklerken; set ürün olarak eklenince parçalar zaten ürünün altında görünür).
+    private int addPriceNotes(Product product, SetTemplate template, List<SetTemplatePrice> prices, boolean includeContents) {
+        String contents = !includeContents ? "" : setTemplateItemRepository
+                .findBySetTemplateIdOrderByDisplayOrder(template.getId()).stream()
                 .map(item -> item.getQuantity() > 1 ? item.getQuantity() + "× " + item.getItemName() : item.getItemName())
                 .collect(Collectors.joining(", "));
         String storeFallback = template.getBrand() != null && !template.getBrand().isBlank()
                 ? template.getBrand() : template.getName();
 
-        List<PriceEntry> existing = priceEntryRepository.findByProductId(productId);
+        List<PriceEntry> existing = priceEntryRepository.findByProductId(product.getId());
         int added = 0;
         for (SetTemplatePrice price : prices) {
             String note = "Set: " + template.getName() + (contents.isEmpty() ? "" : " — " + contents)
@@ -287,21 +388,13 @@ public class ProductSetService {
             if (duplicate) continue;
             boolean taksitli = price.getPriceType() == PriceType.TAKSITLI;
             priceEntryRepository.save(new PriceEntry(
-                    productId, store, price.getPriceType(), price.getCashPrice(),
+                    product.getId(), store, price.getPriceType(), price.getCashPrice(),
                     taksitli ? price.getInstallmentCount() : null,
                     taksitli ? price.getInstallmentAmount() : null,
                     note, template.getImageUrl()));
             added++;
         }
-        if (added == 0) {
-            throw new IllegalArgumentException("Bu set fiyatı bu ürüne zaten eklenmiş");
-        }
-        // Ürünün linki yoksa setin linki ürüne eklenir.
-        if (product.getUrl() == null && template.getUrl() != null) {
-            product.changeUrl(template.getUrl());
-            productRepository.save(product);
-        }
-        return new AttachSetToProductResponse(productId, product.getName(), added);
+        return added;
     }
 
     private SetTemplate visibleTemplate(UUID setTemplateId, UUID requesterId) {

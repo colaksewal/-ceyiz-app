@@ -27,7 +27,7 @@ public class ProductController {
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
         var created = productService.createProduct(categoryId, request.name(), requesterId);
-        return ResponseEntity.ok(ProductResponse.from(created));
+        return ResponseEntity.ok(productService.toResponse(created));
     }
 
     @GetMapping("/api/categories/{categoryId}/products")
@@ -37,9 +37,8 @@ public class ProductController {
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
         var products = productService.getProductsForList(categoryId, requesterId).stream()
-                .map(ProductResponse::from)
                 .toList();
-        return ResponseEntity.ok(products);
+        return ResponseEntity.ok(productService.toResponses(products));
     }
 
     @PatchMapping("/api/products/{productId}")
@@ -50,7 +49,7 @@ public class ProductController {
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
         var updated = productService.updateProduct(productId, request.name(), request.status(), request.categoryId(), request.url(), requesterId);
-        return ResponseEntity.ok(ProductResponse.from(updated));
+        return ResponseEntity.ok(productService.toResponse(updated));
     }
 
     @DeleteMapping("/api/products/{productId}")

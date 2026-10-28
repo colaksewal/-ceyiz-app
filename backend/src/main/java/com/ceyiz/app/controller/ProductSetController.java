@@ -1,5 +1,7 @@
 package com.ceyiz.app.controller;
 
+import com.ceyiz.app.dto.AddSetAsProductRequest;
+import com.ceyiz.app.dto.AddSetAsProductResponse;
 import com.ceyiz.app.dto.AddSetToListRequest;
 import com.ceyiz.app.dto.AddSetToListResponse;
 import com.ceyiz.app.dto.AttachSetToProductRequest;
@@ -45,6 +47,17 @@ public class ProductSetController {
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(productSetService.attachToProduct(productId, request, requesterId));
+    }
+
+    // Seti listeye tek bir ürün olarak ekler (setin adı/linki/fiyatıyla); parçaları ürünün altında listelenir.
+    @PostMapping("/api/lists/{listId}/sets/as-product")
+    public ResponseEntity<AddSetAsProductResponse> addAsProduct(
+            @PathVariable UUID listId,
+            @RequestBody AddSetAsProductRequest request,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(productSetService.addAsProduct(listId, request, requesterId));
     }
 
     // Ekleme öncesi önizleme: parçaların önerilen hedefleri ve seçilebilecek kategoriler. Hiçbir şey yazılmaz.

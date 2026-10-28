@@ -47,6 +47,9 @@ export interface Product {
   status: ProductStatus;
   // Ürün sayfası linki.
   url: string | null;
+  // Ürün bir setten ("Cam Bardak Seti") açıldıysa setin parçaları adetleriyle; partCount adetlerin toplamı.
+  partCount: number;
+  parts: { name: string; quantity: number }[];
 }
 
 export type PriceType = "PESIN" | "TAKSITLI" | "ELDEN_KREDI_KARTI";
@@ -106,6 +109,8 @@ export interface SetTemplatePrice {
 // ("c:<id>" mevcut kategori, "n:<üst>|<ad>" açılacak kategori, "skip" listeye ekleme) olduğu gibi geri gönderilir.
 export interface SetPlacementPreview {
   items: { id: string; itemName: string; quantity: number; suggestedKey: string }[];
+  // Seti tek ürün olarak eklerken önerilen kategori anahtarı.
+  setSuggestedKey: string;
   // Hedefi kademeli seçtirmek için listedeki (ve eklenirken açılacak) kategoriler ile ürünler.
   // Anahtarlar sunucudaki hedef anahtarlarıdır: "c:"/"n:" kategori, "p:" ürün.
   categories: { key: string; name: string; parentKey: string | null; isNew: boolean }[];
@@ -116,6 +121,13 @@ export interface AttachSetToProductResult {
   productId: string;
   productName: string;
   addedPriceCount: number;
+}
+
+export interface AddSetAsProductResult {
+  productId: string;
+  productName: string;
+  partCount: number;
+  priceNoteCount: number;
 }
 
 export interface AddSetToListResult {

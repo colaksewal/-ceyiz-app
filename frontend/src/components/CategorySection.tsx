@@ -278,6 +278,8 @@ function ProductRow({
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(product.name);
   const [draftUrl, setDraftUrl] = useState(product.url ?? "");
+  // Setten gelen ürünün parçaları açık gelir (kaç adet olduğu ürünün altında görünsün); düğmeyle kapanır.
+  const [showParts, setShowParts] = useState(true);
   const queryClient = useQueryClient();
   const productsKey = ["products", categoryId];
 
@@ -423,6 +425,27 @@ function ProductRow({
           🗑
         </button>
       </div>
+      {product.partCount > 0 && (
+        <div className={styles.parts}>
+          <button
+            type="button"
+            className={styles.partsToggle}
+            aria-expanded={showParts}
+            onClick={() => setShowParts((open) => !open)}
+          >
+            🧩 {product.partCount} parça {showParts ? "▾" : "▸"}
+          </button>
+          {showParts && (
+            <ul className={styles.partsList}>
+              {product.parts.map((part, index) => (
+                <li key={`${part.name}-${index}`}>
+                  <strong>{part.quantity}×</strong> {part.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       {(updateMutation.isError || deleteMutation.isError) && (
         <span className={`error-text ${styles.rowError}`}>
           {updateMutation.isError ? "Güncellenemedi" : "Silinemedi"}
