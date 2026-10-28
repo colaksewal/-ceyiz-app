@@ -82,7 +82,9 @@ public class CategoryOrganizeService {
                     .toList();
             CategoryOrganizeResponse response = new CategoryOrganizeResponse(
                     groups, buildDuplicates(products, byName, suggestion), ungrouped);
-            return placed.isEmpty() && response.duplicates().isEmpty()
+            // Mutfak'ta AI hiçbir şey yerleştiremese bile sonuç dönülür: ürünler "Gruplanmamış" gelir ve
+            // kullanıcı elle atar.
+            return !kitchen && placed.isEmpty() && response.duplicates().isEmpty()
                     ? Optional.<CategoryOrganizeResponse>empty()
                     : Optional.of(response);
         });

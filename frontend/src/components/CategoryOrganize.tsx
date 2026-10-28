@@ -69,7 +69,12 @@ export default function CategoryOrganize({
       setMergeOff(new Set());
       setKeep({});
       // Mutfak'ta boş gruplar da gelir; ürünü olan grup ya da birleştirme yoksa önerilecek bir şey yok.
-      setEmpty(!result || (result.groups.every((g) => g.products.length === 0) && result.duplicates.length === 0));
+      setEmpty(
+        !result ||
+          (result.groups.every((g) => g.products.length === 0) &&
+            result.duplicates.length === 0 &&
+            (result.ungrouped ?? []).length === 0)
+      );
       setResultJobId(job.jobId);
     }
     setOpen(true);
