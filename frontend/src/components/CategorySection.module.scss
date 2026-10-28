@@ -310,3 +310,24 @@
   gap: $space-2;
   margin-top: $space-3;
 }
+
+.looseHint {
+  margin: 0 0 $space-2;
+  color: $color-text-muted;
+  font-size: 0.8rem;
+}
+
+// Global select { width: 100% } kuralını eziyoruz.
+.moveSelect {
+  width: auto;
+  max-width: 11rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  @media (max-width: $breakpoint-sm) {
+    min-height: 32px;
+    font-size: 0.8rem;
+  }
+}

@@ -121,14 +121,23 @@ public class CategoryOrganizeService {
         for (var group : request.groups() == null ? List.<ApplyCategoryOrganizeRequest.Group>of() : request.groups()) {
             String name = cleanName(group.name());
             if (name == null) continue;
+            if (KitchenGroups.isKitchen(category.getName())) {
+                // Mutfak'ta alt kategori sadece 8 standart gruptur; yazım standarda çevrilir.
+                name = KitchenGroups.ALL.stream()
+                        .filter(standard -> normalize(standard).equals(normalize(group.name())))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Mutfak'ta sadece standart gruplar kullanılabilir: " + group.name()));
+            }
+            String groupName = name;
             List<Product> toMove = (group.productIds() == null ? List.<UUID>of() : group.productIds()).stream()
                     .filter(id -> own.containsKey(id) && !removed.contains(id) && moved.add(id))
                     .map(own::get)
                     .toList();
             if (toMove.isEmpty()) continue;
 
-            Category child = children.computeIfAbsent(normalize(name),
-                    key -> categoryRepository.save(new Category(category.getListId(), categoryId, name)));
+            Category child = children.computeIfAbsent(normalize(groupName),
+                    key -> categoryRepository.save(new Category(category.getListId(), categoryId, groupName)));
             toMove.forEach(product -> {
                 product.moveTo(child.getId());
                 productRepository.save(product);

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCategory, renameCategory } from "../api/categories";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
+import { isKitchenCategory } from "../lib/kitchen";
 import { pickCategoryEmoji } from "../lib/listAccent";
 import { isJobActive, useAiJobStore } from "../store/aiJobStore";
 import CategoryAiSuggest from "./CategoryAiSuggest";
@@ -28,10 +29,13 @@ export default function CategorySection({
   category,
   subcategories = [],
   isSub = false,
+  moveTargets,
 }: {
   category: Category;
   subcategories?: Category[];
   isSub?: boolean;
+  // Alt kategorideki bir bölüm için: ürünün elle taşınabileceği aile (üst kategori + alt kategoriler).
+  moveTargets?: Category[];
 }) {
   const aiJobKey = `products:${category.id}`;
   const aiJob = useAiJobStore((state) => state.jobs[aiJobKey]);
@@ -109,6 +113,8 @@ export default function CategorySection({
   const purchasedCount = products?.filter((p) => p.status === "PURCHASED").length ?? 0;
   const progress = products && products.length > 0 ? (purchasedCount / products.length) * 100 : 0;
   const emoji = pickCategoryEmoji(category.id, category.name);
+  // Ürünler üst kategori ile alt kategorileri arasında elle taşınabilir (AI'nın yerleştirmediklerini atamak için).
+  const targets = isSub ? moveTargets : subcategories.length > 0 ? [category, ...subcategories] : undefined;
 
   return (
     <div className={`${styles.section} ${expanded ? styles.sectionOpen : ""}`}>
@@ -185,10 +191,16 @@ export default function CategorySection({
             <p className={styles.emptyHint}>Bu kategoride henüz ürün yok.</p>
           )}
 
+          {products && products.length > 0 && !isSub && subcategories.length > 0 && (
+            <p className={styles.looseHint}>
+              Alt kategoriye girmeyen ürünler — yanındaki menüden bir alt kategori seçerek taşıyabilirsin.
+            </p>
+          )}
+
           {products && products.length > 0 && (
             <ul className={styles.productList}>
               {products.map((product) => (
-                <ProductRow key={product.id} product={product} categoryId={category.id} />
+                <ProductRow key={product.id} product={product} categoryId={category.id} moveTargets={targets} />
               ))}
             </ul>
           )}
@@ -196,7 +208,7 @@ export default function CategorySection({
           {subcategories.length > 0 && (
             <div className="stack">
               {subcategories.map((sub) => (
-                <CategorySection key={sub.id} category={sub} isSub />
+                <CategorySection key={sub.id} category={sub} isSub moveTargets={[category, ...subcategories]} />
               ))}
             </div>
           )}
@@ -227,6 +239,7 @@ export default function CategorySection({
                 jobKey={aiJobKey}
                 jobLabel={`${category.name} için ürün önerisi`}
                 existingNames={products.map((p) => p.name)}
+                kitchen={!isSub && isKitchenCategory(category.name)}
                 onAddItems={async (items) => {
                   await Promise.all(items.map((item) => createProduct(category.id, item)));
                   queryClient.invalidateQueries({ queryKey: ["products", category.id] });
@@ -240,7 +253,15 @@ export default function CategorySection({
   );
 }
 
-function ProductRow({ product, categoryId }: { product: Product; categoryId: string }) {
+function ProductRow({
+  product,
+  categoryId,
+  moveTargets,
+}: {
+  product: Product;
+  categoryId: string;
+  moveTargets?: Category[];
+}) {
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(product.name);
   const queryClient = useQueryClient();
@@ -249,9 +270,14 @@ function ProductRow({ product, categoryId }: { product: Product; categoryId: str
   // Sunucunun döndürdüğü ürünü cache'e doğrudan yazıyoruz; liste yeniden çekilmeden
   // durum rozeti ve ilerleme çubuğu anında güncellenir.
   const updateMutation = useMutation({
-    mutationFn: (changes: { name?: string; status?: ProductStatus }) =>
+    mutationFn: (changes: { name?: string; status?: ProductStatus; categoryId?: string }) =>
       updateProduct(product.id, changes),
-    onSuccess: (updated) => {
+    onSuccess: (updated, changes) => {
+      if (changes.categoryId) {
+        // Başka kategoriye taşındı: hem eski hem yeni kategorinin ürün listesi tazelenir.
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        return;
+      }
       queryClient.setQueryData<Product[]>(productsKey, (old) =>
         old?.map((p) => (p.id === updated.id ? updated : p))
       );
@@ -325,6 +351,21 @@ function ProductRow({ product, categoryId }: { product: Product; categoryId: str
         </span>
       </Link>
       <div className={styles.productMeta}>
+        {moveTargets && moveTargets.length > 1 && (
+          <select
+            aria-label="Ürünü taşı"
+            value={categoryId}
+            disabled={updateMutation.isPending}
+            onChange={(e) => updateMutation.mutate({ categoryId: e.target.value })}
+            className={styles.moveSelect}
+          >
+            {moveTargets.map((target) => (
+              <option key={target.id} value={target.id}>
+                {target.parentId === null ? `${target.name} (kategorisiz)` : target.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           aria-label="Ürün durumu"
           value={product.status}

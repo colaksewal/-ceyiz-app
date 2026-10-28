@@ -64,8 +64,10 @@ public class AiSuggestionService {
         return input;
     }
 
-    public Optional<ProductSuggestionResponse> suggest(AiInput input) {
-        return suggest(input, "prompts/product-suggestion.txt", ProductSuggestionResponse.class);
+    // Mutfak'ta öneri sadece 8 standart gruba giren ürünlerle sınırlanır (bkz. KitchenGroups).
+    public Optional<ProductSuggestionResponse> suggest(AiInput input, boolean kitchen) {
+        String prompt = kitchen ? "prompts/product-suggestion-kitchen.txt" : "prompts/product-suggestion.txt";
+        return suggest(input, prompt, ProductSuggestionResponse.class);
     }
 
     /** Girdi: kategorideki ürün adları (satır satır). Alt kategori grupları ve olası tekrarlar döner. */

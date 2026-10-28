@@ -5,6 +5,7 @@ import { isAxiosError } from "axios";
 import { applyOrganize, startOrganize, type ApplyOrganize } from "../api/categories";
 import { reportAiOutcome } from "../api/aiJobs";
 import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
+import { isKitchenCategory } from "../lib/kitchen";
 import type { CategoryOrganizeSuggestion, OrganizeProduct } from "../types";
 import AiWaiting from "./AiWaiting";
 import aiStyles from "./CategoryAiSuggest.module.scss";
@@ -34,6 +35,8 @@ export default function CategoryOrganize({
   categoryName: string;
 }) {
   const jobKey = `organize:${categoryId}`;
+  // Mutfak'ta alt kategori adları 8 standart gruptur, değiştirilemez (sunucu da reddeder).
+  const kitchen = isKitchenCategory(categoryName);
   const location = useLocation();
   const queryClient = useQueryClient();
   const job = useAiJob(jobKey);
@@ -280,6 +283,9 @@ export default function CategoryOrganize({
                   checked={group.on}
                   onChange={() => toggleGroup(index)}
                 />
+                {kitchen ? (
+                  <strong className={styles.nameInput}>{group.name}</strong>
+                ) : (
                 <input
                   type="text"
                   className={styles.nameInput}
@@ -289,6 +295,7 @@ export default function CategoryOrganize({
                   disabled={!group.on}
                   onChange={(e) => renameGroup(index, e.target.value)}
                 />
+                )}
               </div>
               <div className={styles.productRows}>
                 {group.products.length === 0 && <span className={styles.emptyGroup}>Boş</span>}

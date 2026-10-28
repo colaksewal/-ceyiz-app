@@ -1,5 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
+
+// Navbar'daki sürüm etiketi package.json'daki "version"dan gelir (1.2.0 -> v1.2).
+const appVersion = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8")).version as string;
 
 // API_PROXY_TARGET verilirse (ör. canlı backend) /api ve /uploads istekleri dev server
 // üzerinden oraya yönlendirilir; böylece tarayıcı aynı origin'e konuşur ve hedef
@@ -19,6 +23,9 @@ const proxyOptions = {
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   server: {
     host: true,
     port: 5173,

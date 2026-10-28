@@ -40,11 +40,12 @@ public class AiSuggestionController {
     public ResponseEntity<AiJobStartedResponse> suggest(
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "text", required = false) String text,
+            @RequestParam(value = "kitchen", defaultValue = "false") boolean kitchen,
             Authentication authentication
     ) {
         UUID userId = UUID.fromString(authentication.getName());
         AiInput input = aiSuggestionService.prepare(file, text);
-        UUID jobId = aiJobService.submit(userId, AiLogService.KIND_PRODUCTS, input, () -> aiSuggestionService.suggest(input));
+        UUID jobId = aiJobService.submit(userId, AiLogService.KIND_PRODUCTS, input, () -> aiSuggestionService.suggest(input, kitchen));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
     }
 

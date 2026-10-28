@@ -13,7 +13,7 @@ export async function createProduct(categoryId: string, name: string): Promise<P
 
 export async function updateProduct(
   productId: string,
-  changes: { name?: string; status?: ProductStatus }
+  changes: { name?: string; status?: ProductStatus; categoryId?: string }
 ): Promise<Product> {
   const response = await api.patch<Product>(`/products/${productId}`, changes);
   return response.data;

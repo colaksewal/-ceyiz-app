@@ -31,11 +31,14 @@ export default function CategoryAiSuggest({
   jobLabel,
   existingNames,
   onAddItems,
+  kitchen = false,
 }: {
   jobKey: string;
   jobLabel: string;
   existingNames: string[];
   onAddItems: (items: string[]) => Promise<unknown>;
+  // Mutfak: AI sadece 8 standart gruba giren ürünleri önerir.
+  kitchen?: boolean;
 }) {
   const location = useLocation();
   const job = useAiJob(jobKey);
@@ -52,7 +55,7 @@ export default function CategoryAiSuggest({
   const canSuggest = file !== null || text.trim() !== "";
 
   const suggestMutation = useMutation({
-    mutationFn: (input: AiInput) => suggestProducts(input),
+    mutationFn: (input: AiInput) => suggestProducts(input, kitchen),
     onSuccess: ({ jobId }) => startJob({ key: jobKey, jobId, label: jobLabel, returnTo: location.pathname }),
   });
 
@@ -131,7 +134,8 @@ export default function CategoryAiSuggest({
           <strong>AI ile ürün öner</strong>
           <p>
             Bir fotoğraf (etiket, liste) ya da PDF yükle veya listeyi yaz; AI içindeki ürünleri bu
-            kategoriye önersin. Sadece metin daha hızlı, görsel 1-2 dakika sürebilir.
+            kategoriye önersin.{kitchen && " Mutfak için sadece 8 standart gruba (Pişirme, Sofra & Servis...) giren ürünler önerilir."}{" "}
+            Sadece metin daha hızlı, görsel 1-2 dakika sürebilir.
           </p>
         </div>
         <button type="button" className={styles.close} aria-label="Kapat" onClick={close}>

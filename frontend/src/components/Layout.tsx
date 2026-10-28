@@ -5,6 +5,9 @@ import { useAuthStore } from "../store/authStore";
 import AiJobCenter from "./AiJobCenter";
 import styles from "./Layout.module.scss";
 
+// 1.2.0 -> "1.2": patch numarası etikette gösterilmez.
+const APP_VERSION = __APP_VERSION__.split(".").slice(0, 2).join(".");
+
 export default function Layout() {
   const logout = useAuthStore((state) => state.logout);
   const isAdmin = useAuthStore((state) => state.isAdmin);
@@ -57,6 +60,7 @@ export default function Layout() {
               💍
             </span>
             Çeyiz Planlayıcı
+            <span className={styles.version}>v{APP_VERSION}</span>
           </Link>
           {/* Tüm sayfalar ve Çıkış Yap tek menüde; küçük buton her genişlikte sığar. */}
           <div className={styles.menu} ref={menuRef}>

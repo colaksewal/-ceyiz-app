@@ -43,7 +43,7 @@ public class ProductService {
 
     }
 
-    public Product updateProduct(UUID productId, String name, ProductStatus status, UUID requesterId){
+    public Product updateProduct(UUID productId, String name, ProductStatus status, UUID categoryId, UUID requesterId){
 
         if (name != null && name.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ürün adı boş olamaz");
@@ -54,6 +54,10 @@ public class ProductService {
 
         if (name != null) product.rename(name.trim());
         if (status != null) product.changeStatus(status);
+        if (categoryId != null && !categoryId.equals(product.getCategoryId())) {
+            requireSameCategoryFamily(product, categoryId);
+            product.moveTo(categoryId);
+        }
         return productRepository.save(product);
     }
 
@@ -65,6 +69,22 @@ public class ProductService {
         requireEditorForProduct(product, requesterId);
 
         productRepository.delete(product);
+    }
+
+    // Elle taşıma sadece aynı listede, aynı üst kategorinin kendisi ile alt kategorileri arasında olur.
+    private void requireSameCategoryFamily(Product product, UUID targetId){
+        var current = categoryRepository.findById(product.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+        var target = categoryRepository.findById(targetId)
+                .orElseThrow(() -> new IllegalArgumentException("Hedef kategori bulunamadı"));
+        if (!familyRoot(current).equals(familyRoot(target)) || !current.getListId().equals(target.getListId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ürün sadece aynı kategorinin alt kategorileri arasında taşınabilir");
+        }
+    }
+
+    private static UUID familyRoot(com.ceyiz.app.entity.Category category){
+        return category.getParentId() != null ? category.getParentId() : category.getId();
     }
 
     private Product findProduct(UUID productId){
