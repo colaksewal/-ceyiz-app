@@ -64,14 +64,50 @@ public class AiSuggestionService {
         return input;
     }
 
-    // groupsText doluysa (kategorinin admin tanımlı alt kategorileri, bkz. TemplateGroupService) öneri sadece bu alt
-    // kategorilere giren ürünlerle sınırlanır.
-    public Optional<ProductSuggestionResponse> suggest(AiInput input, String groupsText) {
-        if (groupsText == null) {
+    // groups doluysa (kategorinin admin tanımlı alt kategorileri, bkz. TemplateGroupService) öneri sadece bu alt
+    // kategorilere giren ürünlerle sınırlanır ve her ürün hangi alt kategoriye girdiğiyle döner.
+    public Optional<ProductSuggestionResponse> suggest(AiInput input, List<TemplateGroupService.Group> groups) {
+        if (groups == null || groups.isEmpty()) {
             return suggest(input, "prompts/product-suggestion.txt", ProductSuggestionResponse.class);
         }
         return suggest(input, "prompts/product-suggestion-groups.txt", ProductSuggestionResponse.class,
-                Map.of("{{groups}}", groupsText));
+                Map.of("{{groups}}", TemplateGroupService.toPromptText(groups)))
+                .map(raw -> placeInGroups(raw, groups));
+    }
+
+    // Modelin yazdığı grup adları admin'in yazımına çevrilir, tanımsız gruplar atılır, tekrarlar tek kalır. items: önce
+    // gruplardaki ürünler (grup sırasıyla), sonra grupsuz kalan ekstra ürünler.
+    private static ProductSuggestionResponse placeInGroups(ProductSuggestionResponse raw, List<TemplateGroupService.Group> groups) {
+        Map<String, List<String>> byGroup = new java.util.LinkedHashMap<>();
+        groups.forEach(group -> byGroup.put(group.name(), new java.util.ArrayList<>()));
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        List<String> flat = new java.util.ArrayList<>();
+
+        for (ProductSuggestionResponse.Group suggested : raw.groups() == null ? List.<ProductSuggestionResponse.Group>of() : raw.groups()) {
+            if (suggested == null || suggested.name() == null || suggested.items() == null) continue;
+            String canonical = groups.stream().map(TemplateGroupService.Group::name)
+                    .filter(name -> TemplateGroupService.normalizeName(name).equals(TemplateGroupService.normalizeName(suggested.name())))
+                    .findFirst().orElse(null);
+            if (canonical == null) continue;
+            for (String item : suggested.items()) {
+                if (item == null || item.isBlank()) continue;
+                String name = item.strip();
+                if (seen.add(TemplateGroupService.normalizeName(name))) {
+                    byGroup.get(canonical).add(name);
+                    flat.add(name);
+                }
+            }
+        }
+        for (String item : raw.items() == null ? List.<String>of() : raw.items()) {
+            if (item == null || item.isBlank()) continue;
+            String name = item.strip();
+            if (seen.add(TemplateGroupService.normalizeName(name))) flat.add(name);
+        }
+        List<ProductSuggestionResponse.Group> placed = byGroup.entrySet().stream()
+                .filter(entry -> !entry.getValue().isEmpty())
+                .map(entry -> new ProductSuggestionResponse.Group(entry.getKey(), entry.getValue()))
+                .toList();
+        return new ProductSuggestionResponse(raw.categoryName(), flat, placed);
     }
 
     /** Girdi: kategorideki ürün adları (satır satır). Alt kategori grupları ve olası tekrarlar döner. */

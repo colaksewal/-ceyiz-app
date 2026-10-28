@@ -47,9 +47,10 @@ public class AiSuggestionController {
         UUID userId = UUID.fromString(authentication.getName());
         AiInput input = aiSuggestionService.prepare(file, text);
         // Kategorinin admin tanımlı alt kategorileri varsa öneri sadece onlara girenlerle sınırlanır.
-        String groupsText = categoryId == null ? null : templateGroupService.promptFor(categoryId, userId);
+        var groups = categoryId == null ? java.util.List.<com.ceyiz.app.service.TemplateGroupService.Group>of()
+                : templateGroupService.groupsForCategory(categoryId, userId);
         UUID jobId = aiJobService.submit(userId, AiLogService.KIND_PRODUCTS, input,
-                () -> aiSuggestionService.suggest(input, groupsText));
+                () -> aiSuggestionService.suggest(input, groups));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
     }
 

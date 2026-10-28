@@ -223,6 +223,8 @@ export interface SetTemplateSuggestion {
 export interface ProductSuggestion {
   categoryName: string;
   items: string[];
+  // Kategorinin admin tanımlı alt kategorileri varsa her ürünün hangi alt kategoriye girdiği.
+  groups?: { name: string; items: string[] }[] | null;
 }
 
 // Liste özeti (GET /lists/{id}/summary). Atlanan ürünler toplamlara katılmaz.

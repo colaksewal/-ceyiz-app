@@ -13,6 +13,21 @@ function normalize(name: string): string {
   return name.trim().toLocaleLowerCase("tr");
 }
 
+// Ürünleri alt kategorilerine göre bölümlere ayırır (ilk görülme sırasıyla); alt kategorisizler (name: null) en sonda.
+function groupSections(items: string[], groupOf: Record<string, string>): { name: string | null; items: string[] }[] {
+  const sections = new Map<string | null, string[]>();
+  for (const item of items) {
+    const name = groupOf[item] ?? null;
+    sections.set(name, [...(sections.get(name) ?? []), item]);
+  }
+  const named = [...sections.entries()].filter(([name]) => name !== null);
+  const ungrouped = sections.get(null);
+  return [
+    ...named.map(([name, list]) => ({ name, items: list })),
+    ...(ungrouped ? [{ name: null, items: ungrouped }] : []),
+  ];
+}
+
 function startErrorMessage(error: unknown): string {
   if (isAxiosError(error) && typeof error.response?.data?.error === "string") {
     return error.response.data.error;
@@ -37,7 +52,8 @@ export default function CategoryAiSuggest({
   jobKey: string;
   jobLabel: string;
   existingNames: string[];
-  onAddItems: (items: string[]) => Promise<unknown>;
+  // groupOf: ürün adı -> alt kategori adı (alt kategorisi olmayan ürün haritada yoktur).
+  onAddItems: (items: string[], groupOf: Record<string, string>) => Promise<unknown>;
   // Kategori kimliği verilirse AI, kategorinin admin tanımlı alt kategorilerine (restrictTo) giren ürünleri önerir.
   categoryId?: string;
   restrictTo?: string[];
@@ -50,6 +66,8 @@ export default function CategoryAiSuggest({
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [items, setItems] = useState<string[] | null>(null);
+  // Önerilen ürünün alt kategorisi (AI, admin'in tanımladığı alt kategorilere yerleştirir).
+  const [groupOf, setGroupOf] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [jobError, setJobError] = useState<string | null>(null);
   // Öneriyi getiren AI işi; ürünler eklenince ne seçildiği bu işe bildirilir (admin ölçümü).
@@ -71,6 +89,9 @@ export default function CategoryAiSuggest({
       const result = job.status === "DONE" ? (job.result as ProductSuggestion) : null;
       const fresh = (result?.items ?? []).filter((item) => !existing.has(normalize(item)));
       setItems(fresh);
+      setGroupOf(
+        Object.fromEntries((result?.groups ?? []).flatMap((group) => group.items.map((item) => [item, group.name])))
+      );
       setSelected(new Set(fresh));
       setResultJobId(job.jobId);
     }
@@ -94,7 +115,7 @@ export default function CategoryAiSuggest({
   }
 
   const addMutation = useMutation({
-    mutationFn: (chosen: string[]) => onAddItems(chosen),
+    mutationFn: (chosen: string[]) => onAddItems(chosen, groupOf),
     onSuccess: (_result, chosen) => {
       if (resultJobId) reportAiOutcome(resultJobId, { offered: items ?? [], selected: chosen });
       setResultJobId(null);
@@ -196,20 +217,43 @@ export default function CategoryAiSuggest({
 
       {items && items.length > 0 && (
         <>
-          <div className={styles.chips}>
-            {items.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={`${styles.chip} ${selected.has(item) ? styles.chipOn : ""}`}
-                aria-pressed={selected.has(item)}
-                onClick={() => toggle(item)}
-              >
-                {selected.has(item) ? "✓ " : "+ "}
-                {item}
-              </button>
-            ))}
-          </div>
+          {Object.keys(groupOf).length > 0 ? (
+            // Alt kategorileri olan kategori: ürünler alt kategorilerine göre gruplu; eklenince oraya girer.
+            groupSections(items, groupOf).map((section) => (
+              <div key={section.name ?? "ungrouped"} className={styles.group}>
+                <p className={styles.groupTitle}>{section.name ?? "Alt kategorisiz"}</p>
+                <div className={styles.chips}>
+                  {section.items.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={`${styles.chip} ${selected.has(item) ? styles.chipOn : ""}`}
+                      aria-pressed={selected.has(item)}
+                      onClick={() => toggle(item)}
+                    >
+                      {selected.has(item) ? "✓ " : "+ "}
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className={styles.chips}>
+              {items.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={`${styles.chip} ${selected.has(item) ? styles.chipOn : ""}`}
+                  aria-pressed={selected.has(item)}
+                  onClick={() => toggle(item)}
+                >
+                  {selected.has(item) ? "✓ " : "+ "}
+                  {item}
+                </button>
+              ))}
+            </div>
+          )}
           {addMutation.isError && <p className="error-text">Eklenemedi, tekrar dene.</p>}
           <button
             type="button"

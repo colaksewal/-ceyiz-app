@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteCategory, renameCategory } from "../api/categories";
+import { Link, useParams } from "react-router-dom";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createCategory, deleteCategory, renameCategory } from "../api/categories";
 import { createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
 import { pickCategoryEmoji } from "../lib/listAccent";
 import { isJobActive, useAiJobStore } from "../store/aiJobStore";
@@ -49,6 +49,16 @@ export default function CategorySection({
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(category.name);
   const queryClient = useQueryClient();
+  const { listId } = useParams<{ listId: string }>();
+
+  // Öneride zaten olan ürünler alt kategorilerdekiler de dahil elenir (üst kategori sadece kendi ürünlerini yükler).
+  const subProductQueries = useQueries({
+    queries: subcategories.map((sub) => ({
+      queryKey: ["products", sub.id],
+      queryFn: () => getProducts(sub.id),
+      enabled: expanded && !isSub,
+    })),
+  });
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", category.id],
@@ -248,12 +258,36 @@ export default function CategorySection({
               <CategoryAiSuggest
                 jobKey={aiJobKey}
                 jobLabel={`${category.name} için ürün önerisi`}
-                existingNames={products.map((p) => p.name)}
+                existingNames={[
+                  ...products.map((p) => p.name),
+                  ...subProductQueries.flatMap((query) => (query.data ?? []).map((p) => p.name)),
+                ]}
                 categoryId={isSub ? undefined : category.id}
                 restrictTo={isSub ? undefined : category.groupNames}
-                onAddItems={async (items) => {
-                  await Promise.all(items.map((item) => createProduct(category.id, item)));
-                  queryClient.invalidateQueries({ queryKey: ["products", category.id] });
+                onAddItems={async (items, groupOf) => {
+                  // AI'nın yerleştirdiği alt kategoriye eklenir (admin'in tanımladığı alt kategori listede yoksa açılır);
+                  // alt kategorisi olmayan ürün bu kategoriye girer.
+                  const subIds = new Map(subcategories.map((sub) => [sub.name.trim().toLocaleLowerCase("tr"), sub.id]));
+                  const opening = new Map<string, Promise<string>>();
+                  function subcategoryId(name: string): Promise<string> {
+                    const key = name.trim().toLocaleLowerCase("tr");
+                    const existing = subIds.get(key);
+                    if (existing) return Promise.resolve(existing);
+                    let pending = opening.get(key);
+                    if (!pending) {
+                      pending = createCategory(listId!, name, category.id).then((created) => created.id);
+                      opening.set(key, pending);
+                    }
+                    return pending;
+                  }
+                  await Promise.all(
+                    items.map(async (item) => {
+                      const group = groupOf[item];
+                      const targetId = group && !isSub && listId ? await subcategoryId(group) : category.id;
+                      return createProduct(targetId, item);
+                    })
+                  );
+                  queryClient.invalidateQueries({ queryKey: ["products"] });
                   queryClient.invalidateQueries({ queryKey: ["categories"] });
                 }}
               />

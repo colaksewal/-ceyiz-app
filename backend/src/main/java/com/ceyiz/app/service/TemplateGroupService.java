@@ -88,16 +88,14 @@ public class TemplateGroupService {
     }
 
     /**
-     * AI istemine konacak alt kategori listesi; kategori yoksa, üst kategori değilse ya da alt kategori tanımlı değilse
-     * null (AI normal çalışır). Kategoriye erişim kontrol edilir.
+     * Kategorinin admin tanımlı alt kategorileri; kategori yoksa, üst kategori değilse ya da alt kategori tanımlı değilse
+     * boş (AI normal çalışır). Kategoriye erişim kontrol edilir.
      */
-    public String promptFor(UUID categoryId, UUID requesterId) {
+    public List<Group> groupsForCategory(UUID categoryId, UUID requesterId) {
         Category category = categoryRepository.findById(categoryId).orElse(null);
-        if (category == null) return null;
+        if (category == null) return List.of();
         listAccessService.requireAtLeastViewer(category.getListId(), requesterId);
-        if (category.getParentId() != null) return null;
-        List<Group> groups = groupsFor(category.getName());
-        return groups.isEmpty() ? null : toPromptText(groups);
+        return category.getParentId() != null ? List.of() : groupsFor(category.getName());
     }
 
     /** "- Pişirme (örnek: tencere, tava)" satırları. */

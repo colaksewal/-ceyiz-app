@@ -174,3 +174,17 @@ $ai-purple-soft: #c9a4f2;
   background: $ai-purple;
   color: white;
 }
+
+// Alt kategorilere göre gruplu öneri
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.groupTitle {
+  margin: 0;
+  color: $color-text-muted;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
