@@ -79,9 +79,9 @@ public class TemplateProposalService {
                     + " bekleyen öneriniz olabilir; admin inceleyince yenisini gönderebilirsiniz");
         }
 
-        List<ProposalCategory> snapshot = snapshot(request.listId());
-        if (countProducts(snapshot) == 0) {
-            throw new IllegalArgumentException("Listede öneri olarak gönderilecek ürün yok");
+        List<ProposalCategory> snapshot = snapshot(request.listId(), request.categories());
+        if (snapshot.isEmpty()) {
+            throw new IllegalArgumentException("Öneri için en az bir kategori seç");
         }
         TemplateProposal saved = proposalRepository.save(new TemplateProposal(userId, title, note, toJson(snapshot)));
         return toResponse(saved, namesOf(List.of(saved)));
@@ -116,8 +116,8 @@ public class TemplateProposalService {
         List<ProposalCategory> categories = request != null && request.categories() != null
                 ? request.categories() : fromJson(proposal.getContent());
         List<ProposalCategory> cleaned = clean(categories);
-        if (countProducts(cleaned) == 0) {
-            throw new IllegalArgumentException("Yayınlanacak ürün yok");
+        if (cleaned.isEmpty()) {
+            throw new IllegalArgumentException("Yayınlanacak kategori yok");
         }
 
         // Ortak şablonlar (üst ve alt); aynı adlı şablon varsa ona eklenir.
@@ -173,9 +173,20 @@ public class TemplateProposalService {
         return proposal;
     }
 
-    /** Listenin şu anki hali: üst kategoriler, altlarında alt kategoriler; ürünü olmayan kategori atlanır. */
-    private List<ProposalCategory> snapshot(UUID listId) {
+    /**
+     * Kullanıcının seçtiği kategorilerin şu anki hali: üst kategoriler, altlarında seçilen alt kategoriler. Seçimde
+     * includeProducts kapalıysa kategorinin ürünleri gönderilmez (sadece adı). Bu listeye ait olmayan kategori kimlikleri
+     * yok sayılır; alt kategori, üst kategorisi seçilmediyse öneriye girmez.
+     */
+    private List<ProposalCategory> snapshot(UUID listId, List<ProposeTemplateRequest.CategorySelection> selections) {
         List<Category> categories = categoryRepository.findByListId(listId);
+        Map<UUID, Boolean> includeProducts = new HashMap<>();
+        for (ProposeTemplateRequest.CategorySelection selection : selections == null
+                ? List.<ProposeTemplateRequest.CategorySelection>of() : selections) {
+            if (selection != null && selection.categoryId() != null) {
+                includeProducts.put(selection.categoryId(), selection.includeProducts());
+            }
+        }
         Map<UUID, List<String>> namesByCategory = categories.isEmpty() ? Map.of()
                 : productRepository.findByCategoryIdIn(categories.stream().map(Category::getId).toList()).stream()
                         .collect(Collectors.groupingBy(Product::getCategoryId,
@@ -183,22 +194,26 @@ public class TemplateProposalService {
 
         List<ProposalCategory> result = new ArrayList<>();
         categories.stream()
-                .filter(category -> category.getParentId() == null)
+                .filter(category -> category.getParentId() == null && includeProducts.containsKey(category.getId()))
                 .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
                 .forEach(top -> {
                     List<ProposalCategory> children = categories.stream()
-                            .filter(category -> top.getId().equals(category.getParentId()))
+                            .filter(category -> top.getId().equals(category.getParentId())
+                                    && includeProducts.containsKey(category.getId()))
                             .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
                             .map(child -> new ProposalCategory(child.getName(),
-                                    distinctNames(namesByCategory.getOrDefault(child.getId(), List.of())), List.of()))
-                            .filter(child -> !child.products().isEmpty())
+                                    productNames(namesByCategory, child, includeProducts), List.of()))
                             .toList();
-                    List<String> products = distinctNames(namesByCategory.getOrDefault(top.getId(), List.of()));
-                    if (!products.isEmpty() || !children.isEmpty()) {
-                        result.add(new ProposalCategory(top.getName(), products, children));
-                    }
+                    result.add(new ProposalCategory(top.getName(), productNames(namesByCategory, top, includeProducts), children));
                 });
         return result;
+    }
+
+    // Kategorinin ürün adları; "ürünleri paylaş" kapalıysa boş (sadece kategori adı gider).
+    private static List<String> productNames(Map<UUID, List<String>> namesByCategory, Category category,
+                                             Map<UUID, Boolean> includeProducts) {
+        return Boolean.TRUE.equals(includeProducts.get(category.getId()))
+                ? distinctNames(namesByCategory.getOrDefault(category.getId(), List.of())) : List.of();
     }
 
     // Kırpılır, boşlar atılır, büyük/küçük harf farkıyla tekrarlar tek kalır, Türkçe sıralanır.
@@ -220,15 +235,9 @@ public class TemplateProposalService {
             List<ProposalCategory> children = new ArrayList<>();
             for (ProposalCategory child : top.children() == null ? List.<ProposalCategory>of() : top.children()) {
                 if (child == null) continue;
-                List<String> childProducts = cleanProducts(child.products());
-                if (!childProducts.isEmpty()) {
-                    children.add(new ProposalCategory(cleanName(child.name()), childProducts, List.of()));
-                }
+                children.add(new ProposalCategory(cleanName(child.name()), cleanProducts(child.products()), List.of()));
             }
-            List<String> products = cleanProducts(top.products());
-            if (!products.isEmpty() || !children.isEmpty()) {
-                result.add(new ProposalCategory(name, products, children));
-            }
+            result.add(new ProposalCategory(name, cleanProducts(top.products()), children));
         }
         return result;
     }

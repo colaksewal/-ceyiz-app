@@ -6,6 +6,8 @@ export async function proposeTemplate(payload: {
   listId: string;
   title: string;
   note: string | null;
+  // Seçilen kategoriler; includeProducts kapalıysa sadece kategorinin adı gider, ürün adları gitmez.
+  categories: { categoryId: string; includeProducts: boolean }[];
 }): Promise<TemplateProposal> {
   const response = await api.post<TemplateProposal>("/template-proposals", payload);
   return response.data;

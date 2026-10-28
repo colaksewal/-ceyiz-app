@@ -42,7 +42,7 @@ function toDraft(categories: ProposalCategory[]): DraftCategory[] {
   }));
 }
 
-// Kapatılan kategori/ürünler çıkarılır; boş kalan kategori gönderilmez.
+// Kapatılan kategori/ürünler çıkarılır. Ürünü paylaşılmamış (sadece adı gelen) kategori de yayınlanır.
 function toPayload(drafts: DraftCategory[]): ProposalCategory[] {
   return drafts
     .filter((category) => category.on && category.name.trim() !== "")
@@ -50,16 +50,22 @@ function toPayload(drafts: DraftCategory[]): ProposalCategory[] {
       name: category.name.trim(),
       products: category.products.filter((product) => product.on).map((product) => product.name),
       children: toPayload(category.children),
-    }))
-    .filter((category) => category.products.length > 0 || category.children.length > 0);
+    }));
 }
 
-function countOn(drafts: DraftCategory[]): number {
+// Yayınlanacak kategori ve ürün sayısı.
+function countOn(drafts: DraftCategory[]): { categories: number; products: number } {
   return drafts
     .filter((category) => category.on)
     .reduce(
-      (sum, category) => sum + category.products.filter((product) => product.on).length + countOn(category.children),
-      0
+      (sum, category) => {
+        const nested = countOn(category.children);
+        return {
+          categories: sum.categories + 1 + nested.categories,
+          products: sum.products + category.products.filter((product) => product.on).length + nested.products,
+        };
+      },
+      { categories: 0, products: 0 }
     );
 }
 
@@ -170,7 +176,7 @@ function ProposalCard({ proposal }: { proposal: TemplateProposal }) {
     );
   }
 
-  const selectedCount = countOn(draft);
+  const selected = countOn(draft);
 
   return (
     <section className={`card ${styles.card}`}>
@@ -249,10 +255,10 @@ function ProposalCard({ proposal }: { proposal: TemplateProposal }) {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={publishMutation.isPending || selectedCount === 0}
+                disabled={publishMutation.isPending || selected.categories === 0}
                 onClick={() => publishMutation.mutate()}
               >
-                {publishMutation.isPending ? "Yayınlanıyor..." : `Herkese yayınla (${selectedCount} ürün)`}
+                {publishMutation.isPending ? "Yayınlanıyor..." : `Herkese yayınla (${selected.categories} kategori, ${selected.products} ürün)`}
               </button>
             </>
           )}
@@ -313,7 +319,9 @@ function CategoryEditor({
         ) : (
           <strong>{category.name}</strong>
         )}
-        <span className="muted">{category.products.length} ürün</span>
+        <span className="muted">
+          {category.products.length === 0 ? "ürünler paylaşılmadı" : `${category.products.length} ürün`}
+        </span>
       </div>
 
       <div className={styles.chips}>

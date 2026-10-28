@@ -107,3 +107,65 @@
   color: $color-text-muted;
   font-size: 0.82rem;
 }
+
+// Kategori seçimi
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.cat {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  padding: $space-2 $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+}
+
+.nested {
+  margin: $space-1 0 0 $space-4;
+  background: $color-surface-muted;
+}
+
+.off {
+  opacity: 0.5;
+}
+
+.catRow,
+.shareRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  cursor: pointer;
+
+  // Global input { width: 100%; min-height: 44px; padding } kuralını eziyoruz: işaret kutusu küçük kalır.
+  input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 1.1rem;
+    height: 1.1rem;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    accent-color: $color-primary;
+  }
+}
+
+.catName {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.shareRow {
+  margin-left: 1.7rem;
+  color: $color-text-muted;
+  font-size: 0.85rem;
+}
+
+.summary {
+  margin: 0;
+  font-size: 0.9rem;
+}
