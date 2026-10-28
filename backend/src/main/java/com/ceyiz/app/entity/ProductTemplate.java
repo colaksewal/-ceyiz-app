@@ -25,6 +25,11 @@ public class ProductTemplate {
 
     protected ProductTemplate() {}
 
+    public void moveTo(UUID categoryTemplateId, int displayOrder) {
+        this.categoryTemplateId = categoryTemplateId;
+        this.displayOrder = displayOrder;
+    }
+
     public ProductTemplate(UUID categoryTemplateId, String name, int displayOrder) {
         this.categoryTemplateId = categoryTemplateId;
         this.name = name;

@@ -3,6 +3,7 @@ package com.ceyiz.app.controller;
 import com.ceyiz.app.dto.CategoryTemplateResponse;
 import com.ceyiz.app.dto.CreateCategoryTemplateRequest;
 import com.ceyiz.app.dto.CreateProductTemplateRequest;
+import com.ceyiz.app.dto.MoveProductTemplateRequest;
 import com.ceyiz.app.dto.ProductTemplateResponse;
 import com.ceyiz.app.service.TemplateService;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class TemplateController {
             Authentication authentication
     ) {
         UUID adminId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(templateService.createCategoryTemplate(adminId, request.name(), request.displayOrder()));
+        return ResponseEntity.ok(templateService.createCategoryTemplate(adminId, request.name(), request.displayOrder(), request.parentId()));
     }
 
     @DeleteMapping("/categories/{categoryTemplateId}")
@@ -48,6 +49,18 @@ public class TemplateController {
         UUID adminId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(
                 templateService.createProductTemplate(adminId, categoryTemplateId, request.name(), request.displayOrder())
+        );
+    }
+
+    @PatchMapping("/products/{productTemplateId}")
+    public ResponseEntity<ProductTemplateResponse> moveProductTemplate(
+            @PathVariable UUID productTemplateId,
+            @RequestBody MoveProductTemplateRequest request,
+            Authentication authentication
+    ) {
+        UUID adminId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(
+                templateService.moveProductTemplate(adminId, productTemplateId, request.categoryTemplateId())
         );
     }
 

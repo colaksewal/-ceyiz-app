@@ -340,3 +340,39 @@
   padding-top: $space-3;
   border-top: 1px solid $color-border;
 }
+
+// Alt kategori şablonları: üst şablonun detayında bölümler halinde
+.templateProducts {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.subBlock {
+  padding: $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface-muted;
+}
+
+.subHeading {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  margin: 0 0 $space-2;
+  font-size: 0.95rem;
+}
+
+// Ürünün yanındaki küçük "taşı" seçimi (global select { width: 100% } kuralı eziliyor).
+.chipMove {
+  width: auto;
+  max-width: 7.5rem;
+  min-height: 0;
+  padding: 0.1rem 0.3rem;
+  border: 1px solid $color-border;
+  border-radius: 999px;
+  background: $color-surface-muted;
+  color: $color-text-muted;
+  font-size: 0.72rem;
+  cursor: pointer;
+}

@@ -7,6 +7,7 @@ import {
   createProductTemplate,
   deleteCategoryTemplate,
   deleteProductTemplate,
+  moveProductTemplate,
 } from "../api/adminTemplates";
 import { getAllTemplates } from "../api/templates";
 import CategoryAiSuggest from "../components/CategoryAiSuggest";
@@ -294,6 +295,100 @@ function NewCategoryTile({ nextOrder, onCreated }: { nextOrder: number; onCreate
   );
 }
 
+// Bir kategori şablonunun ürünleri: her ürün silinebilir ya da aynı ailedeki başka bir (alt) kategoriye taşınabilir;
+// altında ürün ekleme satırı var. Üst şablon ve alt şablonlar aynı bileşenle gösterilir.
+function TemplateProducts({
+  template,
+  family,
+  onChanged,
+}: {
+  template: CategoryTemplate;
+  // Aynı ailenin tüm şablonları (üst + alt): taşıma hedefleri.
+  family: CategoryTemplate[];
+  onChanged: () => void;
+}) {
+  const [productName, setProductName] = useState("");
+
+  const createMutation = useMutation({
+    mutationFn: () => createProductTemplate(template.id, productName.trim(), template.products.length + 1),
+    onSuccess: () => {
+      onChanged();
+      setProductName("");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (productTemplateId: string) => deleteProductTemplate(productTemplateId),
+    onSuccess: onChanged,
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: ({ productId, targetId }: { productId: string; targetId: string }) =>
+      moveProductTemplate(productId, targetId),
+    onSuccess: onChanged,
+  });
+
+  return (
+    <div className={styles.templateProducts}>
+      <div className={styles.chips}>
+        {template.products.map((product) => (
+          <span key={product.id} className={styles.chip}>
+            {product.name}
+            {family.length > 1 && (
+              <select
+                className={styles.chipMove}
+                aria-label={`${product.name} kategorisini değiştir`}
+                title="Başka kategoriye taşı"
+                value={template.id}
+                disabled={moveMutation.isPending}
+                onChange={(e) => moveMutation.mutate({ productId: product.id, targetId: e.target.value })}
+              >
+                {family.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.parentId ? `↳ ${member.name}` : `${member.name} (genel)`}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              className={styles.chipRemove}
+              aria-label={`${product.name} sil`}
+              disabled={deleteMutation.isPending && deleteMutation.variables === product.id}
+              onClick={() => deleteMutation.mutate(product.id)}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        {template.products.length === 0 && <p className="muted">Bu kategoride henüz ürün yok.</p>}
+      </div>
+
+      <form
+        className={styles.addRow}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (productName.trim()) createMutation.mutate();
+        }}
+      >
+        <input
+          type="text"
+          placeholder={`${template.name} için ürün ekle, ör. Tencere Seti`}
+          aria-label={`${template.name} için ürün adı`}
+          value={productName}
+          onChange={(e) => setProductName(e.target.value)}
+        />
+        <button type="submit" className="btn btn-primary" disabled={!productName.trim() || createMutation.isPending}>
+          {createMutation.isPending ? "..." : "Ekle"}
+        </button>
+      </form>
+      {(createMutation.isError || moveMutation.isError) && (
+        <p className="error-text">{createMutation.isError ? "Ürün eklenemedi." : "Ürün taşınamadı."}</p>
+      )}
+    </div>
+  );
+}
+
 function CategoryDetail({
   category,
   subTemplates,
@@ -306,19 +401,16 @@ function CategoryDetail({
   onChanged: () => void;
   onDeleted: () => void;
 }) {
-  const [productName, setProductName] = useState("");
+  const [subName, setSubName] = useState("");
+  const family = [category, ...subTemplates];
+  const totalProducts = family.reduce((sum, template) => sum + template.products.length, 0);
 
-  const createProductMutation = useMutation({
-    mutationFn: () => createProductTemplate(category.id, productName.trim(), category.products.length + 1),
+  const createSubMutation = useMutation({
+    mutationFn: () => createCategoryTemplate(subName.trim(), subTemplates.length + 1, category.id),
     onSuccess: () => {
       onChanged();
-      setProductName("");
+      setSubName("");
     },
-  });
-
-  const deleteProductMutation = useMutation({
-    mutationFn: (productTemplateId: string) => deleteProductTemplate(productTemplateId),
-    onSuccess: onChanged,
   });
 
   const deleteCategoryMutation = useMutation({
@@ -333,44 +425,34 @@ function CategoryDetail({
 
   function handleDeleteCategory() {
     const message =
-      category.products.length > 0
-        ? `"${category.name}" kategorisi ve içindeki ${category.products.length} ürün silinecek. Emin misin?`
+      totalProducts > 0
+        ? `"${category.name}" kategorisi${subTemplates.length > 0 ? ", alt kategorileri" : ""} ve içindeki ${totalProducts} ürün silinecek. Emin misin?`
         : `"${category.name}" kategorisi silinecek. Emin misin?`;
     if (window.confirm(message)) deleteCategoryMutation.mutate();
   }
 
   return (
     <div className={styles.detail}>
-      <div className={styles.chips}>
-        {category.products.map((product) => (
-          <span key={product.id} className={styles.chip}>
-            {product.name}
-            <button
-              type="button"
-              className={styles.chipRemove}
-              aria-label={`${product.name} sil`}
-              disabled={deleteProductMutation.isPending && deleteProductMutation.variables === product.id}
-              onClick={() => deleteProductMutation.mutate(product.id)}
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-        {category.products.length === 0 && subTemplates.length === 0 && (
-          <p className="muted">Henüz ürün yok. Aşağıdan elle ekle ya da AI'dan öneri al.</p>
-        )}
+      <div>
+        {subTemplates.length > 0 && <h4 className={styles.subHeading}>Genel (alt kategorisiz)</h4>}
+        <TemplateProducts template={category} family={family} onChanged={onChanged} />
       </div>
 
       {subTemplates.map((sub) => (
-        <div key={sub.id}>
-          <h4>
-            {sub.name} <span className="muted">· {sub.products.length} ürün</span>{" "}
+        <div key={sub.id} className={styles.subBlock}>
+          <h4 className={styles.subHeading}>
+            ↳ {sub.name} <span className="muted">· {sub.products.length} ürün</span>
             <button
               type="button"
               className="btn btn-danger-ghost"
+              title="Alt kategoriyi sil"
               disabled={deleteSubMutation.isPending}
               onClick={() => {
-                if (window.confirm(`"${sub.name}" alt kategorisi ve içindeki ${sub.products.length} ürün silinecek. Emin misin?`)) {
+                if (
+                  window.confirm(
+                    `"${sub.name}" alt kategorisi ve içindeki ${sub.products.length} ürün silinecek. Emin misin?`
+                  )
+                ) {
                   deleteSubMutation.mutate(sub.id);
                 }
               }}
@@ -378,46 +460,30 @@ function CategoryDetail({
               🗑
             </button>
           </h4>
-          <div className={styles.chips}>
-            {sub.products.map((product) => (
-              <span key={product.id} className={styles.chip}>
-                {product.name}
-                <button
-                  type="button"
-                  className={styles.chipRemove}
-                  aria-label={`${product.name} sil`}
-                  onClick={() => deleteProductMutation.mutate(product.id)}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-          </div>
+          <TemplateProducts template={sub} family={family} onChanged={onChanged} />
         </div>
       ))}
+      {deleteSubMutation.isError && <p className="error-text">Alt kategori silinemedi.</p>}
 
       <form
         className={styles.addRow}
         onSubmit={(e) => {
           e.preventDefault();
-          if (productName.trim()) createProductMutation.mutate();
+          if (subName.trim()) createSubMutation.mutate();
         }}
       >
         <input
           type="text"
-          placeholder="Ürün ekle, ör. Tencere Seti"
-          value={productName}
-          onChange={(e) => setProductName(e.target.value)}
+          placeholder="Alt kategori ekle, ör. Pişirme"
+          aria-label="Alt kategori adı"
+          value={subName}
+          onChange={(e) => setSubName(e.target.value)}
         />
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={!productName.trim() || createProductMutation.isPending}
-        >
-          {createProductMutation.isPending ? "..." : "Ekle"}
+        <button type="submit" className="btn btn-secondary" disabled={!subName.trim() || createSubMutation.isPending}>
+          {createSubMutation.isPending ? "..." : "＋ Alt kategori"}
         </button>
       </form>
-      {createProductMutation.isError && <p className="error-text">Ürün eklenemedi.</p>}
+      {createSubMutation.isError && <p className="error-text">Alt kategori eklenemedi.</p>}
 
       <CategoryAiSuggest
         jobKey={`${TEMPLATE_JOB_PREFIX}${category.id}`}

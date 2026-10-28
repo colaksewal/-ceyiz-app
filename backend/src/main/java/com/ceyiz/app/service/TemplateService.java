@@ -34,10 +34,41 @@ public class TemplateService {
                 .toList();
     }
 
-    public CategoryTemplateResponse createCategoryTemplate(UUID adminId, String name, int displayOrder) {
+    public CategoryTemplateResponse createCategoryTemplate(UUID adminId, String name, int displayOrder, UUID parentId) {
         adminAccessService.requireAdmin(adminId);
-        CategoryTemplate saved = categoryTemplateRepository.save(new CategoryTemplate(name, displayOrder));
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Kategori adı boş olamaz");
+        }
+        if (parentId != null) {
+            CategoryTemplate parent = categoryTemplateRepository.findById(parentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Üst kategori şablonu bulunamadı"));
+            if (parent.getParentId() != null) {
+                throw new IllegalArgumentException("Alt kategorinin altına kategori eklenemez");
+            }
+        }
+        CategoryTemplate saved = categoryTemplateRepository.save(new CategoryTemplate(name.strip(), displayOrder, parentId));
         return toResponse(saved);
+    }
+
+    /** Ürün şablonunu aynı ailedeki (üst şablon ve alt şablonları) başka bir şablona taşır; hedefin sonuna eklenir. */
+    @Transactional
+    public ProductTemplateResponse moveProductTemplate(UUID adminId, UUID productTemplateId, UUID targetCategoryTemplateId) {
+        adminAccessService.requireAdmin(adminId);
+        ProductTemplate product = productTemplateRepository.findById(productTemplateId)
+                .orElseThrow(() -> new IllegalArgumentException("Ürün şablonu bulunamadı"));
+        CategoryTemplate current = categoryTemplateRepository.findById(product.getCategoryTemplateId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori şablonu bulunamadı"));
+        CategoryTemplate target = categoryTemplateRepository.findById(targetCategoryTemplateId)
+                .orElseThrow(() -> new IllegalArgumentException("Hedef kategori şablonu bulunamadı"));
+        UUID currentRoot = current.getParentId() != null ? current.getParentId() : current.getId();
+        UUID targetRoot = target.getParentId() != null ? target.getParentId() : target.getId();
+        if (!currentRoot.equals(targetRoot)) {
+            throw new IllegalArgumentException("Ürün sadece aynı kategorinin alt kategorileri arasında taşınabilir");
+        }
+        int nextOrder = productTemplateRepository.findByCategoryTemplateIdOrderByDisplayOrder(target.getId()).stream()
+                .mapToInt(ProductTemplate::getDisplayOrder).max().orElse(0) + 1;
+        product.moveTo(target.getId(), nextOrder);
+        return ProductTemplateResponse.from(productTemplateRepository.save(product));
     }
 
     public void deleteCategoryTemplate(UUID adminId, UUID categoryTemplateId) {
