@@ -40,8 +40,6 @@ export interface Product {
   id: string;
   name: string;
   status: ProductStatus;
-  // Mutfak alt grubu (bkz. lib/productGroups.ts); null = gruplanmamış.
-  group: string | null;
 }
 
 export type PriceType = "PESIN" | "TAKSITLI" | "ELDEN_KREDI_KARTI";

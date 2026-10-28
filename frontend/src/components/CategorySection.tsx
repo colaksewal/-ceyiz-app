@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCategory, renameCategory } from "../api/categories";
-import { autoGroupProducts, createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
+import { createProduct, deleteProduct, getProducts, updateProduct } from "../api/products";
 import { pickCategoryEmoji } from "../lib/listAccent";
-import { GROUP_EMOJI, isKitchenCategory, KITCHEN_GROUPS } from "../lib/productGroups";
 import { isJobActive, useAiJobStore } from "../store/aiJobStore";
 import CategoryAiSuggest from "./CategoryAiSuggest";
 import CategoryOrganize from "./CategoryOrganize";
@@ -71,11 +70,6 @@ export default function CategorySection({
     },
   });
 
-  const autoGroupMutation = useMutation({
-    mutationFn: () => autoGroupProducts(category.id),
-    onSuccess: (updated) => queryClient.setQueryData<Product[]>(["products", category.id], updated),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: () => deleteCategory(category.id),
     onSuccess: () => {
@@ -115,8 +109,6 @@ export default function CategorySection({
   const purchasedCount = products?.filter((p) => p.status === "PURCHASED").length ?? 0;
   const progress = products && products.length > 0 ? (purchasedCount / products.length) * 100 : 0;
   const emoji = pickCategoryEmoji(category.id, category.name);
-  const grouped = isKitchenCategory(category.name);
-  const ungroupedCount = products?.filter((p) => !p.group).length ?? 0;
 
   return (
     <div className={`${styles.section} ${expanded ? styles.sectionOpen : ""}`}>
@@ -193,48 +185,12 @@ export default function CategorySection({
             <p className={styles.emptyHint}>Bu kategoride henüz ürün yok.</p>
           )}
 
-          {products && products.length > 0 && !grouped && (
+          {products && products.length > 0 && (
             <ul className={styles.productList}>
               {products.map((product) => (
                 <ProductRow key={product.id} product={product} categoryId={category.id} />
               ))}
             </ul>
-          )}
-
-          {products && products.length > 0 && grouped && (
-            <>
-              {[...KITCHEN_GROUPS, null].map((group) => {
-                const inGroup = products.filter((p) => (group === null ? !p.group : p.group === group));
-                if (inGroup.length === 0) return null;
-                return (
-                  <div key={group ?? "ungrouped"} className={styles.groupBlock}>
-                    <h4 className={styles.groupTitle}>
-                      <span aria-hidden>{group ? GROUP_EMOJI[group] : "📦"}</span> {group ?? "Gruplanmamış"}
-                      <span className={styles.groupCount}>{inGroup.length}</span>
-                    </h4>
-                    <ul className={styles.productList}>
-                      {inGroup.map((product) => (
-                        <ProductRow key={product.id} product={product} categoryId={category.id} showGroupSelect />
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-              {ungroupedCount > 0 && (
-                <div className={styles.autoGroupRow}>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={autoGroupMutation.isPending}
-                    onClick={() => autoGroupMutation.mutate()}
-                  >
-                    {autoGroupMutation.isPending ? "Gruplanıyor..." : `✨ ${ungroupedCount} ürünü otomatik grupla`}
-                  </button>
-                  <span className={styles.autoGroupHint}>Eşleşmeyenleri ürünün yanındaki menüden kendin seç.</span>
-                </div>
-              )}
-              {autoGroupMutation.isError && <p className="error-text">Otomatik gruplama başarısız, tekrar dene.</p>}
-            </>
           )}
 
           {subcategories.length > 0 && (
@@ -284,15 +240,7 @@ export default function CategorySection({
   );
 }
 
-function ProductRow({
-  product,
-  categoryId,
-  showGroupSelect = false,
-}: {
-  product: Product;
-  categoryId: string;
-  showGroupSelect?: boolean;
-}) {
+function ProductRow({ product, categoryId }: { product: Product; categoryId: string }) {
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(product.name);
   const queryClient = useQueryClient();
@@ -301,7 +249,7 @@ function ProductRow({
   // Sunucunun döndürdüğü ürünü cache'e doğrudan yazıyoruz; liste yeniden çekilmeden
   // durum rozeti ve ilerleme çubuğu anında güncellenir.
   const updateMutation = useMutation({
-    mutationFn: (changes: { name?: string; status?: ProductStatus; group?: string }) =>
+    mutationFn: (changes: { name?: string; status?: ProductStatus }) =>
       updateProduct(product.id, changes),
     onSuccess: (updated) => {
       queryClient.setQueryData<Product[]>(productsKey, (old) =>
@@ -377,22 +325,6 @@ function ProductRow({
         </span>
       </Link>
       <div className={styles.productMeta}>
-        {showGroupSelect && (
-          <select
-            aria-label="Ürün grubu"
-            value={product.group ?? ""}
-            disabled={updateMutation.isPending}
-            onChange={(e) => updateMutation.mutate({ group: e.target.value })}
-            className={styles.groupSelect}
-          >
-            <option value="">Grup seç...</option>
-            {KITCHEN_GROUPS.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        )}
         <select
           aria-label="Ürün durumu"
           value={product.status}
