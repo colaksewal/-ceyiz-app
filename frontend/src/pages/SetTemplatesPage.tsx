@@ -12,6 +12,7 @@ import {
 import { reportAiOutcome } from "../api/aiJobs";
 import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
+import AddPartToList from "../components/AddPartToList";
 import AddSetToList from "../components/AddSetToList";
 import ExternalLink from "../components/ExternalLink";
 import AiWaiting from "../components/AiWaiting";
@@ -896,6 +897,8 @@ function SetTemplateDetail({
     mutationFn: () => deleteSetTemplate(set.id),
     onSuccess: onDeleted,
   });
+  // Hangi kalemin "Listeme ekle" paneli açık (aynı anda biri).
+  const [openPartId, setOpenPartId] = useState<string | null>(null);
 
   function handleDelete() {
     if (window.confirm(`"${set.name}" seti silinecek. Emin misin?`)) deleteMutation.mutate();
@@ -923,14 +926,23 @@ function SetTemplateDetail({
         <ul className={styles.detailList}>
           {set.items.map((item) => (
             <li key={item.id}>
-              <span>
+              <span className={styles.detailMain}>
                 <strong>{item.quantity}×</strong> {item.itemName}
                 {item.note && <span className={styles.detailNote}> · {item.note}</span>}
                 {item.url && <ExternalLink url={item.url} />}
               </span>
               {item.estimatedSeparatePrice != null && (
-                <span className="muted">ayrı: {formatTl(item.estimatedSeparatePrice)}</span>
+                <span className={`muted ${styles.detailPrice}`}>ayrı: {formatTl(item.estimatedSeparatePrice)}</span>
               )}
+              <button
+                type="button"
+                className={styles.partAddButton}
+                aria-expanded={openPartId === item.id}
+                onClick={() => setOpenPartId((current) => (current === item.id ? null : item.id))}
+              >
+                {openPartId === item.id ? "✕ Kapat" : "＋ Listeme ekle"}
+              </button>
+              {openPartId === item.id && <AddPartToList set={set} item={item} />}
             </li>
           ))}
         </ul>
@@ -943,12 +955,12 @@ function SetTemplateDetail({
           <ul className={styles.detailList}>
             {set.prices.map((price) => (
               <li key={price.id}>
-                <span>
+                <span className={styles.detailMain}>
                   <strong>{priceTypeLabels[price.priceType]}</strong>
                   {price.storeName && <span className="muted"> · {price.storeName}</span>}
                   {price.paymentPlanNote && <span className={styles.detailNote}> · {price.paymentPlanNote}</span>}
                 </span>
-                <span>
+                <span className={styles.detailPrice}>
                   {price.priceType === "TAKSITLI" && price.installmentCount && price.installmentAmount
                     ? `${price.installmentCount} × ${formatTl(price.installmentAmount)} = ${formatTl(
                         price.installmentCount * price.installmentAmount

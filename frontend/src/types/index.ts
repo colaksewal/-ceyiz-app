@@ -123,6 +123,13 @@ export interface AttachSetToProductResult {
   addedPriceCount: number;
 }
 
+export interface AddPartResult {
+  productId: string;
+  productName: string;
+  // true: kalem için yeni ürün açıldı; false: mevcut bir ürüne eklendi.
+  created: boolean;
+}
+
 export interface AddSetAsProductResult {
   productId: string;
   productName: string;

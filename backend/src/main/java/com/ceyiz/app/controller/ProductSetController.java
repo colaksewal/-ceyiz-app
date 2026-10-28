@@ -1,5 +1,7 @@
 package com.ceyiz.app.controller;
 
+import com.ceyiz.app.dto.AddPartRequest;
+import com.ceyiz.app.dto.AddPartResponse;
 import com.ceyiz.app.dto.AddSetAsProductRequest;
 import com.ceyiz.app.dto.AddSetAsProductResponse;
 import com.ceyiz.app.dto.AddSetToListRequest;
@@ -47,6 +49,17 @@ public class ProductSetController {
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(productSetService.attachToProduct(productId, request, requesterId));
+    }
+
+    // Setin tek bir kalemini listeye ekler: yeni ürün olarak ya da listedeki mevcut bir ürüne.
+    @PostMapping("/api/lists/{listId}/sets/parts")
+    public ResponseEntity<AddPartResponse> addPart(
+            @PathVariable UUID listId,
+            @RequestBody AddPartRequest request,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(productSetService.addPart(listId, request, requesterId));
     }
 
     // Seti listeye tek bir ürün olarak ekler (setin adı/linki/fiyatıyla); parçaları ürünün altında listelenir.

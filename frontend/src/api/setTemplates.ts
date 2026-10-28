@@ -1,5 +1,6 @@
 import api from "../lib/api";
 import type {
+  AddPartResult,
   AddSetAsProductResult,
   AddSetToListResult,
   AttachSetToProductResult,
@@ -44,6 +45,15 @@ export async function attachSetToProduct(
     setTemplateId,
     priceId,
   });
+  return response.data;
+}
+
+// Setin tek bir kalemini listeye ekler: destinationKey "c:"/"n:" ise yeni ürün, "p:" ise mevcut ürüne.
+export async function addPartToList(
+  listId: string,
+  payload: { setTemplateItemId: string; destinationKey: string; newProductName: string | null }
+): Promise<AddPartResult> {
+  const response = await api.post<AddPartResult>(`/lists/${listId}/sets/parts`, payload);
   return response.data;
 }
 

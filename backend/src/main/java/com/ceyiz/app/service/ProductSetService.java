@@ -6,6 +6,8 @@ import com.ceyiz.app.entity.SetItem;
 import com.ceyiz.app.repository.ProductSetRepository;
 import com.ceyiz.app.repository.SetItemRepository;
 import com.ceyiz.app.dto.AddSetToListRequest;
+import com.ceyiz.app.dto.AddPartRequest;
+import com.ceyiz.app.dto.AddPartResponse;
 import com.ceyiz.app.dto.AddSetAsProductRequest;
 import com.ceyiz.app.dto.AddSetAsProductResponse;
 import com.ceyiz.app.dto.AddSetToListResponse;
@@ -293,6 +295,59 @@ public class ProductSetService {
             productRepository.save(product);
         }
         return new AttachSetToProductResponse(productId, product.getName(), added);
+    }
+
+    /**
+     * Setin TEK bir kalemini listeye ekler (set kaydı açılmaz): "c:"/"n:" hedefte kalem yeni ürün olur (kullanıcı ad
+     * yazdıysa o adla), "p:" hedefte listedeki mevcut ürüne eklenir. Her iki durumda kalemin ayrı fiyatı ürüne fiyat
+     * notu, linki ürünün linki olur (bkz. attachPartToProduct). Kategoride aynı adlı ürün varsa yenisi açılmaz.
+     */
+    @Transactional
+    public AddPartResponse addPart(UUID listId, AddPartRequest request, UUID requesterId) {
+        listAccessService.requireAtLeastEditor(listId, requesterId);
+        if (request.setTemplateItemId() == null) {
+            throw new IllegalArgumentException("Kalem seçilmeli");
+        }
+        SetTemplateItem item = setTemplateItemRepository.findById(request.setTemplateItemId())
+                .orElseThrow(() -> new IllegalArgumentException("Kalem bulunamadı"));
+        SetTemplate template = visibleTemplate(item.getSetTemplateId(), requesterId);
+
+        String key = request.destinationKey();
+        Product product;
+        boolean created = false;
+        if (key != null && key.startsWith("p:")) {
+            product = productRepository.findById(parseId(key.substring(2)))
+                    .orElseThrow(() -> new IllegalArgumentException("Hedef ürün bulunamadı"));
+            Category productCategory = categoryRepository.findById(product.getCategoryId())
+                    .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+            if (!productCategory.getListId().equals(listId)) {
+                throw new IllegalArgumentException("Hedef ürün bu listeye ait değil");
+            }
+        } else {
+            List<Category> categories = new ArrayList<>(categoryRepository.findByListId(listId));
+            Set<String> allowedNewKeys = placementCategories(categories, template.getName()).stream()
+                    .map(SetPlacementPreview.Category::key).filter(k -> k.startsWith("n:"))
+                    .collect(Collectors.toSet());
+            Category target = resolveDestination(listId, key, categories, allowedNewKeys);
+
+            String name = request.newProductName() == null || request.newProductName().isBlank()
+                    ? (item.getQuantity() > 1 ? item.getItemName() + " (" + item.getQuantity() + " adet)" : item.getItemName())
+                    : request.newProductName().strip();
+            if (name.length() > 255) {
+                throw new IllegalArgumentException("Ürün adı en fazla 255 karakter olabilir");
+            }
+            product = productRepository.findByCategoryId(target.getId()).stream()
+                    .filter(found -> normalize(found.getName()).equals(normalize(name)))
+                    .findFirst().orElse(null);
+            if (product == null) {
+                product = new Product(target.getId(), name);
+                product.changeUrl(item.getUrl());
+                product = productRepository.save(product);
+                created = true;
+            }
+        }
+        attachPartToProduct(product, item, template);
+        return new AddPartResponse(product.getId(), product.getName(), created);
     }
 
     /**

@@ -440,17 +440,39 @@
     border-bottom: 1px solid $color-border;
     font-size: 0.9rem;
 
-    // Uzun not ve link satırı taşırmasın: soldaki metin kırılır, sağdaki fiyat sabit kalır.
-    > :first-child {
-      flex: 1;
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
+    // Kalem başına "Listeme ekle" paneli satırın altında tam genişlikte açılır.
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+}
 
-    > :last-child:not(:first-child) {
-      flex-shrink: 0;
-      text-align: right;
-    }
+// Uzun not ve link satırı taşırmasın: soldaki metin kırılır, sağdaki fiyat sabit kalır.
+.detailMain {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.detailPrice {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.partAddButton {
+  flex-basis: 100%;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: $color-primary;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
   }
 }
 

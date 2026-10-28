@@ -1,0 +1,70 @@
+@use "../styles/variables" as *;
+
+.panel {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  min-width: 0;
+  margin-top: $space-2;
+  padding: $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface-muted;
+
+  select,
+  input[type="text"] {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: $space-1;
+  padding: 3px;
+  border-radius: 999px;
+  background: $color-border;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: $color-text-muted;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: $color-surface;
+  color: $color-text;
+  box-shadow: $shadow-sm;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+
+  > span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-text-muted;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.success {
+  margin: 0;
+  font-size: 0.85rem;
+}
