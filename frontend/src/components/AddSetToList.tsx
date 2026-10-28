@@ -114,7 +114,9 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
   }
 
   const priceSelect = set.prices.length > 1 && (
-    <select aria-label="Fiyat" value={priceId} onChange={(e) => setPriceId(e.target.value)}>
+    <label className={styles.field}>
+      <span>Fiyat</span>
+      <select aria-label="Fiyat" value={priceId} onChange={(e) => setPriceId(e.target.value)}>
       <option value="">{mode === "product" ? "Tüm fiyatları ekle" : "En ucuz fiyat"}</option>
       {set.prices.map((price) => (
         <option key={price.id} value={price.id}>
@@ -127,16 +129,17 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
               : ""}
         </option>
       ))}
-    </select>
+      </select>
+    </label>
   );
 
   return (
     <div className={styles.box}>
       <h4 className={styles.heading}>Listeme ekle</h4>
-      <p className={styles.hint}>Set katalogda kalır; listene nasıl ekleneceğini seç.</p>
+      <p className={styles.hint}>Set katalogda kalır. Listene nasıl ekleneceğini seç.</p>
 
       <div className={styles.modes} role="radiogroup" aria-label="Ekleme şekli">
-        <label className={styles.mode}>
+        <label className={`${styles.mode} ${mode === "product" ? styles.modeActive : ""}`}>
           <input
             type="radio"
             name={`mode-${set.id}`}
@@ -151,7 +154,7 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
             <small>Setin fiyatı listendeki bir ürüne (ör. Çelik tencere seti) fiyat notu olarak girer.</small>
           </span>
         </label>
-        <label className={styles.mode}>
+        <label className={`${styles.mode} ${mode === "categories" ? styles.modeActive : ""}`}>
           <input
             type="radio"
             name={`mode-${set.id}`}
@@ -169,37 +172,44 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
       </div>
 
       <div className={styles.row}>
-        <select
-          aria-label="Liste"
-          value={selectedListId}
-          onChange={(e) => {
-            setListId(e.target.value);
-            setProductId("");
-            reset();
-          }}
-        >
-          {editableLists.map((list) => (
-            <option key={list.id} value={list.id}>
-              {list.name}
-            </option>
-          ))}
-        </select>
+        <label className={styles.field}>
+          <span>Liste</span>
+          <select
+            aria-label="Liste"
+            value={selectedListId}
+            onChange={(e) => {
+              setListId(e.target.value);
+              setProductId("");
+              reset();
+            }}
+          >
+            {editableLists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name}
+              </option>
+            ))}
+          </select>
+        </label>
         {priceSelect}
       </div>
 
       {mode === "product" ? (
-        <>
-          <input
-            type="search"
-            aria-label="Ürün ara"
-            placeholder="Ürün ara, ör. tencere"
-            value={productFilter}
-            onChange={(e) => setProductFilter(e.target.value)}
-          />
+        <div className={styles.productPicker}>
+          <label className={styles.field}>
+            <span>Hangi ürüne eklensin?</span>
+            <input
+              type="search"
+              aria-label="Ürün ara"
+              placeholder="Ürün ara, ör. tencere"
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+            />
+          </label>
           <select
+            className={styles.productSelect}
             aria-label="Hedef ürün"
             value={selectedProductId}
-            size={Math.min(Math.max(filteredProducts.length, 2), 7)}
+            size={Math.min(Math.max(filteredProducts.length, 2), 8)}
             onChange={(e) => {
               setProductId(e.target.value);
               setDone(null);
@@ -217,32 +227,36 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
               {productPaths && productPaths.length > 0 ? "Aramana uyan ürün yok." : "Bu listede henüz ürün yok."}
             </p>
           )}
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!selectedProductId || attachMutation.isPending}
-            onClick={() => {
-              setDone(null);
-              attachMutation.mutate();
-            }}
-          >
-            {attachMutation.isPending ? "Ekleniyor..." : "Seçili ürüne ekle"}
-          </button>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!selectedProductId || attachMutation.isPending}
+              onClick={() => {
+                setDone(null);
+                attachMutation.mutate();
+              }}
+            >
+              {attachMutation.isPending ? "Ekleniyor..." : "Seçili ürüne ekle"}
+            </button>
+          </div>
           {attachMutation.isError && <p className="error-text">{errorMessage(attachMutation.error)}</p>}
-        </>
+        </div>
       ) : (
         <>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!selectedListId || previewMutation.isPending || addMutation.isPending}
-            onClick={() => {
-              setDone(null);
-              previewMutation.mutate();
-            }}
-          >
-            {previewMutation.isPending ? "Hazırlanıyor..." : "Parçaları göster"}
-          </button>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!selectedListId || previewMutation.isPending || addMutation.isPending}
+              onClick={() => {
+                setDone(null);
+                previewMutation.mutate();
+              }}
+            >
+              {previewMutation.isPending ? "Hazırlanıyor..." : "Parçaları göster"}
+            </button>
+          </div>
           {previewMutation.isError && <p className="error-text">{errorMessage(previewMutation.error)}</p>}
 
           {preview && (

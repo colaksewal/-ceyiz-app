@@ -9,11 +9,14 @@ export default function Sheet({
   onClose,
   title,
   children,
+  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: ReactNode;
   children: ReactNode;
+  // Geniş içerik (form, seçim listeleri) için masaüstünde daha geniş pencere.
+  wide?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -33,7 +36,7 @@ export default function Sheet({
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
-      <div className={styles.sheet} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div className={`${styles.sheet} ${wide ? styles.wide : ""}`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className={styles.handle} aria-hidden="true" />
         <div className={styles.header}>
           <div className={styles.title}>{title}</div>

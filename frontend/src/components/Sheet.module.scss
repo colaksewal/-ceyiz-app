@@ -37,6 +37,11 @@
   }
 }
 
+// Masaüstünde daha geniş; telefonda zaten tam genişlik.
+.wide {
+  max-width: 860px;
+}
+
 .handle {
   display: none;
   width: 40px;

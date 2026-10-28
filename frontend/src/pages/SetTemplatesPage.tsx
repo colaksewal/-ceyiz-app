@@ -197,6 +197,7 @@ export default function SetTemplatesPage() {
       )}
 
       <Sheet
+        wide
         open={openSet !== null}
         onClose={closeSheet}
         title={
