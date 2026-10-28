@@ -66,7 +66,10 @@ public class TemplateService {
             List<ProductTemplate> productTemplates =
                     productTemplateRepository.findByCategoryTemplateIdOrderByDisplayOrder(categoryTemplate.getId());
             for (ProductTemplate productTemplate : productTemplates) {
-                productRepository.save(new Product(category.getId(), productTemplate.getName()));
+                String group = KitchenGroups.isKitchen(categoryTemplate.getName())
+                        ? KitchenGroups.classify(productTemplate.getName()).orElse(null)
+                        : null;
+                productRepository.save(new Product(category.getId(), productTemplate.getName(), group));
             }
         }
     }

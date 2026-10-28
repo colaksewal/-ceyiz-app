@@ -26,7 +26,7 @@ public class ProductController {
             Authentication authentication
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
-        var created = productService.createProduct(categoryId, request.name(), requesterId);
+        var created = productService.createProduct(categoryId, request.name(), request.group(), requesterId);
         return ResponseEntity.ok(ProductResponse.from(created));
     }
 
@@ -49,8 +49,21 @@ public class ProductController {
             Authentication authentication
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
-        var updated = productService.updateProduct(productId, request.name(), request.status(), requesterId);
+        var updated = productService.updateProduct(productId, request.name(), request.status(), request.group(), requesterId);
         return ResponseEntity.ok(ProductResponse.from(updated));
+    }
+
+    // Grupsuz Mutfak ürünlerini sınıflandırıcıyla gruplar; eşleşmeyenler grupsuz kalır.
+    @PostMapping("/api/categories/{categoryId}/products/auto-group")
+    public ResponseEntity<List<ProductResponse>> autoGroup(
+            @PathVariable UUID categoryId,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        var products = productService.autoGroup(categoryId, requesterId).stream()
+                .map(ProductResponse::from)
+                .toList();
+        return ResponseEntity.ok(products);
     }
 
     @DeleteMapping("/api/products/{productId}")
