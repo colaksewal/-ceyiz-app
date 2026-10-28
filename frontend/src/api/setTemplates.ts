@@ -1,5 +1,11 @@
 import api from "../lib/api";
-import type { AddSetToListResult, CreateSetTemplatePayload, SetPlacementPreview, SetTemplate } from "../types";
+import type {
+  AddSetToListResult,
+  AttachSetToProductResult,
+  CreateSetTemplatePayload,
+  SetPlacementPreview,
+  SetTemplate,
+} from "../types";
 import type { AiJobStarted } from "./aiJobs";
 import { toAiFormData, type AiInput } from "./aiSuggestions";
 
@@ -23,6 +29,20 @@ export async function updateSetTemplate(setTemplateId: string, payload: CreateSe
 // İş EMPTY biterse AI dosyadan set bilgisi çıkaramamıştır.
 export async function suggestSet(input: AiInput): Promise<AiJobStarted> {
   const response = await api.post<AiJobStarted>("/set-templates/ai-suggestion", toAiFormData(input));
+  return response.data;
+}
+
+// Setin fiyat(lar)ını listedeki mevcut bir ürüne fiyat notu olarak ekler (set içeriği nota yazılır).
+// priceId boşsa setin tüm fiyatları eklenir.
+export async function attachSetToProduct(
+  productId: string,
+  setTemplateId: string,
+  priceId: string | null
+): Promise<AttachSetToProductResult> {
+  const response = await api.post<AttachSetToProductResult>(`/products/${productId}/set-prices`, {
+    setTemplateId,
+    priceId,
+  });
   return response.data;
 }
 

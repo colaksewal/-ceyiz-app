@@ -7,6 +7,10 @@ import com.ceyiz.app.repository.ProductSetRepository;
 import com.ceyiz.app.repository.SetItemRepository;
 import com.ceyiz.app.dto.AddSetToListRequest;
 import com.ceyiz.app.dto.AddSetToListResponse;
+import com.ceyiz.app.dto.AttachSetToProductRequest;
+import com.ceyiz.app.dto.AttachSetToProductResponse;
+import com.ceyiz.app.entity.PriceEntry;
+import com.ceyiz.app.repository.PriceEntryRepository;
 import com.ceyiz.app.dto.SetPlacementPreview;
 import com.ceyiz.app.entity.Category;
 import com.ceyiz.app.entity.PriceType;
@@ -47,6 +51,7 @@ public class ProductSetService {
     private final SetTemplatePriceRepository setTemplatePriceRepository;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final PriceEntryRepository priceEntryRepository;
 
     private static final Locale TR = Locale.forLanguageTag("tr");
 
@@ -175,6 +180,65 @@ public class ProductSetService {
                     set.getId(), product.getId(), item.getItemName(), item.getQuantity(), item.getEstimatedSeparatePrice()));
         }
         return new AddSetToListResponse(set.getId(), set.getName(), set.getSetPrice(), created, linked);
+    }
+
+    /**
+     * Katalog setini listedeki MEVCUT bir ürüne ekler (örn. sette "Korkmaz tencere seti", listede "Çelik tencere
+     * seti" ürünü): setin fiyat(lar)ı ürüne fiyat notu olarak girer, set içeriği nota yazılır. Yeni ürün ya da
+     * kategori açılmaz; özet ve ödeme planı ürünün fiyat notlarını zaten kullandığı için ek bir hesap gerekmez.
+     * Aynı fiyat aynı ürüne ikinci kez eklenmez.
+     */
+    @Transactional
+    public AttachSetToProductResponse attachToProduct(UUID productId, AttachSetToProductRequest request, UUID requesterId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Ürün bulunamadı"));
+        Category category = categoryRepository.findById(product.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+        listAccessService.requireAtLeastEditor(category.getListId(), requesterId);
+        if (request.setTemplateId() == null) {
+            throw new IllegalArgumentException("Set seçilmeli");
+        }
+        SetTemplate template = visibleTemplate(request.setTemplateId(), requesterId);
+
+        List<SetTemplatePrice> prices = setTemplatePriceRepository.findBySetTemplateIdOrderByDisplayOrder(template.getId());
+        if (request.priceId() != null) {
+            prices = List.of(pickPrice(prices, request.priceId()));
+        }
+        if (prices.isEmpty()) {
+            throw new IllegalArgumentException("Setin fiyatı girilmemiş");
+        }
+
+        String contents = setTemplateItemRepository.findBySetTemplateIdOrderByDisplayOrder(template.getId()).stream()
+                .map(item -> item.getQuantity() > 1 ? item.getQuantity() + "× " + item.getItemName() : item.getItemName())
+                .collect(Collectors.joining(", "));
+        String storeFallback = template.getBrand() != null && !template.getBrand().isBlank()
+                ? template.getBrand() : template.getName();
+
+        List<PriceEntry> existing = priceEntryRepository.findByProductId(productId);
+        int added = 0;
+        for (SetTemplatePrice price : prices) {
+            String note = "Set: " + template.getName() + (contents.isEmpty() ? "" : " — " + contents)
+                    + (price.getPaymentPlanNote() == null || price.getPaymentPlanNote().isBlank()
+                            ? "" : " (" + price.getPaymentPlanNote().strip() + ")");
+            String store = price.getStoreName() != null && !price.getStoreName().isBlank()
+                    ? price.getStoreName().strip() : storeFallback;
+            boolean duplicate = existing.stream().anyMatch(entry -> note.equals(entry.getPaymentPlanNote())
+                    && store.equals(entry.getStoreName()) && price.getPriceType() == entry.getPriceType()
+                    && Objects.equals(price.getCashPrice(), entry.getCashPrice())
+                    && Objects.equals(price.getInstallmentCount(), entry.getInstallmentCount()));
+            if (duplicate) continue;
+            boolean taksitli = price.getPriceType() == PriceType.TAKSITLI;
+            priceEntryRepository.save(new PriceEntry(
+                    productId, store, price.getPriceType(), price.getCashPrice(),
+                    taksitli ? price.getInstallmentCount() : null,
+                    taksitli ? price.getInstallmentAmount() : null,
+                    note, template.getImageUrl()));
+            added++;
+        }
+        if (added == 0) {
+            throw new IllegalArgumentException("Bu set fiyatı bu ürüne zaten eklenmiş");
+        }
+        return new AttachSetToProductResponse(productId, product.getName(), added);
     }
 
     private SetTemplate visibleTemplate(UUID setTemplateId, UUID requesterId) {

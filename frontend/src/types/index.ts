@@ -102,6 +102,12 @@ export interface SetPlacementPreview {
   destinations: { key: string; label: string }[];
 }
 
+export interface AttachSetToProductResult {
+  productId: string;
+  productName: string;
+  addedPriceCount: number;
+}
+
 export interface AddSetToListResult {
   id: string;
   name: string;

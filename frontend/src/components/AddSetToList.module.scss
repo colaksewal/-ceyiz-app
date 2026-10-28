@@ -76,3 +76,32 @@
   justify-content: flex-end;
   gap: $space-2;
 }
+
+.modes {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.mode {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-2;
+  font-size: 0.88rem;
+  cursor: pointer;
+
+  input {
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  span {
+    display: flex;
+    flex-direction: column;
+  }
+
+  small {
+    color: $color-text-muted;
+    font-size: 0.78rem;
+  }
+}

@@ -2,6 +2,8 @@ package com.ceyiz.app.controller;
 
 import com.ceyiz.app.dto.AddSetToListRequest;
 import com.ceyiz.app.dto.AddSetToListResponse;
+import com.ceyiz.app.dto.AttachSetToProductRequest;
+import com.ceyiz.app.dto.AttachSetToProductResponse;
 import com.ceyiz.app.dto.CreateProductSetRequest;
 import com.ceyiz.app.dto.ProductSetResponse;
 import com.ceyiz.app.dto.SetPlacementPreview;
@@ -32,6 +34,17 @@ public class ProductSetController {
         UUID requesterId = UUID.fromString(authentication.getName());
         var created = productSetService.createSet(listId, request, requesterId);
         return ResponseEntity.ok(ProductSetResponse.from(created));
+    }
+
+    // Katalog setinin fiyat(lar)ını listedeki mevcut bir ürüne fiyat notu olarak ekler (set içeriği nota yazılır).
+    @PostMapping("/api/products/{productId}/set-prices")
+    public ResponseEntity<AttachSetToProductResponse> attachToProduct(
+            @PathVariable UUID productId,
+            @RequestBody AttachSetToProductRequest request,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(productSetService.attachToProduct(productId, request, requesterId));
     }
 
     // Ekleme öncesi önizleme: parçaların önerilen hedefleri ve seçilebilecek kategoriler. Hiçbir şey yazılmaz.

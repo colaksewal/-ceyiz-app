@@ -21,3 +21,31 @@ export async function getListProductOptions(listId: string): Promise<ListProduct
   );
   return perCategory.flat();
 }
+
+export interface ListProductPath {
+  productId: string;
+  productName: string;
+  // "Mutfak › Pişirme › Çelik tencere seti"
+  path: string;
+}
+
+// Listedeki tüm ürünler, kategori yoluyla (üst › alt › ürün); ürün seçmek için.
+export async function getListProductPaths(listId: string): Promise<ListProductPath[]> {
+  const categories = await getCategories(listId);
+  const names = new Map(categories.map((category) => [category.id, category.name]));
+  const perCategory = await Promise.all(
+    categories.map(async (category) => {
+      const products = await getProducts(category.id);
+      const prefix =
+        category.parentId && names.has(category.parentId)
+          ? `${names.get(category.parentId)} › ${category.name}`
+          : category.name;
+      return products.map((product) => ({
+        productId: product.id,
+        productName: product.name,
+        path: `${prefix} › ${product.name}`,
+      }));
+    })
+  );
+  return perCategory.flat().sort((a, b) => a.path.localeCompare(b.path, "tr"));
+}
