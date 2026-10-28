@@ -31,7 +31,7 @@
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: $space-4;
 }
 
@@ -98,12 +98,11 @@
   gap: $space-2;
 }
 
+// Mağaza adı kesilmesin (ör. "Korkmaz - Sincan Merkez"): uzunsa alt satıra kırılır.
 .storeName {
   font-weight: 600;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 // Ribbon fotoğrafsız kartlarda başlığın üstüne binmesin.
@@ -126,9 +125,16 @@
 .entryNote {
   color: $color-text-muted;
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   padding: $space-2 $space-3;
   background: $color-surface-muted;
   border-radius: $radius-sm;
+}
+
+// Düzenlenen fiyat notu tüm satırı kaplar: alanlar dar kartta kesilmesin.
+.entryEditing {
+  grid-column: 1 / -1;
 }
 
 .entryActions {
@@ -215,4 +221,23 @@
   display: flex;
   justify-content: flex-end;
   gap: $space-2;
+}
+
+// Plan notu çok satırlı yazılabilir; diğer alanlarla aynı görünüm (global stil sadece input/select içindir).
+.editForm textarea {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  color: $color-text;
+  font: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.15);
+  }
 }

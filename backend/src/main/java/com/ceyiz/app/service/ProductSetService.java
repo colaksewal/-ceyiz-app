@@ -246,11 +246,6 @@ public class ProductSetService {
                 existing.add(product);
                 created++;
             } else {
-                // Mevcut ürünün linki yoksa parçanın linki eklenir; varsa dokunulmaz.
-                if (product.getUrl() == null && item.getUrl() != null) {
-                    product.changeUrl(item.getUrl());
-                    productRepository.save(product);
-                }
                 linked++;
             }
             setItemRepository.save(new SetItem(
@@ -289,11 +284,7 @@ public class ProductSetService {
         if (added == 0) {
             throw new IllegalArgumentException("Bu set fiyatı bu ürüne zaten eklenmiş");
         }
-        // Ürünün linki yoksa setin linki ürüne eklenir.
-        if (product.getUrl() == null && template.getUrl() != null) {
-            product.changeUrl(template.getUrl());
-            productRepository.save(product);
-        }
+        // Link ürüne değil eklenen fiyat notlarına yazılır (bkz. addPriceNotes): ürün genel, link o fiyatın mağazasına ait.
         return new AttachSetToProductResponse(productId, product.getName(), added);
     }
 
@@ -504,26 +495,26 @@ public class ProductSetService {
         }
     }
 
-    // Parçanın "ayrı alınırsa" fiyatı ürüne peşin fiyat notu olarak girer (mağaza: setin adı). Fiyatı olmayan
-    // parçada sadece link taşınır. Aynı not ikinci kez eklenmez. Ürünün linki varsa dokunulmaz.
+    // Parçanın "ayrı alınırsa" fiyatı ürüne peşin fiyat notu olarak girer (mağaza: setin adı), parçanın linki de
+    // O NOTUN linki olur; ürünün kendi linkine dokunulmaz (ör. "Düdüklü" ürünü genel kalır, link Fissler düdüklüsüne
+    // ait fiyat notunda durur). Fiyatı olmayan ama linki olan parça fiyatsız bir not olarak eklenir ki link kaybolmasın.
+    // Aynı not ikinci kez eklenmez.
     private void attachPartToProduct(Product product, SetTemplateItem item, SetTemplate template) {
-        if (product.getUrl() == null && item.getUrl() != null) {
-            product.changeUrl(item.getUrl());
-            productRepository.save(product);
-        }
-        if (item.getEstimatedSeparatePrice() == null) return;
+        if (item.getEstimatedSeparatePrice() == null && item.getUrl() == null) return;
         String note = "Setten ayrı alınırsa — " + template.getName()
                 + (item.getQuantity() > 1 ? " (" + item.getQuantity() + " adet)" : "")
                 + (item.getNote() == null || item.getNote().isBlank() ? "" : " · " + item.getNote().strip());
         boolean duplicate = priceEntryRepository.findByProductId(product.getId()).stream()
                 .anyMatch(entry -> note.equals(entry.getPaymentPlanNote())
                         && template.getName().equals(entry.getStoreName())
-                        && item.getEstimatedSeparatePrice().compareTo(
-                                entry.getCashPrice() == null ? java.math.BigDecimal.valueOf(-1) : entry.getCashPrice()) == 0);
+                        && sameAmount(item.getEstimatedSeparatePrice(), entry.getCashPrice()));
         if (duplicate) return;
         priceEntryRepository.save(new PriceEntry(product.getId(), template.getName(), PriceType.PESIN,
-                item.getEstimatedSeparatePrice(), null, null, note, null,
-                item.getUrl() != null ? item.getUrl() : template.getUrl()));
+                item.getEstimatedSeparatePrice(), null, null, note, null, item.getUrl()));
+    }
+
+    private static boolean sameAmount(BigDecimal a, BigDecimal b) {
+        return a == null || b == null ? a == b : a.compareTo(b) == 0;
     }
 
     // "c:" anahtarı bu listenin kategorisi olmalı; "n:" anahtarı ekleme başında sunulan yeni hedeflerden biri.

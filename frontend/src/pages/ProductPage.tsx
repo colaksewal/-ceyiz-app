@@ -284,7 +284,9 @@ export default function ProductPage() {
         {entries?.map((entry) => (
           <li
             key={entry.id}
-            className={`${styles.entry} ${entry.isPreferred ? styles.entryPreferred : ""}`}
+            className={`${styles.entry} ${entry.isPreferred ? styles.entryPreferred : ""} ${
+              editingEntryId === entry.id ? styles.entryEditing : ""
+            }`}
           >
             {entry.isPreferred && <span className={styles.preferredRibbon}>✓ Kullanılan fiyat</span>}
             {entry.photoUrl && (
@@ -474,8 +476,8 @@ function EntryEditForm({
         </div>
         <div className="field form-grid-full">
           <label>Ödeme Planı Notu</label>
-          <input
-            type="text"
+          <textarea
+            rows={3}
             value={draft.paymentPlanNote}
             onChange={(e) => setDraft({ ...draft, paymentPlanNote: e.target.value })}
           />
