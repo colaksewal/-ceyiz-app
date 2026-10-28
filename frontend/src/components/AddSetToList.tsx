@@ -165,8 +165,8 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
             }}
           />
           <span>
-            <strong>Parçaları kategorilere dağıt</strong>
-            <small>Her parça yeni ürün olur; hangi kategoriye gideceğini önizlemede seçersin.</small>
+            <strong>Parçaları tek tek yerleştir</strong>
+            <small>Her parça için önizlemede seçersin: kategoriye yeni ürün olur ya da listendeki mevcut bir ürüne eklenir.</small>
           </span>
         </label>
       </div>
@@ -261,7 +261,7 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
 
           {preview && (
             <div className={styles.preview}>
-              <p className={styles.previewTitle}>Her parça hangi kategoriye gitsin?</p>
+              <p className={styles.previewTitle}>Her parça nereye gitsin?</p>
               {preview.items.map((item) => (
                 <div key={item.id} className={styles.previewRow}>
                   <span>
@@ -269,15 +269,37 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
                     {item.itemName}
                   </span>
                   <select
-                    aria-label={`${item.itemName} kategorisi`}
+                    aria-label={`${item.itemName} hedefi`}
                     value={choices[item.id] ?? item.suggestedKey}
                     onChange={(e) => setChoices((prev) => ({ ...prev, [item.id]: e.target.value }))}
                   >
-                    {preview.destinations.map((destination) => (
-                      <option key={destination.key} value={destination.key}>
-                        {destination.label}
-                      </option>
-                    ))}
+                    <optgroup label="Kategoriye yeni ürün olarak">
+                      {preview.destinations
+                        .filter((destination) => destination.group === "category")
+                        .map((destination) => (
+                          <option key={destination.key} value={destination.key}>
+                            {destination.label}
+                          </option>
+                        ))}
+                    </optgroup>
+                    {preview.destinations.some((destination) => destination.group === "product") && (
+                      <optgroup label="Mevcut ürüne ekle (fiyatı ve linki ürüne girer)">
+                        {preview.destinations
+                          .filter((destination) => destination.group === "product")
+                          .map((destination) => (
+                            <option key={destination.key} value={destination.key}>
+                              {destination.label}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+                    {preview.destinations
+                      .filter((destination) => destination.group === "skip")
+                      .map((destination) => (
+                        <option key={destination.key} value={destination.key}>
+                          {destination.label}
+                        </option>
+                      ))}
                   </select>
                 </div>
               ))}

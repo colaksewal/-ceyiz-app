@@ -103,7 +103,8 @@ export interface SetTemplatePrice {
 // ("c:<id>" mevcut kategori, "n:<üst>|<ad>" açılacak kategori, "skip" listeye ekleme) olduğu gibi geri gönderilir.
 export interface SetPlacementPreview {
   items: { id: string; itemName: string; quantity: number; suggestedKey: string }[];
-  destinations: { key: string; label: string }[];
+  // group: "category" kategoriye yeni ürün, "product" listedeki mevcut ürüne ekle, "skip" listeye ekleme.
+  destinations: { key: string; label: string; group: "category" | "product" | "skip" }[];
 }
 
 export interface AttachSetToProductResult {

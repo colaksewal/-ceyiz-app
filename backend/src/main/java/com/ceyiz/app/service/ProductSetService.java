@@ -89,13 +89,14 @@ public class ProductSetService {
         SetTemplate template = visibleTemplate(setTemplateId, requesterId);
         List<SetTemplateItem> items = setTemplateItemRepository.findBySetTemplateIdOrderByDisplayOrder(template.getId());
         List<Category> categories = categoryRepository.findByListId(listId);
+        List<Product> products = productsOf(categories);
         boolean kitchenSet = isKitchenSet(items);
         return new SetPlacementPreview(
                 items.stream()
                         .map(item -> new SetPlacementPreview.Item(item.getId(), item.getItemName(), item.getQuantity(),
-                                suggestedKey(item, kitchenSet, categories, template.getName())))
+                                suggestedKey(item, kitchenSet, categories, products, template.getName())))
                         .toList(),
-                destinations(categories, template.getName()));
+                destinations(categories, products, template.getName()));
     }
 
     /**
@@ -143,7 +144,9 @@ public class ProductSetService {
 
         List<Category> categories = new ArrayList<>(categoryRepository.findByListId(listId));
         // Kullanıcının seçebileceği "yeni açılacak" hedefler ekleme başında sabitlenir (rastgele ad açtırılmasın).
-        Set<String> allowedNewKeys = destinations(categories, template.getName()).stream()
+        Map<UUID, Product> listProducts = productsOf(categories).stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
+        Set<String> allowedNewKeys = destinations(categories, List.copyOf(listProducts.values()), template.getName()).stream()
                 .map(SetPlacementPreview.Destination::key).filter(key -> key.startsWith("n:"))
                 .collect(Collectors.toSet());
         boolean kitchenSet = isKitchenSet(items);
@@ -154,10 +157,22 @@ public class ProductSetService {
         int linked = 0;
         for (SetTemplateItem item : items) {
             String key = chosen.getOrDefault(item.getId(),
-                    suggestedKey(item, kitchenSet, initialCategories, template.getName()));
+                    suggestedKey(item, kitchenSet, initialCategories, List.copyOf(listProducts.values()), template.getName()));
             if (SKIP_KEY.equals(key)) {
                 setItemRepository.save(new SetItem(set.getId(), null, item.getItemName(), item.getQuantity(),
                         item.getEstimatedSeparatePrice()));
+                continue;
+            }
+            if (key != null && key.startsWith("p:")) {
+                // Parça listedeki mevcut bir ürüne eklenir: ayrı fiyatı ürüne fiyat notu olur, link ürüne geçer.
+                Product product = listProducts.get(parseId(key.substring(2)));
+                if (product == null) {
+                    throw new IllegalArgumentException("Hedef ürün bulunamadı");
+                }
+                attachPartToProduct(product, item, template);
+                setItemRepository.save(new SetItem(set.getId(), product.getId(), item.getItemName(),
+                        item.getQuantity(), item.getEstimatedSeparatePrice()));
+                linked++;
                 continue;
             }
             Category target = resolveDestination(listId, key, categories, allowedNewKeys);
@@ -265,7 +280,13 @@ public class ProductSetService {
 
     // Mutfak setinde parça sınıflandırıcının bulduğu alt kategoriye, bulunamazsa Mutfak'a; mutfak olmayan
     // sette setin adıyla açılan kategoriye önerilir.
-    private static String suggestedKey(SetTemplateItem item, boolean kitchenSet, List<Category> categories, String setName) {
+    private static String suggestedKey(SetTemplateItem item, boolean kitchenSet, List<Category> categories,
+                                       List<Product> products, String setName) {
+        // Listede parçayla aynı adlı ürün varsa önce o önerilir (yanlış eşleşmeyi önlemek için sadece tam eşleşme).
+        Product sameName = products.stream()
+                .filter(product -> normalize(product.getName()).equals(normalize(item.getItemName())))
+                .findFirst().orElse(null);
+        if (sameName != null) return "p:" + sameName.getId();
         if (!kitchenSet) return keyFor(categories, null, setName);
         String group = KitchenGroups.classify(item.getItemName()).orElse(null);
         return group == null ? keyFor(categories, null, KITCHEN) : keyFor(categories, KITCHEN, group);
@@ -286,32 +307,80 @@ public class ProductSetService {
                 .findFirst().orElse(null);
     }
 
-    private static List<SetPlacementPreview.Destination> destinations(List<Category> categories, String setName) {
+    private static List<SetPlacementPreview.Destination> destinations(
+            List<Category> categories, List<Product> products, String setName) {
         Map<UUID, String> names = categories.stream().collect(Collectors.toMap(Category::getId, Category::getName));
+        Map<UUID, String> labels = new HashMap<>();
+        for (Category category : categories) {
+            labels.put(category.getId(),
+                    category.getParentId() == null || !names.containsKey(category.getParentId())
+                            ? category.getName() : names.get(category.getParentId()) + " › " + category.getName());
+        }
         List<SetPlacementPreview.Destination> result = new ArrayList<>(categories.stream()
-                .map(category -> new SetPlacementPreview.Destination("c:" + category.getId(),
-                        category.getParentId() == null || !names.containsKey(category.getParentId())
-                                ? category.getName() : names.get(category.getParentId()) + " › " + category.getName()))
+                .map(category -> new SetPlacementPreview.Destination(
+                        "c:" + category.getId(), labels.get(category.getId()), "category"))
                 .sorted(Comparator.comparing(SetPlacementPreview.Destination::label, String.CASE_INSENSITIVE_ORDER))
                 .toList());
 
         // Henüz listede olmayan standart Mutfak kategorileri ve setin adıyla kategori de seçilebilir.
         String kitchenKey = keyFor(categories, null, KITCHEN);
         if (kitchenKey.startsWith("n:")) {
-            result.add(new SetPlacementPreview.Destination(kitchenKey, KITCHEN + " (yeni)"));
+            result.add(new SetPlacementPreview.Destination(kitchenKey, KITCHEN + " (yeni)", "category"));
         }
         for (String group : KitchenGroups.ALL) {
             String key = keyFor(categories, KITCHEN, group);
             if (key.startsWith("n:")) {
-                result.add(new SetPlacementPreview.Destination(key, KITCHEN + " › " + group + " (yeni)"));
+                result.add(new SetPlacementPreview.Destination(key, KITCHEN + " › " + group + " (yeni)", "category"));
             }
         }
         String setKey = keyFor(categories, null, setName);
         if (setKey.startsWith("n:")) {
-            result.add(new SetPlacementPreview.Destination(setKey, setName + " (yeni)"));
+            result.add(new SetPlacementPreview.Destination(setKey, setName + " (yeni)", "category"));
         }
-        result.add(new SetPlacementPreview.Destination(SKIP_KEY, "Listeye ekleme (sadece sette kalsın)"));
+
+        // Listedeki mevcut ürünler: parça seçilen ürüne eklenir (yeni ürün açılmaz).
+        result.addAll(products.stream()
+                .map(product -> new SetPlacementPreview.Destination("p:" + product.getId(),
+                        labels.getOrDefault(product.getCategoryId(), "?") + " › " + product.getName(), "product"))
+                .sorted(Comparator.comparing(SetPlacementPreview.Destination::label, String.CASE_INSENSITIVE_ORDER))
+                .toList());
+
+        result.add(new SetPlacementPreview.Destination(SKIP_KEY, "Listeye ekleme (sadece sette kalsın)", "skip"));
         return result;
+    }
+
+    private List<Product> productsOf(List<Category> categories) {
+        return categories.isEmpty() ? List.of()
+                : productRepository.findByCategoryIdIn(categories.stream().map(Category::getId).toList());
+    }
+
+    private static UUID parseId(String text) {
+        try {
+            return UUID.fromString(text);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Geçersiz hedef ürün");
+        }
+    }
+
+    // Parçanın "ayrı alınırsa" fiyatı ürüne peşin fiyat notu olarak girer (mağaza: setin adı). Fiyatı olmayan
+    // parçada sadece link taşınır. Aynı not ikinci kez eklenmez. Ürünün linki varsa dokunulmaz.
+    private void attachPartToProduct(Product product, SetTemplateItem item, SetTemplate template) {
+        if (product.getUrl() == null && item.getUrl() != null) {
+            product.changeUrl(item.getUrl());
+            productRepository.save(product);
+        }
+        if (item.getEstimatedSeparatePrice() == null) return;
+        String note = "Setten ayrı alınırsa — " + template.getName()
+                + (item.getQuantity() > 1 ? " (" + item.getQuantity() + " adet)" : "")
+                + (item.getNote() == null || item.getNote().isBlank() ? "" : " · " + item.getNote().strip());
+        boolean duplicate = priceEntryRepository.findByProductId(product.getId()).stream()
+                .anyMatch(entry -> note.equals(entry.getPaymentPlanNote())
+                        && template.getName().equals(entry.getStoreName())
+                        && item.getEstimatedSeparatePrice().compareTo(
+                                entry.getCashPrice() == null ? java.math.BigDecimal.valueOf(-1) : entry.getCashPrice()) == 0);
+        if (duplicate) return;
+        priceEntryRepository.save(new PriceEntry(product.getId(), template.getName(), PriceType.PESIN,
+                item.getEstimatedSeparatePrice(), null, null, note, null));
     }
 
     // "c:" anahtarı bu listenin kategorisi olmalı; "n:" anahtarı ekleme başında sunulan yeni hedeflerden biri.
