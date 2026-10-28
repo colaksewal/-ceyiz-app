@@ -5,6 +5,7 @@ import { isAxiosError } from "axios";
 import { getListProductPaths } from "../api/listProducts";
 import { getMyLists } from "../api/lists";
 import { addSetToList, attachSetToProduct, previewSetPlacement } from "../api/setTemplates";
+import PartTargetSelect from "./PartTargetSelect";
 import type { AddSetToListResult, PriceType, SetPlacementPreview, SetTemplate } from "../types";
 import styles from "./AddSetToList.module.scss";
 
@@ -166,7 +167,7 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
           />
           <span>
             <strong>Parçaları tek tek yerleştir</strong>
-            <small>Her parça için önizlemede seçersin: kategoriye yeni ürün olur ya da listendeki mevcut bir ürüne eklenir.</small>
+            <small>Her parça için Kategori › Alan › Ürün seçersin; "Yeni ekle" parçayı yeni ürün yapar, listeden ürün seçersen fiyatı ve linki o ürüne girer.</small>
           </span>
         </label>
       </div>
@@ -261,46 +262,18 @@ export default function AddSetToList({ set }: { set: SetTemplate }) {
 
           {preview && (
             <div className={styles.preview}>
-              <p className={styles.previewTitle}>Her parça nereye gitsin?</p>
+              <p className={styles.previewTitle}>Her parça nereye gitsin? Kategori › Alan › Ürün (en sonda "Yeni ekle")</p>
               {preview.items.map((item) => (
                 <div key={item.id} className={styles.previewRow}>
                   <span>
                     {item.quantity > 1 && <strong>{item.quantity}× </strong>}
                     {item.itemName}
                   </span>
-                  <select
-                    aria-label={`${item.itemName} hedefi`}
+                  <PartTargetSelect
+                    preview={preview}
                     value={choices[item.id] ?? item.suggestedKey}
-                    onChange={(e) => setChoices((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                  >
-                    <optgroup label="Kategoriye yeni ürün olarak">
-                      {preview.destinations
-                        .filter((destination) => destination.group === "category")
-                        .map((destination) => (
-                          <option key={destination.key} value={destination.key}>
-                            {destination.label}
-                          </option>
-                        ))}
-                    </optgroup>
-                    {preview.destinations.some((destination) => destination.group === "product") && (
-                      <optgroup label="Mevcut ürüne ekle (fiyatı ve linki ürüne girer)">
-                        {preview.destinations
-                          .filter((destination) => destination.group === "product")
-                          .map((destination) => (
-                            <option key={destination.key} value={destination.key}>
-                              {destination.label}
-                            </option>
-                          ))}
-                      </optgroup>
-                    )}
-                    {preview.destinations
-                      .filter((destination) => destination.group === "skip")
-                      .map((destination) => (
-                        <option key={destination.key} value={destination.key}>
-                          {destination.label}
-                        </option>
-                      ))}
-                  </select>
+                    onChange={(key) => setChoices((prev) => ({ ...prev, [item.id]: key }))}
+                  />
                 </div>
               ))}
               <div className={styles.previewActions}>

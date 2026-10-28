@@ -1,0 +1,30 @@
+@use "../styles/variables" as *;
+
+.targets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $space-2;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+
+  > span {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: $color-text-muted;
+  }
+
+  // Global select { width: 100% } kuralı: kutu sütuna sığsın.
+  select {
+    width: 100%;
+    min-width: 0;
+  }
+}
