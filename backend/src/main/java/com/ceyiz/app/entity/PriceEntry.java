@@ -62,6 +62,10 @@ public class PriceEntry {
     }
 
 
+    public void moveTo(UUID productId) {
+        this.productId = productId;
+    }
+
     public void markAsPreferred() {
         this.isPreferred = true;
     }

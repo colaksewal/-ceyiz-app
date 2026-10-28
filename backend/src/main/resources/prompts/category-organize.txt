@@ -1,0 +1,15 @@
+Aşağıda bir çeyiz listesindeki bir kategorinin ürünleri var (her satırda bir ürün).
+Bunları anlamlı alt kategorilere ayır ve aynı ürünü iki farklı yazımla anlatan adları bul.
+SADECE şu yapıda JSON döndür, başka metin ekleme:
+{"groups":[{"name":"Pişirme","items":["Çelik tencere seti","Tava"]},{"name":"Servis","items":["Çay bardağı"]}],"duplicates":[["Çay bardağı","Çay bardağı seti"]]}
+
+Kurallar:
+- Alt kategori adı kısa ve Türkçe olsun, 1-3 kelime (ör. Pişirme, Servis, Küçük Ev Aletleri, Saklama, Temizlik).
+- En fazla 8 grup yap. Tek ürünlük grup yapma; hiçbir gruba uymayan ürünü hiçbir gruba koyma.
+- items içindeki ürün adlarını girdideki gibi AYNEN yaz; kısaltma, düzeltme ya da yeni ürün ekleme.
+- Her ürün en fazla bir grupta olsun.
+- duplicates: sadece gerçekten aynı ürün olan adlar (yazım, "set", "adet" gibi farklar). Birbirine benzeyen
+  ama farklı ürünleri (ör. çay bardağı ile su bardağı) YAZMA. Yoksa [].
+
+Ürünler:
+{{content}}

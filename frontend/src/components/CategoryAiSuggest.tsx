@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
+import { reportAiOutcome } from "../api/aiJobs";
 import { suggestProducts, type AiInput } from "../api/aiSuggestions";
 import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
 import type { ProductSuggestion } from "../types";
@@ -46,6 +47,8 @@ export default function CategoryAiSuggest({
   const [items, setItems] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [jobError, setJobError] = useState<string | null>(null);
+  // Öneriyi getiren AI işi; ürünler eklenince ne seçildiği bu işe bildirilir (admin ölçümü).
+  const [resultJobId, setResultJobId] = useState<string | null>(null);
   const canSuggest = file !== null || text.trim() !== "";
 
   const suggestMutation = useMutation({
@@ -64,6 +67,7 @@ export default function CategoryAiSuggest({
       const fresh = (result?.items ?? []).filter((item) => !existing.has(normalize(item)));
       setItems(fresh);
       setSelected(new Set(fresh));
+      setResultJobId(job.jobId);
     }
     setOpen(true);
     removeJob(jobKey);
@@ -85,8 +89,10 @@ export default function CategoryAiSuggest({
   }
 
   const addMutation = useMutation({
-    mutationFn: () => onAddItems((items ?? []).filter((item) => selected.has(item))),
-    onSuccess: () => {
+    mutationFn: (chosen: string[]) => onAddItems(chosen),
+    onSuccess: (_result, chosen) => {
+      if (resultJobId) reportAiOutcome(resultJobId, { offered: items ?? [], selected: chosen });
+      setResultJobId(null);
       setItems(null);
       setFile(null);
       setText("");
@@ -203,7 +209,7 @@ export default function CategoryAiSuggest({
             type="button"
             className={`btn btn-primary btn-block ${styles.pill}`}
             disabled={selected.size === 0 || addMutation.isPending}
-            onClick={() => addMutation.mutate()}
+            onClick={() => addMutation.mutate((items ?? []).filter((item) => selected.has(item)))}
           >
             {addMutation.isPending ? "Ekleniyor..." : `${selected.size} ürünü ekle`}
           </button>

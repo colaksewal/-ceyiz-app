@@ -79,13 +79,23 @@ public class ListSummaryService {
             throw new IllegalArgumentException("Planlanacak, fiyatı girilmiş ürün yok");
         }
         String content = PlanAdviceText.build(summary, plan);
-        return aiJobService.submit(requesterId,
-                () -> aiSuggestionService.advisePaymentPlan(new AiInput(null, null, content)));
+        AiInput input = new AiInput(null, null, content);
+        return aiJobService.submit(requesterId, AiLogService.KIND_PLAN_ADVICE, input,
+                () -> aiSuggestionService.advisePaymentPlan(input));
     }
 
     private ListSummaryResponse buildSummary(TrousseauList list) {
-        List<Category> categories = categoryRepository.findByListId(list.getId()).stream()
-                .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
+        List<Category> allCategories = categoryRepository.findByListId(list.getId());
+        // Alt kategoriler "Mutfak › Pişirme" diye anılır; özet ve ödeme planı düz liste kalır.
+        Map<UUID, String> displayNames = allCategories.stream().collect(Collectors.toMap(
+                Category::getId,
+                category -> allCategories.stream()
+                        .filter(parent -> parent.getId().equals(category.getParentId()))
+                        .findFirst()
+                        .map(parent -> parent.getName() + " › " + category.getName())
+                        .orElse(category.getName())));
+        List<Category> categories = allCategories.stream()
+                .sorted(Comparator.comparing((Category category) -> displayNames.get(category.getId()), String.CASE_INSENSITIVE_ORDER))
                 .toList();
         List<Product> products = categories.isEmpty() ? List.of()
                 : productRepository.findByCategoryIdIn(categories.stream().map(Category::getId).toList());
@@ -130,7 +140,7 @@ public class ListSummaryService {
                 }
             }
             categorySummaries.add(new CategorySummary(
-                    category.getName(), categoryProducts.size(), categoryPurchased, categoryTotal, productSummaries));
+                    displayNames.get(category.getId()), categoryProducts.size(), categoryPurchased, categoryTotal, productSummaries));
         }
 
         List<SetSummary> sets = productSetRepository.findByListId(list.getId()).stream()

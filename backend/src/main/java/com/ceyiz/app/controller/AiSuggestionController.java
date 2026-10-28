@@ -3,7 +3,9 @@ package com.ceyiz.app.controller;
 import com.ceyiz.app.ai.AiInput;
 import com.ceyiz.app.dto.AiJobResponse;
 import com.ceyiz.app.dto.AiJobStartedResponse;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.ceyiz.app.service.AiJobService;
+import com.ceyiz.app.service.AiLogService;
 import com.ceyiz.app.service.AiSuggestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,6 +34,7 @@ public class AiSuggestionController {
 
     private final AiSuggestionService aiSuggestionService;
     private final AiJobService aiJobService;
+    private final AiLogService aiLogService;
 
     @PostMapping(value = "/suggestions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AiJobStartedResponse> suggest(
@@ -40,7 +44,7 @@ public class AiSuggestionController {
     ) {
         UUID userId = UUID.fromString(authentication.getName());
         AiInput input = aiSuggestionService.prepare(file, text);
-        UUID jobId = aiJobService.submit(userId, () -> aiSuggestionService.suggest(input));
+        UUID jobId = aiJobService.submit(userId, AiLogService.KIND_PRODUCTS, input, () -> aiSuggestionService.suggest(input));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
     }
 
@@ -48,5 +52,18 @@ public class AiSuggestionController {
     public ResponseEntity<AiJobResponse> getJob(@PathVariable UUID jobId, Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(aiJobService.get(userId, jobId));
+    }
+
+    // Kullanıcı AI'nın önerisini kaydedince frontend o an kaydedilen hali gönderir; admin ekranı
+    // öneriyle karşılaştırıp başarı puanı hesaplar. İş bellekten silinmiş olsa da kayıt DB'de durur.
+    @PostMapping("/jobs/{jobId}/outcome")
+    public ResponseEntity<Void> reportOutcome(
+            @PathVariable UUID jobId,
+            @RequestBody JsonNode used,
+            Authentication authentication
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+        aiLogService.recordOutcome(userId, jobId, used);
+        return ResponseEntity.noContent().build();
     }
 }

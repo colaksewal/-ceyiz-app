@@ -48,4 +48,11 @@ public class SetTemplate {
         this.createdBy = createdBy;
         this.createdByAdmin = createdByAdmin;
     }
+
+    // Sahibi, sırası ve oluşturulma zamanı düzenlemede değişmez.
+    public void update(String name, String brand, String imageUrl) {
+        this.name = name;
+        this.brand = brand;
+        this.imageUrl = imageUrl;
+    }
 }

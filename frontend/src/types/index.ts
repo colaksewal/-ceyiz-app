@@ -19,6 +19,19 @@ export interface ListShare {
 export interface Category {
   id: string;
   name: string;
+  // Alt kategoride üst kategorinin kimliği, üst kategoride null (sadece tek seviye).
+  parentId: string | null;
+}
+
+// AI'nın bir kategori için önerdiği düzen (hiçbir şey yazılmadı): alt kategoriler ve aynı ürünler.
+export interface OrganizeProduct {
+  id: string;
+  name: string;
+}
+
+export interface CategoryOrganizeSuggestion {
+  groups: { name: string; products: OrganizeProduct[] }[];
+  duplicates: OrganizeProduct[][];
 }
 
 export type ProductStatus = "PLANNED" | "PURCHASED" | "SKIPPED";
@@ -45,27 +58,6 @@ export interface PriceEntry {
   photoUrl: string | null;
   visitedAt: string;
   isPreferred: boolean;
-}
-
-export interface ProductSet {
-  id: string;
-  name: string;
-  storeName: string;
-  setPrice: number;
-}
-
-export interface SetItem {
-  productId: string | null;
-  itemName: string;
-  quantity: number;
-  estimatedIndividualPrice: number | null;
-}
-
-export interface SetComparisonResult {
-  setPrice: number;
-  individualTotal: number;
-  savingsAmount: number;
-  missingItemsCount: number;
 }
 
 export interface ProductTemplate {

@@ -7,6 +7,7 @@ import { pickCategoryEmoji } from "../lib/listAccent";
 import { GROUP_EMOJI, isKitchenCategory, KITCHEN_GROUPS } from "../lib/productGroups";
 import { isJobActive, useAiJobStore } from "../store/aiJobStore";
 import CategoryAiSuggest from "./CategoryAiSuggest";
+import CategoryOrganize from "./CategoryOrganize";
 import type { Category, Product, ProductStatus } from "../types";
 import styles from "./CategorySection.module.scss";
 
@@ -22,7 +23,17 @@ const statusSelectClass: Record<ProductStatus, string> = {
   SKIPPED: styles.statusSkipped,
 };
 
-export default function CategorySection({ category }: { category: Category }) {
+// subcategories: üst kategorinin altında gösterilen alt kategoriler. isSub: bu bölümün kendisi
+// alt kategori (tek seviye olduğu için altına alt kategori ya da AI düzenlemesi eklenmez).
+export default function CategorySection({
+  category,
+  subcategories = [],
+  isSub = false,
+}: {
+  category: Category;
+  subcategories?: Category[];
+  isSub?: boolean;
+}) {
   const aiJobKey = `products:${category.id}`;
   const aiJob = useAiJobStore((state) => state.jobs[aiJobKey]);
   // Bu kategoride arka planda AI isteği varsa (kullanıcı sayfaya geri döndüyse) açık gelir.
@@ -95,7 +106,7 @@ export default function CategorySection({ category }: { category: Category }) {
 
   function handleDelete() {
     const ok = window.confirm(
-      `"${category.name}" kategorisi, içindeki tüm ürünler ve fiyat notlarıyla birlikte silinecek. Emin misin?`
+      `"${category.name}" kategorisi, ${subcategories.length > 0 ? "alt kategorileri, " : ""}içindeki tüm ürünler ve fiyat notlarıyla birlikte silinecek. Emin misin?`
     );
     if (ok) deleteMutation.mutate();
   }
@@ -226,6 +237,14 @@ export default function CategorySection({ category }: { category: Category }) {
             </>
           )}
 
+          {subcategories.length > 0 && (
+            <div className="stack">
+              {subcategories.map((sub) => (
+                <CategorySection key={sub.id} category={sub} isSub />
+              ))}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className={styles.addForm}>
             <input
               type="text"
@@ -239,6 +258,12 @@ export default function CategorySection({ category }: { category: Category }) {
               {createMutation.isPending ? "Ekleniyor..." : "Ekle"}
             </button>
           </form>
+
+          {products && !isSub && products.length >= 4 && (
+            <div className={styles.aiSlot}>
+              <CategoryOrganize categoryId={category.id} categoryName={category.name} />
+            </div>
+          )}
 
           {products && (
             <div className={styles.aiSlot}>

@@ -22,6 +22,12 @@ export async function getAiJob(jobId: string): Promise<AiJob> {
   return response.data;
 }
 
+// Kullanıcı AI önerisini kaydedince o an kaydedilen hal admin ekranındaki başarı ölçümü için
+// bildirilir. Bildirim kullanıcının işini etkilememeli: hata olursa sessizce geçilir.
+export function reportAiOutcome(jobId: string, used: unknown): void {
+  api.post(`/ai/jobs/${jobId}/outcome`, used).catch(() => undefined);
+}
+
 export function isActiveStatus(status: AiJobStatus): boolean {
   return status === "PENDING" || status === "RUNNING";
 }

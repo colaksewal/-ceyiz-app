@@ -3,6 +3,7 @@ package com.ceyiz.app.service;
 import com.ceyiz.app.ai.AiClient;
 import com.ceyiz.app.ai.AiInput;
 import com.ceyiz.app.ai.ImageDownscaler;
+import com.ceyiz.app.dto.CategoryOrganizeSuggestion;
 import com.ceyiz.app.dto.PaymentPlanAdviceResponse;
 import com.ceyiz.app.dto.ProductSuggestionResponse;
 import com.ceyiz.app.dto.SetTemplateSuggestionResponse;
@@ -21,7 +22,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,6 +44,7 @@ public class AiSuggestionService {
 
     private final AiClient aiClient;
     private final ObjectMapper objectMapper;
+    private final AiLogService aiLogService;
 
     /**
      * Girdiyi istek sırasında doğrulayıp belleğe alır. Hatalı girdi (boş, çok uzun, desteklenmeyen
@@ -64,10 +68,32 @@ public class AiSuggestionService {
         return suggest(input, "prompts/product-suggestion.txt", ProductSuggestionResponse.class);
     }
 
+    /** Girdi: kategorideki ürün adları (satır satır). Alt kategori grupları ve olası tekrarlar döner. */
+    public Optional<CategoryOrganizeSuggestion> organizeCategory(AiInput input) {
+        return suggest(input, "prompts/category-organize.txt", CategoryOrganizeSuggestion.class);
+    }
+
     /** Set ürün sayfası/kataloğundan set adı, marka, parçalar ve fiyatları çıkarır. */
     public Optional<SetTemplateSuggestionResponse> suggestSet(AiInput input) {
         return suggest(input, "prompts/set-suggestion.txt", SetTemplateSuggestionResponse.class)
-                .map(this::sanitizeSetSuggestion);
+                .map(this::sanitizeSetSuggestion)
+                .map(suggestion -> input.text().isEmpty() ? suggestion : useSourceNames(suggestion, input.text()));
+    }
+
+    /**
+     * Parça adlarını kullanıcının yazdığı satırlardan harfi harfine alır (bkz. SourceLineMatcher).
+     * İki parça aynı satıra denk gelirse model aynı ürünü iki kez yazmış demektir; tek satır kalır.
+     */
+    private SetTemplateSuggestionResponse useSourceNames(SetTemplateSuggestionResponse suggestion, String sourceText) {
+        SourceLineMatcher matcher = new SourceLineMatcher(sourceText);
+        Map<String, SetTemplateSuggestionResponse.Item> byName = new LinkedHashMap<>();
+        for (SetTemplateSuggestionResponse.Item item : suggestion.items()) {
+            String name = matcher.match(item.itemName(), suggestion.brand()).orElse(item.itemName());
+            byName.putIfAbsent(name.toLowerCase(),
+                    new SetTemplateSuggestionResponse.Item(name, item.quantity(), item.estimatedSeparatePrice()));
+        }
+        return new SetTemplateSuggestionResponse(suggestion.name(), suggestion.brand(),
+                List.copyOf(byName.values()), suggestion.prices());
     }
 
     /**
@@ -92,6 +118,7 @@ public class AiSuggestionService {
      * görsele göre çok daha hızlı); dosyayla birlikte gelirse metin, içeriğin yanına not olarak eklenir.
      */
     private <T> Optional<T> suggest(AiInput input, String promptPath, Class<T> responseType) {
+        logInput(promptPath, input);
         String note = input.text();
         String promptTemplate = loadPromptTemplate(promptPath);
         Optional<String> aiResponse;
@@ -104,7 +131,25 @@ public class AiSuggestionService {
             aiResponse = suggestFromPdf(input.fileBytes(), note, promptTemplate);
         }
 
+        log.info("[AI] cevap: {}", aiResponse.map(AiSuggestionService::oneLine).orElse("(yok)"));
+        aiLogService.recordRawResponse(aiResponse.orElse(null));
         return aiResponse.flatMap(json -> parseResponse(json, responseType));
+    }
+
+    // Prompt'ları iyileştirmek için kullanıcının verdiği girdi ve AI'nın ham cevabı loga yazılır:
+    // docker compose logs backend | grep "\[AI\]". Görselin kendisi değil, sadece türü/boyutu yazılır.
+    private static void logInput(String promptPath, AiInput input) {
+        String file = input.hasFile()
+                ? input.contentType() + ", " + input.fileBytes().length / 1024 + " KB"
+                : "yok";
+        log.info("[AI] istek: tür={} dosya={} metin={}",
+                promptPath.replace("prompts/", "").replace(".txt", ""), file,
+                input.text().isEmpty() ? "(yok)" : oneLine(input.text()));
+    }
+
+    // Çok satırlı metin logda tek satır kalsın, grep ile bütün olarak bulunsun.
+    private static String oneLine(String text) {
+        return text.strip().replaceAll("\\R+", " ⏎ ");
     }
 
     private static boolean isImage(String contentType) {

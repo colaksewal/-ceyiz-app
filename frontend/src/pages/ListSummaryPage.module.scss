@@ -331,6 +331,7 @@ $ai-purple: #9c36b5;
   border-radius: 18px;
   background: linear-gradient(135deg, #f3e8ff, #ffe8f3);
   break-inside: avoid;
+  overflow-wrap: anywhere;
 
   p {
     margin-bottom: $space-3;

@@ -7,14 +7,22 @@ import {
   deleteSetTemplate,
   getSetTemplates,
   suggestSet,
+  updateSetTemplate,
 } from "../api/setTemplates";
+import { reportAiOutcome } from "../api/aiJobs";
 import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
 import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
 import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
-import type { PriceType, SetTemplate, SetTemplatePrice, SetTemplateSuggestion } from "../types";
+import type {
+  CreateSetTemplatePayload,
+  PriceType,
+  SetTemplate,
+  SetTemplatePrice,
+  SetTemplateSuggestion,
+} from "../types";
 import styles from "./SetTemplatesPage.module.scss";
 
 // Yeni set formundaki AI isteğinin anahtarı (bkz. aiJobStore).
@@ -113,6 +121,7 @@ export default function SetTemplatesPage() {
   // Arka planda AI isteği varsa (kullanıcı sayfaya geri döndüyse) form açık gelir.
   const [formOpen, setFormOpen] = useState(() => setJob !== undefined);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form kapalıyken öneri hazır olursa form açılır ve sonuçla dolar.
   useEffect(() => {
@@ -131,6 +140,7 @@ export default function SetTemplatesPage() {
   const closeSheet = useCallback(() => setOpenId(null), []);
 
   const openSet = sets?.find((s) => s.id === openId) ?? null;
+  const editingSet = sets?.find((s) => s.id === editingId) ?? null;
   const adminSets = sets?.filter((s) => s.createdByAdmin);
   const mySets = sets?.filter((s) => !s.createdByAdmin);
 
@@ -144,7 +154,18 @@ export default function SetTemplatesPage() {
         </p>
       </div>
 
-      {formOpen ? (
+      {editingSet ? (
+        <SetTemplateForm
+          key={editingSet.id}
+          editing={editingSet}
+          nextOrder={editingSet.displayOrder}
+          onCancel={() => setEditingId(null)}
+          onCreated={() => {
+            setEditingId(null);
+            invalidate();
+          }}
+        />
+      ) : formOpen ? (
         <SetTemplateForm
           nextOrder={(isAdmin ? adminSets : mySets)?.length ?? 0}
           onCancel={() => {
@@ -198,6 +219,11 @@ export default function SetTemplatesPage() {
           <SetTemplateDetail
             key={openSet.id}
             set={openSet}
+            onEdit={() => {
+              setOpenId(null);
+              setEditingId(openSet.id);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             onDeleted={() => {
               setOpenId(null);
               invalidate();
@@ -287,20 +313,47 @@ function ComparisonLine({
   );
 }
 
+// editing verilirse form o setin bilgileriyle dolu açılır ve kaydedince seti günceller.
 function SetTemplateForm({
+  editing,
   nextOrder,
   onCancel,
   onCreated,
 }: {
+  editing?: SetTemplate;
   nextOrder: number;
   onCancel: () => void;
   onCreated: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [items, setItems] = useState<ItemRow[]>(() => [emptyItemRow()]);
-  const [prices, setPrices] = useState<PriceRow[]>(() => [emptyPriceRow()]);
+  const [name, setName] = useState(editing?.name ?? "");
+  const [brand, setBrand] = useState(editing?.brand ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(editing?.imageUrl ?? null);
+  // Formu dolduran AI işi; set kaydedilince kaydedilen hal bu işe bildirilir (admin ölçümü).
+  const [aiJobId, setAiJobId] = useState<string | null>(null);
+  const [items, setItems] = useState<ItemRow[]>(() =>
+    editing && editing.items.length > 0
+      ? editing.items.map((item) => ({
+          key: nextRowKey++,
+          itemName: item.itemName,
+          quantity: String(item.quantity),
+          separatePrice: toInputValue(item.estimatedSeparatePrice),
+          note: item.note ?? "",
+        }))
+      : [emptyItemRow()]
+  );
+  const [prices, setPrices] = useState<PriceRow[]>(() =>
+    editing
+      ? editing.prices.map((price) => ({
+          key: nextRowKey++,
+          priceType: price.priceType,
+          storeName: price.storeName ?? "",
+          cashPrice: toInputValue(price.cashPrice),
+          installmentCount: toInputValue(price.installmentCount),
+          installmentAmount: toInputValue(price.installmentAmount),
+          paymentPlanNote: price.paymentPlanNote ?? "",
+        }))
+      : [emptyPriceRow()]
+  );
 
   // Adı boş satırlar (ör. sona eklenip doldurulmamış olan) gönderilmez.
   const filledItems = items.filter((row) => row.itemName.trim() !== "");
@@ -316,11 +369,12 @@ function SetTemplateForm({
 
   // AI önerisi formun tamamını değiştirir; kullanıcı kaydetmeden önce her alanı düzeltebilir.
   // jobImageUrl: form AI beklerken kapanıp açıldıysa, AI'ya verilen görselin yüklendiği adres.
-  function fillFromSuggestion(suggestion: SetTemplateSuggestion, jobImageUrl: string | null) {
+  function fillFromSuggestion(suggestion: SetTemplateSuggestion, jobImageUrl: string | null, jobId: string) {
     const hasContent = name.trim() !== "" || filledItems.length > 0;
     if (hasContent && !window.confirm("Formdaki mevcut bilgiler AI önerisiyle değiştirilecek. Devam edilsin mi?")) {
       return;
     }
+    setAiJobId(jobId);
     if (!imageUrl && jobImageUrl) setImageUrl(jobImageUrl);
     setName(suggestion.name ?? "");
     setBrand(suggestion.brand ?? "");
@@ -358,29 +412,36 @@ function SetTemplateForm({
     if (IMAGE_TYPES.includes(file.type)) imageUploadMutation.mutate(file);
   }
 
+  function buildPayload(): CreateSetTemplatePayload {
+    return {
+      name: name.trim(),
+      brand: brand.trim() || null,
+      imageUrl,
+      displayOrder: nextOrder,
+      items: filledItems.map((row) => ({
+        itemName: row.itemName.trim(),
+        quantity: Number(row.quantity),
+        estimatedSeparatePrice: toNumberOrNull(row.separatePrice),
+        note: row.note.trim() || null,
+      })),
+      prices: prices.map((row) => ({
+        priceType: row.priceType,
+        storeName: row.storeName.trim() || null,
+        cashPrice: toNumberOrNull(row.cashPrice),
+        installmentCount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentCount) : null,
+        installmentAmount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentAmount) : null,
+        paymentPlanNote: row.paymentPlanNote.trim() || null,
+      })),
+    };
+  }
+
   const createMutation = useMutation({
-    mutationFn: () =>
-      createSetTemplate({
-        name: name.trim(),
-        brand: brand.trim() || null,
-        imageUrl,
-        displayOrder: nextOrder,
-        items: filledItems.map((row) => ({
-          itemName: row.itemName.trim(),
-          quantity: Number(row.quantity),
-          estimatedSeparatePrice: toNumberOrNull(row.separatePrice),
-          note: row.note.trim() || null,
-        })),
-        prices: prices.map((row) => ({
-          priceType: row.priceType,
-          storeName: row.storeName.trim() || null,
-          cashPrice: toNumberOrNull(row.cashPrice),
-          installmentCount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentCount) : null,
-          installmentAmount: row.priceType === "TAKSITLI" ? toNumberOrNull(row.installmentAmount) : null,
-          paymentPlanNote: row.paymentPlanNote.trim() || null,
-        })),
-      }),
-    onSuccess: onCreated,
+    mutationFn: (payload: CreateSetTemplatePayload) =>
+      editing ? updateSetTemplate(editing.id, payload) : createSetTemplate(payload),
+    onSuccess: (_saved, payload) => {
+      if (aiJobId) reportAiOutcome(aiJobId, payload);
+      onCreated();
+    },
   });
 
   function updateItem(key: number, patch: Partial<ItemRow>) {
@@ -394,14 +455,15 @@ function SetTemplateForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || filledItems.length === 0) return;
-    createMutation.mutate();
+    createMutation.mutate(buildPayload());
   }
 
   return (
     <form className={`card ${styles.form}`} onSubmit={handleSubmit}>
-      <h3 className={styles.formTitle}>Yeni set</h3>
+      <h3 className={styles.formTitle}>{editing ? "Seti düzenle" : "Yeni set"}</h3>
 
-      <SetAiFill imageUrl={imageUrl} onFill={fillFromSuggestion} onFileChosen={uploadImage} />
+      {/* AI isteği yeni set formuna bağlı (SET_JOB_KEY); düzenlerken alanlar elle değiştirilir. */}
+      {!editing && <SetAiFill imageUrl={imageUrl} onFill={fillFromSuggestion} onFileChosen={uploadImage} />}
 
       <div className="form-grid">
         <div className="field">
@@ -633,7 +695,7 @@ function SetTemplateForm({
             !name.trim() || filledItems.length === 0 || createMutation.isPending || imageUploadMutation.isPending
           }
         >
-          {createMutation.isPending ? "Kaydediliyor..." : "Seti kaydet"}
+          {createMutation.isPending ? "Kaydediliyor..." : editing ? "Değişiklikleri kaydet" : "Seti kaydet"}
         </button>
       </div>
     </form>
@@ -650,7 +712,7 @@ function SetAiFill({
   onFileChosen,
 }: {
   imageUrl: string | null;
-  onFill: (suggestion: SetTemplateSuggestion, jobImageUrl: string | null) => void;
+  onFill: (suggestion: SetTemplateSuggestion, jobImageUrl: string | null, jobId: string) => void;
   onFileChosen: (file: File) => void;
 }) {
   const location = useLocation();
@@ -680,7 +742,7 @@ function SetAiFill({
   useEffect(() => {
     if (!job || isJobActive(job)) return;
     if (job.status === "DONE" && job.result) {
-      onFill(job.result as SetTemplateSuggestion, job.imageUrl ?? null);
+      onFill(job.result as SetTemplateSuggestion, job.imageUrl ?? null, job.jobId);
       setOutcome({ kind: "filled" });
     } else if (job.status === "EMPTY") {
       setOutcome({ kind: "empty" });
@@ -765,7 +827,15 @@ function SetAiFill({
   );
 }
 
-function SetTemplateDetail({ set, onDeleted }: { set: SetTemplate; onDeleted: () => void }) {
+function SetTemplateDetail({
+  set,
+  onEdit,
+  onDeleted,
+}: {
+  set: SetTemplate;
+  onEdit: () => void;
+  onDeleted: () => void;
+}) {
   const deleteMutation = useMutation({
     mutationFn: () => deleteSetTemplate(set.id),
     onSuccess: onDeleted,
@@ -830,6 +900,9 @@ function SetTemplateDetail({ set, onDeleted }: { set: SetTemplate; onDeleted: ()
       {set.canDelete && (
         <div className={styles.dangerZone}>
           {deleteMutation.isError && <p className="error-text">Set silinemedi.</p>}
+          <button type="button" className="btn btn-secondary" onClick={onEdit}>
+            ✎ Seti düzenle
+          </button>
           <button
             type="button"
             className="btn btn-danger-ghost"

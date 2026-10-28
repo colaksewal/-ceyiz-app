@@ -50,6 +50,17 @@ public class SetTemplateController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(new AiJobStartedResponse(jobId));
     }
 
+    // Seti, parçalarını ve fiyatlarını formdaki haliyle baştan yazar.
+    @PutMapping("/{setTemplateId}")
+    public ResponseEntity<SetTemplateResponse> updateSetTemplate(
+            @PathVariable UUID setTemplateId,
+            @RequestBody CreateSetTemplateRequest request,
+            Authentication authentication
+    ) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(setTemplateService.updateSetTemplate(userId, setTemplateId, request));
+    }
+
     @DeleteMapping("/{setTemplateId}")
     public ResponseEntity<Void> deleteSetTemplate(
             @PathVariable UUID setTemplateId,

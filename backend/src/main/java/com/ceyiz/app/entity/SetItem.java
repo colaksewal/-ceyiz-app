@@ -39,4 +39,8 @@ public class SetItem {
         this.quantity = quantity;
         this.estimatedIndividualPrice = estimatedIndividualPrice;
     }
+
+    public void linkTo(UUID productId) {
+        this.productId = productId;
+    }
 }

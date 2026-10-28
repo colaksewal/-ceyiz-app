@@ -17,13 +17,22 @@ public class Category {
     @Column(name= "list_id", nullable = false)
     private UUID listId;
 
+    // Alt kategorilerde üst kategorinin kimliği; üst kategoride null. Sadece tek seviye var.
+    @Column(name = "parent_id")
+    private UUID parentId;
+
     @Column(nullable = false)
     private String name;
 
     protected Category() {}
 
     public Category(UUID listId, String name){
+        this(listId, null, name);
+    }
+
+    public Category(UUID listId, UUID parentId, String name){
         this.listId = listId;
+        this.parentId = parentId;
         this.name = name;
     }
 

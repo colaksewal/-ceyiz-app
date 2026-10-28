@@ -1,0 +1,65 @@
+@use "../styles/variables" as *;
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  padding: $space-3;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.sectionOff {
+  opacity: 0.55;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+
+  input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid $color-border-strong;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+
+  @media (max-width: $breakpoint-sm) {
+    font-size: 16px;
+  }
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $color-text-muted;
+}
+
+.keepRow {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+
+  input {
+    flex-shrink: 0;
+  }
+}
+
+.keepTag {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: $color-text-muted;
+}

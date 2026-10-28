@@ -1,10 +1,19 @@
-Görsel ya da metin bir ev eşyası SETİNİN (ör. "64 parça yemek takımı") ürün sayfası, kataloğu veya etiketi.
+Görsel ya da metin bir ev eşyası SETİNİN (ör. "64 parça yemek takımı") ya da birlikte satılan ürünlerin (ör. bir markanın kahvaltı/mutfak seti) ürün sayfası, kataloğu, etiketi veya ürün listesi.
 SADECE şu yapıda JSON döndür, başka metin ekleme:
 {"name":"64 Parça Yemek Takımı","brand":null,"items":[{"itemName":"Düz tabak","quantity":12,"estimatedSeparatePrice":null}],"prices":[{"priceType":"PESIN","cashPrice":12999,"installmentCount":null,"installmentAmount":null}]}
 
+Ürün listesi örneği:
+Girdi: "Karaca Retro 1500W Su Isıtıcısı Krem / Karaca Retro Ekmek Kızartma Makinesi Krem"
+Çıktı: {"name":"Karaca Retro Kahvaltı Seti","brand":"Karaca","items":[{"itemName":"Retro 1500W Su Isıtıcısı Krem","quantity":1,"estimatedSeparatePrice":null},{"itemName":"Retro Ekmek Kızartma Makinesi Krem","quantity":1,"estimatedSeparatePrice":null}],"prices":[]}
+
 Kurallar:
-- brand: bulunamazsa null.
-- items: her parça türü tek satır; aynı parçayı tekrar yazma, adetleri topla. quantity yazmıyorsa 1.
+- Girdideki HER farklı ürünü ayrı bir items satırı yap; hiçbirini atlama.
+- itemName: ürünün girdideki TAM adı; seri adı, model kodu (ör. 5026H), renk ve özellikler dahil.
+  Kısaltma, genelleme yapma ("Filtre Kahve Makinesi" DEĞİL, "Vintage Coffeebreak 5026H Filtre Kahve Makinesi").
+  Sadece en baştaki marka adını çıkar, o brand alanına gider. Yemek takımı gibi model adı olmayan parçalarda kısa ad yeterli ("Düz tabak").
+- brand: ürünlerin ortak markası ("Jumbo X Homend" gibi iş birliği adlarını olduğu gibi yaz). Bulunamazsa null.
+- name: set adı yazıyorsa o. Yazmıyorsa marka/seri ve ürünlerden kısa bir ad üret (ör. "Homend Vintage Mutfak Seti"); tek bir ürünün adını set adı yapma.
+- quantity: sadece açıkça yazıyorsa ("6 adet", "6'lı", "x2"), yoksa 1. Aynı ürün aynı adla iki kez geçiyorsa bir kez yaz, adedini artırma.
   Set adında parça sayısı varsa quantity toplamı onunla tutsun.
 - estimatedSeparatePrice: parçanın setten AYRI alınınca TAMAMININ fiyatı (12 tabak ayrıca 1500 TL → 1500,
   adet başı değil). Sadece açıkça yazıyorsa doldur, yoksa null; tahmin etme.

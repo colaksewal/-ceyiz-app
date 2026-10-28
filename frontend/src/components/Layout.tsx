@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
 import AiJobCenter from "./AiJobCenter";
@@ -9,6 +10,33 @@ export default function Layout() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const clearAiJobs = useAiJobStore((state) => state.clear);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Bir listenin içindeyken (kategoriler, özet, ekip) o listeye ait sayfalar da menüde çıkar.
+  const listId = useMatch("/lists/:listId/*")?.params.listId;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sayfa değişince menü kapanır.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  // Menü açıkken dışına tıklamak ya da Esc menüyü kapatır.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   function handleLogout() {
     // AI işleri kullanıcıya ait; başka biri aynı tarayıcıda giriş yaparsa görünmesin.
@@ -18,43 +46,85 @@ export default function Layout() {
   }
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
-    `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`;
+    `${styles.menuItem} ${isActive ? styles.menuItemActive : ""}`;
 
   return (
     <div>
       <header className={`${styles.header} no-print`}>
-        <Link to="/lists" className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">
-            💍
-          </span>
-          Çeyiz Planlayıcı
-        </Link>
-        {/* Masaüstünde başlıkta, telefonda ekranın altında sabit sekme çubuğu. */}
-        <nav className={styles.nav}>
-          <NavLink to="/lists" end className={navClass}>
-            <span className={styles.navIcon} aria-hidden="true">📋</span>
-            <span>Listelerim</span>
-          </NavLink>
-          <NavLink to="/ceyiz-ekibim" className={navClass}>
-            <span className={styles.navIcon} aria-hidden="true">👥</span>
-            <span>Çeyiz Ekibim</span>
-          </NavLink>
-          <NavLink to="/setler" className={navClass}>
-            <span className={styles.navIcon} aria-hidden="true">🍽</span>
-            <span>Setler</span>
-          </NavLink>
-          {isAdmin && (
-            <NavLink to="/admin/templates" className={navClass}>
-              <span className={styles.navIcon} aria-hidden="true">🧩</span>
-              <span>Şablonlar</span>
-            </NavLink>
-          )}
-        </nav>
-        <button className={`btn btn-secondary ${styles.logout}`} onClick={handleLogout}>
-          Çıkış Yap
-        </button>
+        <div className={styles.headerInner}>
+          <Link to="/lists" className={styles.brand}>
+            <span className={styles.brandMark} aria-hidden="true">
+              💍
+            </span>
+            Çeyiz Planlayıcı
+          </Link>
+          {/* Tüm sayfalar ve Çıkış Yap tek menüde; küçük buton her genişlikte sığar. */}
+          <div className={styles.menu} ref={menuRef}>
+            <button
+              type="button"
+              className={styles.menuButton}
+              aria-label="Menü"
+              aria-haspopup="true"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? "✕" : "☰"}
+            </button>
+            {menuOpen && (
+              <nav className={styles.menuPanel}>
+                {listId && (
+                  <>
+                    <span className={styles.menuSection}>Bu liste</span>
+                    <NavLink to={`/lists/${listId}`} end className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">🗂</span>
+                      Kategoriler
+                    </NavLink>
+                    <NavLink to={`/lists/${listId}/ozet`} className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">📄</span>
+                      Özet ve Ödeme Planı
+                    </NavLink>
+                    <NavLink to={`/lists/${listId}/ceyiz-ekibi`} className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">👥</span>
+                      Çeyiz Ekibi
+                    </NavLink>
+                    <hr className={styles.menuDivider} />
+                  </>
+                )}
+                <NavLink to="/lists" end className={navClass}>
+                  <span className={styles.navIcon} aria-hidden="true">📋</span>
+                  Listelerim
+                </NavLink>
+                <NavLink to="/ceyiz-ekibim" className={navClass}>
+                  <span className={styles.navIcon} aria-hidden="true">👥</span>
+                  Çeyiz Ekibim
+                </NavLink>
+                <NavLink to="/setler" className={navClass}>
+                  <span className={styles.navIcon} aria-hidden="true">🍽</span>
+                  Setler
+                </NavLink>
+                {isAdmin && (
+                  <>
+                    <NavLink to="/admin/templates" className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">🧩</span>
+                      Şablonlar
+                    </NavLink>
+                    <NavLink to="/admin/ai-kayitlari" className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">🤖</span>
+                      AI kayıtları
+                    </NavLink>
+                  </>
+                )}
+                <hr className={styles.menuDivider} />
+                <button type="button" className={`${styles.menuItem} ${styles.logout}`} onClick={handleLogout}>
+                  <span className={styles.navIcon} aria-hidden="true">🚪</span>
+                  Çıkış Yap
+                </button>
+              </nav>
+            )}
+          </div>
+        </div>
       </header>
-      <main className={`page ${styles.main}`}>
+      <main className="page">
         <Outlet />
       </main>
       <AiJobCenter />

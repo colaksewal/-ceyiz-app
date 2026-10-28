@@ -15,21 +15,6 @@
   font-size: 0.9rem;
 }
 
-.headerActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $space-2;
-
-  // Telefonda iki buton yan yana tam genişlik; sığmazsa alt alta.
-  @media (max-width: $breakpoint-sm) {
-    flex-basis: 100%;
-
-    > * {
-      flex: 1 1 auto;
-    }
-  }
-}
-
 .templateCta {
   width: 100%;
   display: flex;
