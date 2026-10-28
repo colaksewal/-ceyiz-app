@@ -59,6 +59,7 @@ public class SetTemplateService {
 
         SetTemplate setTemplate = setTemplateRepository.save(
                 new SetTemplate(request.name().trim(), blankToNull(request.brand()), blankToNull(request.imageUrl()),
+                        LinkUtils.clean(request.url()),
                         request.displayOrder(), userId, user.isAdmin())
         );
         saveItemsAndPrices(setTemplate.getId(), request);
@@ -80,7 +81,8 @@ public class SetTemplateService {
         }
         validateSet(request);
 
-        setTemplate.update(request.name().trim(), blankToNull(request.brand()), blankToNull(request.imageUrl()));
+        setTemplate.update(request.name().trim(), blankToNull(request.brand()), blankToNull(request.imageUrl()),
+                LinkUtils.clean(request.url()));
         setTemplateItemRepository.deleteBySetTemplateId(setTemplateId);
         setTemplatePriceRepository.deleteBySetTemplateId(setTemplateId);
         saveItemsAndPrices(setTemplateId, request);
@@ -103,7 +105,8 @@ public class SetTemplateService {
                     item.quantity(),
                     i,
                     item.estimatedSeparatePrice(),
-                    blankToNull(item.note())
+                    blankToNull(item.note()),
+                    LinkUtils.clean(item.url())
             ));
         }
 

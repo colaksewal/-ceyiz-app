@@ -6,6 +6,7 @@ public record CreateSetTemplateRequest(
         String name,
         String brand,
         String imageUrl,
+        String url,
         int displayOrder,
         List<CreateSetTemplateItemRequest> items,
         List<CreateSetTemplatePriceRequest> prices

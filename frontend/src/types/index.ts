@@ -42,6 +42,8 @@ export interface Product {
   id: string;
   name: string;
   status: ProductStatus;
+  // Ürün sayfası linki.
+  url: string | null;
 }
 
 export type PriceType = "PESIN" | "TAKSITLI" | "ELDEN_KREDI_KARTI";
@@ -81,6 +83,8 @@ export interface SetTemplateItem {
   // O ürünün setten ayrı alınırsa tamamının fiyatı (adetle çarpılmaz).
   estimatedSeparatePrice: number | null;
   note: string | null;
+  // Parçanın ürün sayfası linki.
+  url: string | null;
 }
 
 export interface SetTemplatePrice {
@@ -121,6 +125,8 @@ export interface SetTemplate {
   name: string;
   brand: string | null;
   imageUrl: string | null;
+  // Setin ürün sayfası linki.
+  url: string | null;
   displayOrder: number;
   createdAt: string;
   createdByAdmin: boolean;
@@ -137,6 +143,7 @@ export interface CreateSetTemplatePayload {
   name: string;
   brand: string | null;
   imageUrl: string | null;
+  url: string | null;
   displayOrder: number;
   items: Omit<SetTemplateItem, "id" | "displayOrder">[];
   prices: Omit<SetTemplatePrice, "id" | "displayOrder">[];

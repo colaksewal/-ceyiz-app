@@ -11,7 +11,8 @@ public record SetTemplateItemResponse(
         int quantity,
         int displayOrder,
         BigDecimal estimatedSeparatePrice,
-        String note
+        String note,
+        String url
 ) {
 
     public static SetTemplateItemResponse from(SetTemplateItem item) {
@@ -21,7 +22,8 @@ public record SetTemplateItemResponse(
                 item.getQuantity(),
                 item.getDisplayOrder(),
                 item.getEstimatedSeparatePrice(),
-                item.getNote()
+                item.getNote(),
+                item.getUrl()
         );
     }
 }

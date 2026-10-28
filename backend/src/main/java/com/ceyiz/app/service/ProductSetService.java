@@ -170,10 +170,17 @@ public class ProductSetService {
                     .filter(found -> normalize(found.getName()).equals(normalize(productName)))
                     .findFirst().orElse(null);
             if (product == null) {
-                product = productRepository.save(new Product(target.getId(), productName));
+                product = new Product(target.getId(), productName);
+                product.changeUrl(item.getUrl());
+                product = productRepository.save(product);
                 existing.add(product);
                 created++;
             } else {
+                // Mevcut ürünün linki yoksa parçanın linki eklenir; varsa dokunulmaz.
+                if (product.getUrl() == null && item.getUrl() != null) {
+                    product.changeUrl(item.getUrl());
+                    productRepository.save(product);
+                }
                 linked++;
             }
             setItemRepository.save(new SetItem(
@@ -237,6 +244,11 @@ public class ProductSetService {
         }
         if (added == 0) {
             throw new IllegalArgumentException("Bu set fiyatı bu ürüne zaten eklenmiş");
+        }
+        // Ürünün linki yoksa setin linki ürüne eklenir.
+        if (product.getUrl() == null && template.getUrl() != null) {
+            product.changeUrl(template.getUrl());
+            productRepository.save(product);
         }
         return new AttachSetToProductResponse(productId, product.getName(), added);
     }

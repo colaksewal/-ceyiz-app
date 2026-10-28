@@ -23,6 +23,9 @@ public class SetTemplate {
     @Column(name = "image_url")
     private String imageUrl;
 
+    // Setin ürün sayfası linki (opsiyonel).
+    private String url;
+
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
@@ -39,20 +42,22 @@ public class SetTemplate {
 
     protected SetTemplate() {}
 
-    public SetTemplate(String name, String brand, String imageUrl, int displayOrder,
+    public SetTemplate(String name, String brand, String imageUrl, String url, int displayOrder,
                        UUID createdBy, boolean createdByAdmin) {
         this.name = name;
         this.brand = brand;
         this.imageUrl = imageUrl;
+        this.url = url;
         this.displayOrder = displayOrder;
         this.createdBy = createdBy;
         this.createdByAdmin = createdByAdmin;
     }
 
     // Sahibi, sırası ve oluşturulma zamanı düzenlemede değişmez.
-    public void update(String name, String brand, String imageUrl) {
+    public void update(String name, String brand, String imageUrl, String url) {
         this.name = name;
         this.brand = brand;
         this.imageUrl = imageUrl;
+        this.url = url;
     }
 }

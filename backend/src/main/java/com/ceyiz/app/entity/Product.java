@@ -25,6 +25,9 @@ public class Product {
     @Column(nullable = false)
     private ProductStatus status;
 
+    // Ürün sayfası linki (opsiyonel).
+    private String url;
+
     protected Product(){}
 
     public Product(UUID categoryId, String name){
@@ -33,6 +36,10 @@ public class Product {
         this.name = name;
         this.status = ProductStatus.PLANNED;
 
+    }
+
+    public void changeUrl(String url){
+        this.url = url;
     }
 
     public void rename(String name){

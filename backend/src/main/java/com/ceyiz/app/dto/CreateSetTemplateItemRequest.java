@@ -6,5 +6,6 @@ public record CreateSetTemplateItemRequest(
         String itemName,
         int quantity,
         BigDecimal estimatedSeparatePrice,
-        String note
+        String note,
+        String url
 ) {}

@@ -7,6 +7,7 @@ import { isKitchenCategory } from "../lib/kitchen";
 import { pickCategoryEmoji } from "../lib/listAccent";
 import { isJobActive, useAiJobStore } from "../store/aiJobStore";
 import CategoryAiSuggest from "./CategoryAiSuggest";
+import ExternalLink from "./ExternalLink";
 import CategoryOrganize from "./CategoryOrganize";
 import type { Category, Product, ProductStatus } from "../types";
 import styles from "./CategorySection.module.scss";
@@ -264,13 +265,14 @@ function ProductRow({
 }) {
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(product.name);
+  const [draftUrl, setDraftUrl] = useState(product.url ?? "");
   const queryClient = useQueryClient();
   const productsKey = ["products", categoryId];
 
   // Sunucunun döndürdüğü ürünü cache'e doğrudan yazıyoruz; liste yeniden çekilmeden
   // durum rozeti ve ilerleme çubuğu anında güncellenir.
   const updateMutation = useMutation({
-    mutationFn: (changes: { name?: string; status?: ProductStatus; categoryId?: string }) =>
+    mutationFn: (changes: { name?: string; status?: ProductStatus; categoryId?: string; url?: string }) =>
       updateProduct(product.id, changes),
     onSuccess: (updated, changes) => {
       if (changes.categoryId) {
@@ -297,15 +299,20 @@ function ProductRow({
   function handleRenameSubmit(e: React.FormEvent) {
     e.preventDefault();
     const name = draftName.trim();
-    if (!name || name === product.name) {
+    const url = draftUrl.trim();
+    const changes: { name?: string; url?: string } = {};
+    if (name && name !== product.name) changes.name = name;
+    if (url !== (product.url ?? "")) changes.url = url;
+    if (Object.keys(changes).length === 0) {
       setRenaming(false);
       return;
     }
-    updateMutation.mutate({ name });
+    updateMutation.mutate(changes);
   }
 
   function startRenaming() {
     setDraftName(product.name);
+    setDraftUrl(product.url ?? "");
     setRenaming(true);
   }
 
@@ -328,12 +335,21 @@ function ProductRow({
             autoFocus
             required
           />
+          <input
+            type="url"
+            inputMode="url"
+            aria-label="Ürün linki"
+            placeholder="Link (opsiyonel), https://..."
+            value={draftUrl}
+            onChange={(e) => setDraftUrl(e.target.value)}
+          />
           <button type="submit" disabled={updateMutation.isPending} className="btn btn-primary">
             Kaydet
           </button>
           <button type="button" onClick={() => setRenaming(false)} className="btn btn-ghost">
             Vazgeç
           </button>
+          {updateMutation.isError && <span className="error-text">Kaydedilemedi, linki kontrol et.</span>}
         </form>
       </li>
     );
@@ -351,6 +367,7 @@ function ProductRow({
         </span>
       </Link>
       <div className={styles.productMeta}>
+        {product.url && <ExternalLink url={product.url} />}
         {moveTargets && moveTargets.length > 1 && (
           <select
             aria-label="Ürünü taşı"

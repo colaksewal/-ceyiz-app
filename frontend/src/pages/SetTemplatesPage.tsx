@@ -13,6 +13,7 @@ import { reportAiOutcome } from "../api/aiJobs";
 import type { AiInput } from "../api/aiSuggestions";
 import { resolveUploadUrl, uploadFile } from "../api/uploads";
 import AddSetToList from "../components/AddSetToList";
+import ExternalLink from "../components/ExternalLink";
 import AiWaiting from "../components/AiWaiting";
 import Sheet from "../components/Sheet";
 import { isJobActive, useAiJob, useAiJobStore } from "../store/aiJobStore";
@@ -51,6 +52,7 @@ interface ItemRow {
   quantity: string;
   separatePrice: string;
   note: string;
+  url: string;
 }
 
 interface PriceRow {
@@ -66,7 +68,7 @@ interface PriceRow {
 let nextRowKey = 0;
 
 function emptyItemRow(): ItemRow {
-  return { key: nextRowKey++, itemName: "", quantity: "1", separatePrice: "", note: "" };
+  return { key: nextRowKey++, itemName: "", quantity: "1", separatePrice: "", note: "", url: "" };
 }
 
 function emptyPriceRow(): PriceRow {
@@ -329,6 +331,7 @@ function SetTemplateForm({
 }) {
   const [name, setName] = useState(editing?.name ?? "");
   const [brand, setBrand] = useState(editing?.brand ?? "");
+  const [url, setUrl] = useState(editing?.url ?? "");
   const [imageUrl, setImageUrl] = useState<string | null>(editing?.imageUrl ?? null);
   // Formu dolduran AI işi; set kaydedilince kaydedilen hal bu işe bildirilir (admin ölçümü).
   const [aiJobId, setAiJobId] = useState<string | null>(null);
@@ -340,6 +343,7 @@ function SetTemplateForm({
           quantity: String(item.quantity),
           separatePrice: toInputValue(item.estimatedSeparatePrice),
           note: item.note ?? "",
+          url: item.url ?? "",
         }))
       : [emptyItemRow()]
   );
@@ -388,6 +392,7 @@ function SetTemplateForm({
             quantity: String(item.quantity),
             separatePrice: toInputValue(item.estimatedSeparatePrice),
             note: "",
+            url: "",
           }))
         : [emptyItemRow()]
     );
@@ -419,12 +424,14 @@ function SetTemplateForm({
       name: name.trim(),
       brand: brand.trim() || null,
       imageUrl,
+      url: url.trim() || null,
       displayOrder: nextOrder,
       items: filledItems.map((row) => ({
         itemName: row.itemName.trim(),
         quantity: Number(row.quantity),
         estimatedSeparatePrice: toNumberOrNull(row.separatePrice),
         note: row.note.trim() || null,
+        url: row.url.trim() || null,
       })),
       prices: prices.map((row) => ({
         priceType: row.priceType,
@@ -481,6 +488,16 @@ function SetTemplateForm({
         <div className="field">
           <label>Marka (opsiyonel)</label>
           <input type="text" placeholder="ör. Karaca" value={brand} onChange={(e) => setBrand(e.target.value)} />
+        </div>
+        <div className="field form-grid-full">
+          <label>Ürün linki (opsiyonel)</label>
+          <input
+            type="url"
+            inputMode="url"
+            placeholder="https://..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
         </div>
       </div>
 
@@ -550,6 +567,15 @@ function SetTemplateForm({
               placeholder="Not, ör. orta kalite"
               value={row.note}
               onChange={(e) => updateItem(row.key, { note: e.target.value })}
+            />
+            <input
+              className={styles.itemLink}
+              type="url"
+              inputMode="url"
+              placeholder="Parça linki (opsiyonel), https://..."
+              aria-label="Parça linki"
+              value={row.url}
+              onChange={(e) => updateItem(row.key, { url: e.target.value })}
             />
             <button
               type="button"
@@ -851,6 +877,12 @@ function SetTemplateDetail({
     <div className={styles.detail}>
       {set.imageUrl && <img src={resolveUploadUrl(set.imageUrl)} alt={set.name} className={styles.detailImage} />}
 
+      {set.url && (
+        <p className={styles.detailLink}>
+          Ürün sayfası: <ExternalLink url={set.url} />
+        </p>
+      )}
+
       <ComparisonLine
         setPrice={referenceSetPrice(set.prices)}
         individualTotal={set.individualTotal}
@@ -866,6 +898,7 @@ function SetTemplateDetail({
               <span>
                 <strong>{item.quantity}×</strong> {item.itemName}
                 {item.note && <span className={styles.detailNote}> · {item.note}</span>}
+                {item.url && <ExternalLink url={item.url} />}
               </span>
               {item.estimatedSeparatePrice != null && (
                 <span className="muted">ayrı: {formatTl(item.estimatedSeparatePrice)}</span>

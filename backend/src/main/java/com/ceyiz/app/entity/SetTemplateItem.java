@@ -33,15 +33,19 @@ public class SetTemplateItem {
 
     private String note;
 
+    // Parçanın ürün sayfası linki (opsiyonel).
+    private String url;
+
     protected SetTemplateItem() {}
 
     public SetTemplateItem(UUID setTemplateId, String itemName, int quantity, int displayOrder,
-                           BigDecimal estimatedSeparatePrice, String note) {
+                           BigDecimal estimatedSeparatePrice, String note, String url) {
         this.setTemplateId = setTemplateId;
         this.itemName = itemName;
         this.quantity = quantity;
         this.displayOrder = displayOrder;
         this.estimatedSeparatePrice = estimatedSeparatePrice;
         this.note = note;
+        this.url = url;
     }
 }

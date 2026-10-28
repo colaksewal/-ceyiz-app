@@ -1,0 +1,19 @@
+@use "../styles/variables" as *;
+
+.link {
+  display: inline-block;
+  max-width: 100%;
+  margin-left: 0.4rem;
+  overflow: hidden;
+  vertical-align: bottom;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $color-primary;
+  font-size: 0.8rem;
+  font-style: normal;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

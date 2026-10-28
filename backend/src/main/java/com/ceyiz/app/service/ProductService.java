@@ -43,7 +43,7 @@ public class ProductService {
 
     }
 
-    public Product updateProduct(UUID productId, String name, ProductStatus status, UUID categoryId, UUID requesterId){
+    public Product updateProduct(UUID productId, String name, ProductStatus status, UUID categoryId, String url, UUID requesterId){
 
         if (name != null && name.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ürün adı boş olamaz");
@@ -54,6 +54,7 @@ public class ProductService {
 
         if (name != null) product.rename(name.trim());
         if (status != null) product.changeStatus(status);
+        if (url != null) product.changeUrl(LinkUtils.clean(url));
         if (categoryId != null && !categoryId.equals(product.getCategoryId())) {
             requireSameCategoryFamily(product, categoryId);
             product.moveTo(categoryId);

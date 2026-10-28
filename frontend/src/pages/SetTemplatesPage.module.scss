@@ -195,7 +195,13 @@
 // Masaüstü: Ad | Adet | Ayrı fiyatı | Not | ✕ — telefonda üç satıra bölünür.
 .itemRow {
   grid-template-columns: 2fr 70px 110px 1.5fr 32px;
-  grid-template-areas: "name qty price note remove";
+  grid-template-areas:
+    "name qty price note remove"
+    "link link link link link";
+
+  .itemLink {
+    grid-area: link;
+  }
 
   .itemName {
     grid-area: name;
@@ -222,7 +228,8 @@
     grid-template-areas:
       "name name remove"
       "qty price price"
-      "note note note";
+      "note note note"
+      "link link link";
     padding-bottom: $space-2;
     border-bottom: 1px dashed $color-border;
   }
@@ -398,6 +405,13 @@
   display: flex;
   flex-direction: column;
   gap: $space-4;
+  min-width: 0;
+}
+
+.detailLink {
+  margin: 0;
+  font-size: 0.85rem;
+  color: $color-text-muted;
 }
 
 .detailImage {
@@ -425,6 +439,18 @@
     padding: $space-2 0;
     border-bottom: 1px solid $color-border;
     font-size: 0.9rem;
+
+    // Uzun not ve link satırı taşırmasın: soldaki metin kırılır, sağdaki fiyat sabit kalır.
+    > :first-child {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    > :last-child:not(:first-child) {
+      flex-shrink: 0;
+      text-align: right;
+    }
   }
 }
 

@@ -49,7 +49,7 @@ public class ProductController {
             Authentication authentication
     ) {
         UUID requesterId = UUID.fromString(authentication.getName());
-        var updated = productService.updateProduct(productId, request.name(), request.status(), request.categoryId(), requesterId);
+        var updated = productService.updateProduct(productId, request.name(), request.status(), request.categoryId(), request.url(), requesterId);
         return ResponseEntity.ok(ProductResponse.from(updated));
     }
 
