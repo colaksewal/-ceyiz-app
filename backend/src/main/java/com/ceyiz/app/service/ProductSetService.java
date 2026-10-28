@@ -240,14 +240,14 @@ public class ProductSetService {
                     .filter(found -> normalize(found.getName()).equals(normalize(productName)))
                     .findFirst().orElse(null);
             if (product == null) {
-                product = new Product(target.getId(), productName);
-                product.changeUrl(item.getUrl());
-                product = productRepository.save(product);
+                product = productRepository.save(new Product(target.getId(), productName));
                 existing.add(product);
                 created++;
             } else {
                 linked++;
             }
+            // Parçanın linki ürüne değil bir fiyat notuna yazılır (fiyat sette durduğu için fiyatsız not).
+            addLinkNote(product, item.getUrl(), template.getName(), item.getItemName());
             setItemRepository.save(new SetItem(
                     set.getId(), product.getId(), item.getItemName(), item.getQuantity(), item.getEstimatedSeparatePrice()));
         }
@@ -331,9 +331,7 @@ public class ProductSetService {
                     .filter(found -> normalize(found.getName()).equals(normalize(name)))
                     .findFirst().orElse(null);
             if (product == null) {
-                product = new Product(target.getId(), name);
-                product.changeUrl(item.getUrl());
-                product = productRepository.save(product);
+                product = productRepository.save(new Product(target.getId(), name));
                 created = true;
             }
         }
@@ -395,7 +393,6 @@ public class ProductSetService {
         set = productSetRepository.save(set);
 
         Product product = new Product(target.getId(), productName);
-        product.changeUrl(template.getUrl());
         product.linkToSet(set.getId());
         product = productRepository.save(product);
 
@@ -406,7 +403,23 @@ public class ProductSetService {
             partCount += item.getQuantity();
         }
         int notes = addPriceNotes(product, template, prices, false);
+        if (notes == 0) {
+            // Setin fiyatı girilmemişse linki fiyatsız bir not olarak ürüne eklenir.
+            addLinkNote(product, template.getUrl(), template.getName(), null);
+        }
         return new AddSetAsProductResponse(product.getId(), product.getName(), partCount, notes);
+    }
+
+    // Fiyatı olmayan, sadece link taşıyan fiyat notu (link ürüne değil fiyat notuna ait). Link yoksa ya da aynı not
+    // zaten varsa bir şey yapmaz.
+    private void addLinkNote(Product product, String url, String setName, String partName) {
+        if (url == null) return;
+        String note = "Set: " + setName + (partName == null ? "" : " — " + partName);
+        boolean exists = priceEntryRepository.findByProductId(product.getId()).stream()
+                .anyMatch(entry -> url.equals(entry.getUrl()) && note.equals(entry.getPaymentPlanNote()));
+        if (exists) return;
+        priceEntryRepository.save(new PriceEntry(product.getId(), setName, PriceType.PESIN, null, null, null,
+                note, null, url));
     }
 
     // Setin fiyat(lar)ını ürüne fiyat notu olarak ekler; aynı not tekrar eklenmez. includeContents: not içine parça

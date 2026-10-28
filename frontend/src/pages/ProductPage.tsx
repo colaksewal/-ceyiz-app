@@ -8,7 +8,7 @@ import {
   markAsPreferred,
   updatePriceEntry,
 } from "../api/priceEntries";
-import { getProduct, updateProduct } from "../api/products";
+import { getProduct } from "../api/products";
 import ExternalLink from "../components/ExternalLink";
 import { uploadFile, resolveUploadUrl } from "../api/uploads";
 import type { PriceEntry, PriceType } from "../types";
@@ -42,23 +42,13 @@ export default function ProductPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(emptyForm);
   const queryClient = useQueryClient();
-  // Düzenlenen fiyat notu (aynı anda biri) ve ürün linki düzenleme durumu.
+  // Düzenlenen fiyat notu (aynı anda biri).
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [editingUrl, setEditingUrl] = useState<string | null>(null);
 
   const { data: product } = useQuery({
     queryKey: ["product", productId],
     queryFn: () => getProduct(productId!),
     enabled: !!productId,
-  });
-
-  const urlMutation = useMutation({
-    mutationFn: (url: string) => updateProduct(productId!, { url }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product", productId] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      setEditingUrl(null);
-    },
   });
 
   const { data: entries, isLoading, error } = useQuery({
@@ -130,56 +120,18 @@ export default function ProductPage() {
       </button>
       <h1 className={styles.title}>{product?.name ?? "Fiyat Notları"}</h1>
 
-      {product && (
+      {product && product.partCount > 0 && (
         <section className={`card ${styles.productCard}`}>
-          <div className={styles.productLinkRow}>
-            {editingUrl === null ? (
-              <>
-                {product.url ? <ExternalLink url={product.url} /> : <span className="muted">Ürün linki yok</span>}
-                <button type="button" className="btn btn-ghost" onClick={() => setEditingUrl(product.url ?? "")}>
-                  {product.url ? "✎ Linki düzenle" : "＋ Link ekle"}
-                </button>
-              </>
-            ) : (
-              <form
-                className={styles.urlForm}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  urlMutation.mutate(editingUrl.trim());
-                }}
-              >
-                <input
-                  type="url"
-                  inputMode="url"
-                  autoFocus
-                  aria-label="Ürün linki"
-                  placeholder="https://... (boş bırakırsan link kalkar)"
-                  value={editingUrl}
-                  onChange={(e) => setEditingUrl(e.target.value)}
-                />
-                <button type="submit" className="btn btn-primary" disabled={urlMutation.isPending}>
-                  Kaydet
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={() => setEditingUrl(null)}>
-                  Vazgeç
-                </button>
-              </form>
-            )}
+          <div className={styles.partsBlock}>
+            <strong>🧩 {product.partCount} parça</strong>
+            <ul className={styles.partsList}>
+              {product.parts.map((part, index) => (
+                <li key={`${part.name}-${index}`}>
+                  <strong>{part.quantity}×</strong> {part.name}
+                </li>
+              ))}
+            </ul>
           </div>
-          {urlMutation.isError && <p className="error-text">Link kaydedilemedi, adresi kontrol et.</p>}
-
-          {product.partCount > 0 && (
-            <div className={styles.partsBlock}>
-              <strong>🧩 {product.partCount} parça</strong>
-              <ul className={styles.partsList}>
-                {product.parts.map((part, index) => (
-                  <li key={`${part.name}-${index}`}>
-                    <strong>{part.quantity}×</strong> {part.name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </section>
       )}
 
