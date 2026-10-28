@@ -446,7 +446,7 @@ public class ProductSetService {
                     product.getId(), store, price.getPriceType(), price.getCashPrice(),
                     taksitli ? price.getInstallmentCount() : null,
                     taksitli ? price.getInstallmentAmount() : null,
-                    note, template.getImageUrl()));
+                    note, template.getImageUrl(), template.getUrl()));
             added++;
         }
         return added;
@@ -522,7 +522,8 @@ public class ProductSetService {
                                 entry.getCashPrice() == null ? java.math.BigDecimal.valueOf(-1) : entry.getCashPrice()) == 0);
         if (duplicate) return;
         priceEntryRepository.save(new PriceEntry(product.getId(), template.getName(), PriceType.PESIN,
-                item.getEstimatedSeparatePrice(), null, null, note, null));
+                item.getEstimatedSeparatePrice(), null, null, note, null,
+                item.getUrl() != null ? item.getUrl() : template.getUrl()));
     }
 
     // "c:" anahtarı bu listenin kategorisi olmalı; "n:" anahtarı ekleme başında sunulan yeni hedeflerden biri.

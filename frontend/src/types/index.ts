@@ -66,6 +66,8 @@ export interface PriceEntry {
   photoUrl: string | null;
   visitedAt: string;
   isPreferred: boolean;
+  // Bu fiyatın ürün sayfası linki (mağaza/ödeme planı başına ayrı olabilir).
+  url: string | null;
 }
 
 export interface ProductTemplate {

@@ -41,6 +41,15 @@ public class ProductController {
         return ResponseEntity.ok(productService.toResponses(products));
     }
 
+    @GetMapping("/api/products/{productId}")
+    public ResponseEntity<ProductResponse> getProduct(
+            @PathVariable UUID productId,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(productService.getProduct(productId, requesterId));
+    }
+
     @PatchMapping("/api/products/{productId}")
     public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable UUID productId,

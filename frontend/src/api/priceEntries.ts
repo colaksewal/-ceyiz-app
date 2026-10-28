@@ -9,7 +9,11 @@ export interface CreatePriceEntryPayload {
   installmentAmount: number | null;
   paymentPlanNote: string | null;
   photoUrl: string | null;
+  url: string | null;
 }
+
+// Fiyat notunun düzenlenebilir alanları (fotoğraf ve "kullanılan" işareti düzenlemede değişmez).
+export type UpdatePriceEntryPayload = Omit<CreatePriceEntryPayload, "photoUrl">;
 
 export async function getPriceEntries(productId: string): Promise<PriceEntry[]> {
   const response = await api.get<PriceEntry[]>(`/products/${productId}/price-entries`);
@@ -21,6 +25,11 @@ export async function createPriceEntry(
   payload: CreatePriceEntryPayload
 ): Promise<PriceEntry> {
   const response = await api.post<PriceEntry>(`/products/${productId}/price-entries`, payload);
+  return response.data;
+}
+
+export async function updatePriceEntry(priceEntryId: string, payload: UpdatePriceEntryPayload): Promise<PriceEntry> {
+  const response = await api.put<PriceEntry>(`/price-entries/${priceEntryId}`, payload);
   return response.data;
 }
 

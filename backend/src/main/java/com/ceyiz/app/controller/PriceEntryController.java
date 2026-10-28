@@ -2,6 +2,7 @@ package com.ceyiz.app.controller;
 
 import com.ceyiz.app.dto.CreatePriceEntryRequest;
 import com.ceyiz.app.dto.PriceEntryResponse;
+import com.ceyiz.app.dto.UpdatePriceEntryRequest;
 import com.ceyiz.app.service.PriceEntryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class PriceEntryController {
         var created = priceEntryService.createPriceEntry(
                 productId, request.storeName(), request.priceType(), request.cashPrice(),
                 request.installmentCount(), request.installmentAmount(),
-                request.paymentPlanNote(), request.photoUrl(), requesterId
+                request.paymentPlanNote(), request.photoUrl(), request.url(), requesterId
         );
         return ResponseEntity.ok(PriceEntryResponse.from(created));
     }
@@ -42,6 +43,17 @@ public class PriceEntryController {
                 .map(PriceEntryResponse::from)
                 .toList();
         return ResponseEntity.ok(entries);
+    }
+
+    @PutMapping("/api/price-entries/{priceEntryId}")
+    public ResponseEntity<PriceEntryResponse> updatePriceEntry(
+            @PathVariable UUID priceEntryId,
+            @RequestBody UpdatePriceEntryRequest request,
+            Authentication authentication
+    ) {
+        UUID requesterId = UUID.fromString(authentication.getName());
+        var updated = priceEntryService.updatePriceEntry(priceEntryId, request, requesterId);
+        return ResponseEntity.ok(PriceEntryResponse.from(updated));
     }
 
     @PatchMapping("/api/price-entries/{priceEntryId}/preferred")

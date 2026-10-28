@@ -17,13 +17,14 @@ public record PriceEntryResponse(
         String paymentPlanNote,
         String photoUrl,
         Instant visitedAt,
-        boolean isPreferred
+        boolean isPreferred,
+        String url
 ) {
     public static PriceEntryResponse from(com.ceyiz.app.entity.PriceEntry p) {
         return new PriceEntryResponse(
                 p.getId(), p.getProductId(), p.getStoreName(), p.getPriceType(),
                 p.getCashPrice(), p.getInstallmentCount(), p.getInstallmentAmount(),
-                p.getPaymentPlanNote(), p.getPhotoUrl(), p.getVisitedAt(), p.isPreferred()
+                p.getPaymentPlanNote(), p.getPhotoUrl(), p.getVisitedAt(), p.isPreferred(), p.getUrl()
         );
     }
 }

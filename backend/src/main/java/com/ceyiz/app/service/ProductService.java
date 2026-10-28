@@ -38,6 +38,15 @@ public class ProductService {
                 .toList();
     }
 
+    /** Tek ürün (ürün sayfasının kartı için): adı, linki, durumu ve setten geldiyse parçaları. */
+    public com.ceyiz.app.dto.ProductResponse getProduct(UUID productId, UUID requesterId) {
+        var product = findProduct(productId);
+        var category = categoryRepository.findById(product.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+        listAccessService.requireAtLeastViewer(category.getListId(), requesterId);
+        return toResponse(product);
+    }
+
     public com.ceyiz.app.dto.ProductResponse toResponse(Product product) {
         return toResponses(List.of(product)).get(0);
     }

@@ -11,5 +11,6 @@ public record CreatePriceEntryRequest(
         Integer installmentCount,
         BigDecimal installmentAmount,
         String paymentPlanNote,
-        String photoUrl
+        String photoUrl,
+        String url
 ) {}

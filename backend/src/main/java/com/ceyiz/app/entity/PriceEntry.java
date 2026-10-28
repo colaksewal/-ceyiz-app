@@ -41,6 +41,9 @@ public class PriceEntry {
     @Column(name="photo_url")
     private String photoUrl;
 
+    // Bu fiyatın ürün sayfası linki (mağaza/ödeme planı başına ayrı olabilir).
+    private String url;
+
     @Column(name = "visited_at")
     private Instant visitedAt = Instant.now();
 
@@ -61,6 +64,25 @@ public class PriceEntry {
         this.photoUrl = photoUrl;
     }
 
+
+    public PriceEntry(UUID productId, String storeName, PriceType priceType, BigDecimal cashPrice,
+                      Integer installmentCount, BigDecimal installmentAmount, String paymentPlanNote,
+                      String photoUrl, String url) {
+        this(productId, storeName, priceType, cashPrice, installmentCount, installmentAmount, paymentPlanNote, photoUrl);
+        this.url = url;
+    }
+
+    // Fotoğraf, ziyaret tarihi ve "kullanılan" işareti düzenlemede değişmez.
+    public void update(String storeName, PriceType priceType, BigDecimal cashPrice, Integer installmentCount,
+                       BigDecimal installmentAmount, String paymentPlanNote, String url) {
+        this.storeName = storeName;
+        this.priceType = priceType;
+        this.cashPrice = cashPrice;
+        this.installmentCount = installmentCount;
+        this.installmentAmount = installmentAmount;
+        this.paymentPlanNote = paymentPlanNote;
+        this.url = url;
+    }
 
     public void moveTo(UUID productId) {
         this.productId = productId;

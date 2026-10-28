@@ -1,6 +1,7 @@
 package com.ceyiz.app.service;
 
 
+import com.ceyiz.app.dto.UpdatePriceEntryRequest;
 import com.ceyiz.app.entity.PriceEntry;
 import com.ceyiz.app.entity.PriceType;
 import com.ceyiz.app.repository.CategoryRepository;
@@ -30,6 +31,7 @@ public class PriceEntryService {
                                        BigDecimal installmentAmount,
                                        String paymentPlanNote,
                                        String photoUrl,
+                                       String url,
                                        UUID requesterId){
 
         var product = productRepository.findById(productId)
@@ -42,12 +44,46 @@ public class PriceEntryService {
 
         PriceEntry priceEntry = new PriceEntry(
                 productId,storeName, priceType,cashPrice,
-                installmentCount, installmentAmount, paymentPlanNote, photoUrl);
+                installmentCount, installmentAmount, paymentPlanNote, photoUrl, LinkUtils.clean(url));
 
         return priceEntryRepository.save(priceEntry);
 
 
 
+    }
+
+    /** Fiyat notunu düzenler (mağaza, ödeme tipi, fiyatlar, plan notu, link). Fotoğraf ve "kullanılan" işareti korunur. */
+    public PriceEntry updatePriceEntry(UUID priceEntryId, UpdatePriceEntryRequest request, UUID requesterId) {
+        var priceEntry = priceEntryRepository.findById(priceEntryId)
+                .orElseThrow(() -> new IllegalArgumentException("Fiyat notu bulunamadı"));
+        var product = productRepository.findById(priceEntry.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Ürün bulunamadı"));
+        var category = categoryRepository.findById(product.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Kategori bulunamadı"));
+        listAccessService.requireAtLeastEditor(category.getListId(), requesterId);
+
+        if (request.storeName() == null || request.storeName().isBlank()) {
+            throw new IllegalArgumentException("Mağaza adı boş olamaz");
+        }
+        if (request.priceType() == null) {
+            throw new IllegalArgumentException("Ödeme tipi seçilmeli");
+        }
+        if (isNegative(request.cashPrice()) || isNegative(request.installmentAmount())
+                || (request.installmentCount() != null && request.installmentCount() < 0)) {
+            throw new IllegalArgumentException("Fiyat negatif olamaz");
+        }
+        boolean installment = request.priceType() == PriceType.TAKSITLI;
+        String note = request.paymentPlanNote() == null || request.paymentPlanNote().isBlank()
+                ? null : request.paymentPlanNote().strip();
+        priceEntry.update(request.storeName().strip(), request.priceType(), request.cashPrice(),
+                installment ? request.installmentCount() : null,
+                installment ? request.installmentAmount() : null,
+                note, LinkUtils.clean(request.url()));
+        return priceEntryRepository.save(priceEntry);
+    }
+
+    private static boolean isNegative(java.math.BigDecimal value) {
+        return value != null && value.signum() < 0;
     }
 
     @Transactional

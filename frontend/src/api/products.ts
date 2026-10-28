@@ -6,6 +6,12 @@ export async function getProducts(categoryId: string): Promise<Product[]> {
   return response.data;
 }
 
+// Tek ürün: adı, linki, durumu ve setten geldiyse parçaları (ürün sayfasının kartı için).
+export async function getProduct(productId: string): Promise<Product> {
+  const response = await api.get<Product>(`/products/${productId}`);
+  return response.data;
+}
+
 export async function createProduct(categoryId: string, name: string): Promise<Product> {
   const response = await api.post<Product>(`/categories/${categoryId}/products`, { name });
   return response.data;
