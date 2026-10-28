@@ -163,3 +163,8 @@
 .pill {
   border-radius: 999px;
 }
+
+// Alt kategori şablonu üst kategorinin altında girintili görünür.
+.child {
+  margin-left: $space-4;
+}

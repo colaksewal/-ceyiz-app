@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getPendingProposalCount } from "../api/templateProposals";
 import { useAiJobStore } from "../store/aiJobStore";
 import { useAuthStore } from "../store/authStore";
 import AiJobCenter from "./AiJobCenter";
@@ -17,6 +19,13 @@ export default function Layout() {
   // Bir listenin içindeyken (kategoriler, özet, ekip) o listeye ait sayfalar da menüde çıkar.
   const listId = useMatch("/lists/:listId/*")?.params.listId;
   const [menuOpen, setMenuOpen] = useState(false);
+  // Admin menüsünde bekleyen şablon önerisi sayısı (dakikada bir tazelenir).
+  const { data: pendingProposals } = useQuery({
+    queryKey: ["pendingProposals"],
+    queryFn: getPendingProposalCount,
+    enabled: isAdmin,
+    refetchInterval: 60_000,
+  });
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Sayfa değişince menü kapanır.
@@ -111,6 +120,10 @@ export default function Layout() {
                     <NavLink to="/admin/templates" className={navClass}>
                       <span className={styles.navIcon} aria-hidden="true">🧩</span>
                       Şablonlar
+                    </NavLink>
+                    <NavLink to="/admin/oneriler" className={navClass}>
+                      <span className={styles.navIcon} aria-hidden="true">📥</span>
+                      Şablon önerileri{pendingProposals ? ` (${pendingProposals})` : ""}
                     </NavLink>
                     <NavLink to="/admin/ai-kayitlari" className={navClass}>
                       <span className={styles.navIcon} aria-hidden="true">🤖</span>

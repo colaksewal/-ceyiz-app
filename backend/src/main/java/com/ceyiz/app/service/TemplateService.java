@@ -60,14 +60,28 @@ public class TemplateService {
     public void applyTemplatesToList(UUID listId, UUID requesterId) {
         listAccessService.requireAtLeastEditor(listId, requesterId);
 
-        for (CategoryTemplate categoryTemplate : categoryTemplateRepository.findAllByOrderByDisplayOrder()) {
+        // Önce üst şablonlar, sonra alt şablonlar (alt kategori üst kategorinin altına açılır).
+        List<CategoryTemplate> all = categoryTemplateRepository.findAllByOrderByDisplayOrder();
+        java.util.Map<UUID, Category> created = new java.util.HashMap<>();
+        for (CategoryTemplate categoryTemplate : all) {
+            if (categoryTemplate.getParentId() != null) continue;
             Category category = categoryRepository.save(new Category(listId, categoryTemplate.getName()));
+            created.put(categoryTemplate.getId(), category);
+            addProducts(categoryTemplate, category);
+        }
+        for (CategoryTemplate categoryTemplate : all) {
+            if (categoryTemplate.getParentId() == null) continue;
+            Category parent = created.get(categoryTemplate.getParentId());
+            if (parent == null) continue;
+            Category category = categoryRepository.save(new Category(listId, parent.getId(), categoryTemplate.getName()));
+            addProducts(categoryTemplate, category);
+        }
+    }
 
-            List<ProductTemplate> productTemplates =
-                    productTemplateRepository.findByCategoryTemplateIdOrderByDisplayOrder(categoryTemplate.getId());
-            for (ProductTemplate productTemplate : productTemplates) {
-                productRepository.save(new Product(category.getId(), productTemplate.getName()));
-            }
+    private void addProducts(CategoryTemplate categoryTemplate, Category category) {
+        for (ProductTemplate productTemplate :
+                productTemplateRepository.findByCategoryTemplateIdOrderByDisplayOrder(categoryTemplate.getId())) {
+            productRepository.save(new Product(category.getId(), productTemplate.getName()));
         }
     }
 

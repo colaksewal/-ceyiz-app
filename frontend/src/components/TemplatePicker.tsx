@@ -5,7 +5,7 @@ import { getAllTemplates } from "../api/templates";
 import { createCategory } from "../api/categories";
 import { createProduct, getProducts } from "../api/products";
 import { pickCategoryEmoji, pickTileColor } from "../lib/listAccent";
-import type { Category } from "../types";
+import type { Category, CategoryTemplate } from "../types";
 import styles from "./TemplatePicker.module.scss";
 
 function normalize(name: string): string {
@@ -30,12 +30,39 @@ export default function TemplatePicker({
     queryFn: getAllTemplates,
   });
 
-  const existingByName = new Map(existingCategories.map((c) => [normalize(c.name), c]));
+  // Şablonlar ve liste kategorileri tek seviyeli ağaçtır: alt kategori "üst|ad" anahtarıyla eşleşir.
+  const templateById = new Map((templates ?? []).map((t) => [t.id, t]));
+  const categoryById = new Map(existingCategories.map((c) => [c.id, c]));
+
+  function parentOf(template: CategoryTemplate): CategoryTemplate | undefined {
+    return template.parentId ? templateById.get(template.parentId) : undefined;
+  }
+
+  function keyOfTemplate(template: CategoryTemplate): string {
+    const parent = parentOf(template);
+    return `${parent ? normalize(parent.name) : ""}|${normalize(template.name)}`;
+  }
+
+  const existingByKey = new Map<string, Category>(
+    existingCategories.map((c): [string, Category] => {
+      const parent = c.parentId ? categoryById.get(c.parentId) : undefined;
+      return [`${parent ? normalize(parent.name) : ""}|${normalize(c.name)}`, c];
+    })
+  );
+
+  function existingFor(template: CategoryTemplate): Category | undefined {
+    return existingByKey.get(keyOfTemplate(template));
+  }
+
+  // Üst şablon, hemen ardından alt şablonları (liste sırası bozulmaz).
+  const ordered = (templates ?? [])
+    .filter((t) => !t.parentId)
+    .flatMap((t) => [t, ...(templates ?? []).filter((child) => child.parentId === t.id)]);
 
   // Şablonla aynı adı taşıyan liste kategorilerinin ürünlerini çekiyoruz ki zaten olanları
   // işaretleyebilelim. ["products", id] cache'ini paylaşır.
   const matchedIds = (templates ?? [])
-    .map((t) => existingByName.get(normalize(t.name))?.id)
+    .map((t) => existingFor(t)?.id)
     .filter((id): id is string => !!id);
 
   const { data: existingProducts, isLoading: existingLoading } = useQuery({
@@ -55,8 +82,8 @@ export default function TemplatePicker({
     },
   });
 
-  function isAlreadyInList(templateCategoryName: string, productName: string): boolean {
-    const category = existingByName.get(normalize(templateCategoryName));
+  function isAlreadyInList(template: CategoryTemplate, productName: string): boolean {
+    const category = existingFor(template);
     if (!category) return false;
     return existingProducts?.get(category.id)?.has(normalize(productName)) ?? false;
   }
@@ -81,7 +108,7 @@ export default function TemplatePicker({
     if (!templates || !existingProducts) return;
     setSelected(
       new Set(
-        templates.flatMap((t) => t.products.filter((p) => !isAlreadyInList(t.name, p.name)).map((p) => p.id))
+        templates.flatMap((t) => t.products.filter((p) => !isAlreadyInList(t, p.name)).map((p) => p.id))
       )
     );
     // isAlreadyInList templates/existingProducts'tan türüyor, ayrıca bağımlılık gerekmez.
@@ -116,14 +143,31 @@ export default function TemplatePicker({
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!templates) return;
+      // Kategori listede yoksa açılır; alt kategorinin üst kategorisi de (ürün seçilmemiş olsa bile) açılır. Aynı
+      // üst kategori paralel isteklerde iki kez açılmasın diye açılan kategoriler şablon kimliğiyle paylaşılır.
+      const opening = new Map<string, Promise<string>>();
+      function ensureCategory(template: CategoryTemplate): Promise<string> {
+        const existing = existingFor(template);
+        if (existing) return Promise.resolve(existing.id);
+        let pending = opening.get(template.id);
+        if (!pending) {
+          pending = (async () => {
+            const parent = parentOf(template);
+            const parentId = parent ? await ensureCategory(parent) : undefined;
+            return (await createCategory(listId, template.name, parentId)).id;
+          })();
+          opening.set(template.id, pending);
+        }
+        return pending;
+      }
+
       // İstekler paralel gider — her biri ~150ms sürdüğü için sırayla göndermek çok yavaş.
       await Promise.all(
         templates.map(async (template) => {
           const chosenProducts = template.products.filter((p) => selected.has(p.id));
           if (chosenProducts.length === 0) return;
 
-          const categoryId =
-            existingByName.get(normalize(template.name))?.id ?? (await createCategory(listId, template.name)).id;
+          const categoryId = await ensureCategory(template);
           await Promise.all(chosenProducts.map((product) => createProduct(categoryId, product.name)));
           queryClient.invalidateQueries({ queryKey: ["products", categoryId] });
         })
@@ -143,23 +187,23 @@ export default function TemplatePicker({
   }
 
   const newCategoryCount = templates.filter(
-    (t) => !existingByName.has(normalize(t.name)) && t.products.some((p) => selected.has(p.id))
+    (t) => !existingFor(t) && t.products.some((p) => selected.has(p.id))
   ).length;
 
   return (
     <div className={styles.picker}>
-      {templates.map((template) => {
-        const selectable = template.products.filter((p) => !isAlreadyInList(template.name, p.name));
+      {ordered.map((template) => {
+        const selectable = template.products.filter((p) => !isAlreadyInList(template, p.name));
         const selectableIds = selectable.map((p) => p.id);
         const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
-        const inList = existingByName.has(normalize(template.name));
+        const inList = !!existingFor(template);
         const isOpen = expanded.has(template.id);
         const selectedCount = selectableIds.filter((id) => selected.has(id)).length;
 
         return (
           <div
             key={template.id}
-            className={`${styles.category} ${isOpen ? styles.categoryOpen : ""}`}
+            className={`${styles.category} ${isOpen ? styles.categoryOpen : ""} ${template.parentId ? styles.child : ""}`}
             style={{ "--tile": pickTileColor(template.name) } as CSSProperties}
           >
             <div className={styles.categoryHeader}>
@@ -199,7 +243,7 @@ export default function TemplatePicker({
             {isOpen && (
               <div className={styles.chips}>
                 {template.products.map((product) => {
-                  if (isAlreadyInList(template.name, product.name)) {
+                  if (isAlreadyInList(template, product.name)) {
                     return (
                       <span key={product.id} className={`${styles.chip} ${styles.chipDone}`}>
                         ✓ {product.name}

@@ -1,0 +1,109 @@
+@use "../styles/variables" as *;
+
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.hint {
+  margin: 0;
+  color: $color-text-muted;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  > span {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: $color-text-muted;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid $color-border-strong;
+    border-radius: $radius-sm;
+    background: $color-surface;
+    color: $color-text;
+    font: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 3px rgba($color-primary, 0.15);
+    }
+  }
+}
+
+.success {
+  margin: 0;
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  background: rgba($color-primary, 0.08);
+  font-size: 0.9rem;
+}
+
+.mine {
+  h4 {
+    margin: 0 0 $space-2;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    padding: $space-2 0;
+    border-bottom: 1px solid $color-border;
+    font-size: 0.9rem;
+  }
+}
+
+.mineRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $space-3;
+  flex-wrap: wrap;
+}
+
+.status {
+  flex-shrink: 0;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: $color-surface-muted;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusPUBLISHED {
+  background: rgba(46, 160, 100, 0.15);
+  color: #1d7a4a;
+}
+
+.statusREJECTED {
+  background: rgba(200, 60, 60, 0.12);
+  color: #a33232;
+}
+
+.adminNote {
+  margin: $space-1 0 0;
+  color: $color-text-muted;
+  font-size: 0.82rem;
+}

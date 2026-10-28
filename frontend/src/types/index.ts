@@ -80,7 +80,35 @@ export interface CategoryTemplate {
   id: string;
   name: string;
   displayOrder: number;
+  // Alt kategori şablonunda üst şablonun kimliği, üst şablonda null (tek seviye).
+  parentId: string | null;
   products: ProductTemplate[];
+}
+
+// Kullanıcının "listemi şablon olarak öner" ile gönderdiği öneri: gönderildiği andaki liste (kategoriler, alt
+// kategoriler, ürün adları). Admin inceler, düzenleyerek yayınlar ya da reddeder.
+export interface ProposalCategory {
+  name: string;
+  products: string[];
+  children: ProposalCategory[];
+}
+
+export interface TemplateProposal {
+  id: string;
+  title: string;
+  note: string | null;
+  status: "PENDING" | "PUBLISHED" | "REJECTED";
+  adminNote: string | null;
+  submittedByName: string;
+  createdAt: string;
+  reviewedAt: string | null;
+  productCount: number;
+  categories: ProposalCategory[];
+}
+
+export interface PublishProposalResult {
+  addedCategories: number;
+  addedProducts: number;
 }
 
 export interface SetTemplateItem {

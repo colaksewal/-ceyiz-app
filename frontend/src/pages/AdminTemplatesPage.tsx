@@ -93,7 +93,10 @@ export default function AdminTemplatesPage() {
     return <Navigate to="/lists" replace />;
   }
 
-  const existingNames = new Set(categories?.map((c) => normalize(c.name)));
+  // Alt kategori şablonları üst şablonun detayında gösterilir; kutular sadece üst şablonlar.
+  const topLevel = categories?.filter((c) => !c.parentId) ?? [];
+  const childrenOf = (id: string) => categories?.filter((c) => c.parentId === id) ?? [];
+  const existingNames = new Set(topLevel.map((c) => normalize(c.name)));
   const missingPresets = PRESET_CATEGORIES.filter((p) => !existingNames.has(normalize(p)));
   const openCategory = categories?.find((c) => c.id === openId) ?? null;
 
@@ -172,7 +175,7 @@ export default function AdminTemplatesPage() {
       <section>
         <div className={styles.sectionHeader}>
           <h2>Kategoriler</h2>
-          {categories && <span className="badge badge-neutral">{categories.length}</span>}
+          {categories && <span className="badge badge-neutral">{topLevel.length}</span>}
         </div>
 
         {isLoading && <p className="muted">Yükleniyor...</p>}
@@ -180,7 +183,7 @@ export default function AdminTemplatesPage() {
 
         {categories && (
           <div className={styles.grid}>
-            {categories.map((category) => (
+            {topLevel.map((category) => (
               <button
                 key={category.id}
                 type="button"
@@ -191,7 +194,11 @@ export default function AdminTemplatesPage() {
                 <span className={styles.tileEmoji}>{pickCategoryEmoji(category.id, category.name)}</span>
                 <span className={styles.tileName}>{category.name}</span>
                 <span className={styles.tileCount}>
-                  {category.products.length === 0 ? "Ürün yok" : `${category.products.length} ürün`}
+                  {(() => {
+                    const total =
+                      category.products.length + childrenOf(category.id).reduce((sum, c) => sum + c.products.length, 0);
+                    return total === 0 ? "Ürün yok" : `${total} ürün`;
+                  })()}
                 </span>
               </button>
             ))}
@@ -211,7 +218,9 @@ export default function AdminTemplatesPage() {
               </span>
               <div>
                 <h2>{openCategory.name}</h2>
-                <span className="muted">{openCategory.products.length} ürün</span>
+                <span className="muted">
+                  {openCategory.products.length + childrenOf(openCategory.id).reduce((sum, c) => sum + c.products.length, 0)} ürün
+                </span>
               </div>
             </div>
           )
@@ -221,6 +230,7 @@ export default function AdminTemplatesPage() {
           <CategoryDetail
             key={openCategory.id}
             category={openCategory}
+            subTemplates={childrenOf(openCategory.id)}
             onChanged={invalidate}
             onDeleted={() => {
               setOpenId(null);
@@ -286,10 +296,13 @@ function NewCategoryTile({ nextOrder, onCreated }: { nextOrder: number; onCreate
 
 function CategoryDetail({
   category,
+  subTemplates,
   onChanged,
   onDeleted,
 }: {
   category: CategoryTemplate;
+  // Bu şablonun alt kategori şablonları (ör. Mutfak > Pişirme).
+  subTemplates: CategoryTemplate[];
   onChanged: () => void;
   onDeleted: () => void;
 }) {
@@ -311,6 +324,11 @@ function CategoryDetail({
   const deleteCategoryMutation = useMutation({
     mutationFn: () => deleteCategoryTemplate(category.id),
     onSuccess: onDeleted,
+  });
+
+  const deleteSubMutation = useMutation({
+    mutationFn: (subId: string) => deleteCategoryTemplate(subId),
+    onSuccess: onChanged,
   });
 
   function handleDeleteCategory() {
@@ -338,10 +356,45 @@ function CategoryDetail({
             </button>
           </span>
         ))}
-        {category.products.length === 0 && (
+        {category.products.length === 0 && subTemplates.length === 0 && (
           <p className="muted">Henüz ürün yok. Aşağıdan elle ekle ya da AI'dan öneri al.</p>
         )}
       </div>
+
+      {subTemplates.map((sub) => (
+        <div key={sub.id}>
+          <h4>
+            {sub.name} <span className="muted">· {sub.products.length} ürün</span>{" "}
+            <button
+              type="button"
+              className="btn btn-danger-ghost"
+              disabled={deleteSubMutation.isPending}
+              onClick={() => {
+                if (window.confirm(`"${sub.name}" alt kategorisi ve içindeki ${sub.products.length} ürün silinecek. Emin misin?`)) {
+                  deleteSubMutation.mutate(sub.id);
+                }
+              }}
+            >
+              🗑
+            </button>
+          </h4>
+          <div className={styles.chips}>
+            {sub.products.map((product) => (
+              <span key={product.id} className={styles.chip}>
+                {product.name}
+                <button
+                  type="button"
+                  className={styles.chipRemove}
+                  aria-label={`${product.name} sil`}
+                  onClick={() => deleteProductMutation.mutate(product.id)}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
 
       <form
         className={styles.addRow}
